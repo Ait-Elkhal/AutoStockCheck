@@ -1,0 +1,102 @@
+# ============================================
+# PRÉREQUIS SYSTÈME (à installer avant)
+# ============================================
+# Node.js et npm (pour n8n)
+# - Node.js version 18+ 
+# - npm version 9+
+# 
+# Installation :
+#   npm install n8n -g
+# ============================================
+
+# ============================================
+# WEB FRAMEWORK & API
+# ============================================
+Flask==2.3.3
+Flask-CORS==4.0.0
+Flask-RESTful==0.3.10
+Flask-SocketIO==5.3.4  # Pour du temps réel (chatbot en direct)
+Flask-Mail==0.9.1      # Pour les notifications par email
+
+# ============================================
+# BASE DE DONNÉES
+# ============================================
+SQLAlchemy==2.0.23
+Flask-SQLAlchemy==3.1.1
+Alembic==1.12.1         # Pour les migrations de base de données
+SQLAlchemy-Utils==0.41.1
+
+# ============================================
+# MACHINE LEARNING (Complet)
+# ============================================
+# Core ML
+scikit-learn==1.3.2
+numpy==1.24.3
+pandas==2.1.4
+joblib==1.3.2
+scipy==1.11.4
+
+# Visualisation (POUR LES GRAPHIQUES DU RAPPORT !)
+matplotlib==3.8.2
+seaborn==0.13.0         # Visualisations avancées (plus jolies)
+plotly==5.18.0          # Graphiques interactifs
+
+# Traitement de données
+openpyxl==3.1.2         # Pour lire/exporter Excel
+xlrd==2.0.1             # Pour lire anciens Excel
+XlsxWriter==3.1.9       # Pour créer des Excel
+
+# ============================================
+# NATURAL LANGUAGE PROCESSING (NLP)
+# ============================================
+nltk==3.8.1
+textblob==0.17.1        # Analyse de sentiments simple
+spacy==3.7.2            # NLP avancé (optionnel)
+# python -m spacy download fr_core_news_sm  # Pour le français
+
+# ============================================
+# DEEP LEARNING LÉGER (optionnel, pour aller plus loin)
+# ============================================
+# transformers==4.35.0    # Pour BERT (si vous voulez tenter)
+# torch==2.1.0            # PyTorch (léger ? non, mais puissant)
+# tensorflow==2.14.0      # TensorFlow (lourd, évitez pour l'instant)
+
+# ============================================
+# UTILITAIRES
+# ============================================
+python-dotenv==1.0.0
+requests==2.31.0
+gunicorn==21.2.0
+click==8.1.7             # Pour les scripts en ligne de commande
+tqdm==4.66.1             # Barres de progression
+pyyaml==6.0.1            # Pour fichiers de config YAML
+
+# ============================================
+# TESTS & QUALITÉ
+# ============================================
+pytest==7.4.4
+pytest-cov==4.1.0
+pytest-flask==1.2.0
+black==23.11.0           # Formateur de code
+flake8==6.1.0            # Linter
+mypy==1.7.0              # Vérification de types
+
+# ============================================
+# SÉCURITÉ
+# ============================================
+bcrypt==4.0.1            # Hashage mots de passe
+python-jose==3.3.0       # JWT tokens
+passlib==1.7.4           # Gestion mots de passe
+
+# ============================================
+# API & INTÉGRATIONS
+# ============================================
+email-validator==2.1.0
+httpx==0.25.1            # HTTP client moderne
+websockets==12.0         # Pour WebSockets
+
+# ============================================
+# DÉPLOIEMENT
+# ============================================
+# docker-compose n'est pas un package pip, mais utile
+# whitenoise==6.6.0      # Pour servir fichiers statiques

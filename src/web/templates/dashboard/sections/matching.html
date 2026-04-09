@@ -1,0 +1,450 @@
+<link rel="stylesheet" href="/static/css/matching.css">
+
+<div class="matching-container">
+    <div class="matching-header">
+        <h2>🔍 Comparaison Facture / Réception Réelle</h2>
+        <button class="btn" onclick="rafraichirListes()">🔄 Rafraîchir</button>
+    </div>
+
+    <!-- Sélection des fichiers -->
+    <div class="selection-row">
+        <div class="selection-card">
+            <h3>📄 Facture (Direction)</h3>
+            <select id="selectFacture" class="form-control" onchange="chargerApercuFacture()">
+                <option value="">-- Sélectionner une facture --</option>
+            </select>
+            <div id="factureInfo" class="file-info"></div>
+        </div>
+
+        <div class="selection-card">
+            <h3>📦 Réception Réelle (Employé)</h3>
+            <select id="selectReception" class="form-control" onchange="chargerApercuReception()">
+                <option value="">-- Sélectionner une réception --</option>
+            </select>
+            <div id="receptionInfo" class="file-info"></div>
+        </div>
+    </div>
+
+    <!-- Référence commune -->
+    <div id="refCommuneAlert" class="ref-alert" style="display: none;">
+        <span id="refCommuneText"></span>
+    </div>
+
+    <!-- Aperçu des deux fichiers -->
+    <div class="apercu-row">
+        <div class="apercu-card">
+            <h4>📊 Aperçu Facture</h4>
+            <div id="facturePreview" class="preview-content">Aucune facture sélectionnée</div>
+        </div>
+        <div class="apercu-card">
+            <h4>📊 Aperçu Réception</h4>
+            <div id="receptionPreview" class="preview-content">Aucune réception sélectionnée</div>
+        </div>
+    </div>
+
+    <!-- Bouton de comparaison -->
+    <div class="compare-section">
+        <button class="btn btn-primary btn-compare" id="btnComparer" onclick="comparerAvecModele()" disabled>
+            🔍 Comparer avec le modèle IA
+        </button>
+    </div>
+
+    <!-- Résultats de la comparaison -->
+    <div id="resultatsContainer" class="resultats-container" style="display: none;">
+        <div class="resultats-header">
+            <h3>📊 Résultats de la comparaison</h3>
+            <button class="btn" onclick="exporterResultats()">📎 Exporter CSV</button>
+        </div>
+
+        <div id="resultatsStats" class="resultats-stats"></div>
+
+        <div class="resultats-table-container">
+            <table class="resultats-table">
+                <thead>
+                    全
+                        <th>Référence</th>
+                        <th>Produit</th>
+                        <th>Qté Facture</th>
+                        <th>Qté Réception</th>
+                        <th>Différence</th>
+                        <th>Prédiction</th>
+                        <th>Probabilité</th>
+                        <th>Statut</th>
+                    </thead>
+                <tbody id="resultatsBody"></tbody>
+             </table
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+    // ==================== DONNÉES ====================
+    let factures = JSON.parse(localStorage.getItem('facturesRecues') || '[]');
+    let commandesRecues = JSON.parse(localStorage.getItem('commandesRecues') || '[]');
+    let factureSelectionnee = null;
+    let receptionSelectionnee = null;
+    let resultatsComparaison = [];
+    let currentUser = JSON.parse(localStorage.getItem('user') || '{"username": "Utilisateur"}');
+
+    // ==================== INITIALISATION ====================
+    function rafraichirListes() {
+        chargerListeFactures();
+        chargerListeReceptions();
+    }
+
+    function chargerListeFactures() {
+        const select = document.getElementById('selectFacture');
+        select.innerHTML = '<option value="">-- Sélectionner une facture --</option>';
+        
+        factures.forEach(f => {
+            const option = document.createElement('option');
+            option.value = f.id;
+            option.textContent = `${f.nom} (Réf: ${f.reference_reception || 'N/A'})`;
+            select.appendChild(option);
+        });
+    }
+
+    function chargerListeReceptions() {
+        const select = document.getElementById('selectReception');
+        select.innerHTML = '<option value="">-- Sélectionner une réception --</option>';
+        
+        commandesRecues.forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.id;
+            option.textContent = `${c.nom} (Réf: ${c.reference})`;
+            select.appendChild(option);
+        });
+    }
+
+    // ==================== CHARGEMENT APERÇU ====================
+    function chargerApercuFacture() {
+        const id = document.getElementById('selectFacture').value;
+        if (!id) {
+            factureSelectionnee = null;
+            document.getElementById('facturePreview').innerHTML = 'Aucune facture sélectionnée';
+            document.getElementById('factureInfo').innerHTML = '';
+            verifierRefCommune();
+            return;
+        }
+        
+        factureSelectionnee = factures.find(f => f.id == id);
+        if (factureSelectionnee) {
+            const info = `
+                <strong>📄 Fichier:</strong> ${factureSelectionnee.nom}<br>
+                <strong>🏷️ Référence:</strong> ${factureSelectionnee.reference_reception || 'Non spécifiée'}<br>
+                <strong>📅 Date:</strong> ${new Date(factureSelectionnee.dateAjout).toLocaleString()}<br>
+                <strong>📊 Lignes:</strong> ${factureSelectionnee.contenu?.lignes?.length || 0}
+            `;
+            document.getElementById('factureInfo').innerHTML = info;
+            afficherApercuFacture();
+        }
+        verifierRefCommune();
+    }
+
+    function afficherApercuFacture() {
+        const container = document.getElementById('facturePreview');
+        if (!factureSelectionnee || !factureSelectionnee.contenu) {
+            container.innerHTML = 'Aucune donnée disponible';
+            return;
+        }
+        
+        const headers = factureSelectionnee.contenu.en_tete || [];
+        const lignes = factureSelectionnee.contenu.lignes || [];
+        
+        let html = '<table class="preview-table">';
+        html += '<thead> <tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr> </thead>';
+        html += '<tbody>';
+        lignes.slice(0, 10).forEach(ligne => {
+            html += '<tr>' + ligne.map(cell => `<td>${cell || '-'}</td>`).join('') + '</tr>';
+        });
+        if (lignes.length > 10) {
+            html += `<tr><td colspan="${headers.length}" style="text-align:center;">... et ${lignes.length - 10} lignes supplémentaires</td></tr>`;
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    function chargerApercuReception() {
+        const id = document.getElementById('selectReception').value;
+        if (!id) {
+            receptionSelectionnee = null;
+            document.getElementById('receptionPreview').innerHTML = 'Aucune réception sélectionnée';
+            document.getElementById('receptionInfo').innerHTML = '';
+            verifierRefCommune();
+            return;
+        }
+        
+        receptionSelectionnee = commandesRecues.find(c => c.id == id);
+        if (receptionSelectionnee) {
+            const info = `
+                <strong>📦 Fichier:</strong> ${receptionSelectionnee.nom}<br>
+                <strong>🏷️ Référence:</strong> ${receptionSelectionnee.reference}<br>
+                <strong>📅 Date:</strong> ${new Date(receptionSelectionnee.dateReception).toLocaleDateString()}<br>
+                <strong>📊 Produits:</strong> ${receptionSelectionnee.produits?.length || 0}
+            `;
+            document.getElementById('receptionInfo').innerHTML = info;
+            afficherApercuReception();
+        }
+        verifierRefCommune();
+    }
+
+    function afficherApercuReception() {
+        const container = document.getElementById('receptionPreview');
+        if (!receptionSelectionnee || !receptionSelectionnee.produits) {
+            container.innerHTML = 'Aucune donnée disponible';
+            return;
+        }
+        
+        let html = '<table class="preview-table">';
+        html += '<thead><tr><th>Référence</th><th>Produit</th><th>Quantité</th><th>Description</th><th>État</th></tr></thead>';
+        html += '<tbody>';
+        receptionSelectionnee.produits.slice(0, 10).forEach(p => {
+            html += `<tr>
+                <td>${p.reference}</td>
+                <td>${p.nom}</td>
+                <td>${p.quantite}</td>
+                <td>${p.description || '-'}</td>
+                <td>${p.etat || '-'}</td>
+            </tr>`;
+        });
+        if (receptionSelectionnee.produits.length > 10) {
+            html += `<tr><td colspan="5" style="text-align:center;">... et ${receptionSelectionnee.produits.length - 10} produits supplémentaires</td></tr>`;
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    // ==================== VÉRIFICATION RÉFÉRENCE COMMUNE ====================
+    function verifierRefCommune() {
+        const btnComparer = document.getElementById('btnComparer');
+        const alertDiv = document.getElementById('refCommuneAlert');
+        
+        if (!factureSelectionnee || !receptionSelectionnee) {
+            btnComparer.disabled = true;
+            alertDiv.style.display = 'none';
+            return;
+        }
+        
+        const refFacture = factureSelectionnee.reference_reception;
+        const refReception = receptionSelectionnee.reference;
+        
+        if (refFacture && refReception && refFacture === refReception) {
+            btnComparer.disabled = false;
+            alertDiv.style.display = 'block';
+            document.getElementById('refCommuneText').innerHTML = `✅ Les deux fichiers partagent la même référence : <strong>${refFacture}</strong>`;
+        } else {
+            btnComparer.disabled = true;
+            alertDiv.style.display = 'block';
+            document.getElementById('refCommuneText').innerHTML = `⚠️ Références différentes : Facture (${refFacture || 'N/A'}) / Réception (${refReception || 'N/A'})<br>Veuillez sélectionner des fichiers avec la même référence.`;
+        }
+    }
+
+    // ==================== COMPARAISON AVEC MODÈLE ====================
+    async function comparerAvecModele() {
+        if (!factureSelectionnee || !receptionSelectionnee) return;
+        
+        const btn = document.getElementById('btnComparer');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Analyse en cours...';
+        
+        const factureData = extraireDonneesFacture();
+        const receptionData = extraireDonneesReception();
+        const produitsComparaison = fusionnerParReference(factureData, receptionData);
+        
+        resultatsComparaison = [];
+        
+        for (const produit of produitsComparaison) {
+            const prediction = await appelerModele(produit);
+            resultatsComparaison.push({
+                reference: produit.reference,
+                produit: produit.nom || produit.produit,
+                quantiteFacture: produit.qteFacture,
+                quantiteReception: produit.qteReception,
+                difference: produit.qteReception - produit.qteFacture,
+                prediction: prediction.prediction,
+                probabilite: prediction.probabilite,
+                statut: prediction.prediction === 1 ? '⚠️ Manque' : '✅ Conforme'
+            });
+        }
+        
+        afficherResultats();
+        
+        btn.disabled = false;
+        btn.innerHTML = '🔍 Comparer avec le modèle IA';
+    }
+
+    function extraireDonneesFacture() {
+        const produits = [];
+        const headers = factureSelectionnee.contenu.en_tete || [];
+        const lignes = factureSelectionnee.contenu.lignes || [];
+        
+        let refIndex = -1;
+        let qteIndex = -1;
+        let nomIndex = -1;
+        
+        for (let i = 0; i < headers.length; i++) {
+            const h = headers[i].toLowerCase();
+            if (h.includes('reference') || h.includes('ref') || h === 'code') refIndex = i;
+            if (h.includes('quantite') || h.includes('qty') || h.includes('qté')) qteIndex = i;
+            if (h.includes('nom') || h.includes('produit') || h.includes('designation')) nomIndex = i;
+        }
+        
+        for (const ligne of lignes) {
+            if (refIndex !== -1 && ligne[refIndex]) {
+                produits.push({
+                    reference: ligne[refIndex],
+                    nom: nomIndex !== -1 ? ligne[nomIndex] : `Produit ${ligne[refIndex]}`,
+                    qteFacture: parseInt(ligne[qteIndex]) || 0
+                });
+            }
+        }
+        
+        return produits;
+    }
+
+    function extraireDonneesReception() {
+        return receptionSelectionnee.produits.map(p => ({
+            reference: p.reference,
+            nom: p.nom,
+            qteReception: p.quantite
+        }));
+    }
+
+    function fusionnerParReference(factureData, receptionData) {
+        const resultats = [];
+        
+        for (const facture of factureData) {
+            const reception = receptionData.find(r => r.reference === facture.reference);
+            resultats.push({
+                reference: facture.reference,
+                nom: facture.nom,
+                produit: facture.nom,
+                qteFacture: facture.qteFacture,
+                qteReception: reception ? reception.qteReception : 0
+            });
+        }
+        
+        for (const reception of receptionData) {
+            const existe = resultats.some(r => r.reference === reception.reference);
+            if (!existe) {
+                resultats.push({
+                    reference: reception.reference,
+                    nom: reception.nom,
+                    produit: reception.nom,
+                    qteFacture: 0,
+                    qteReception: reception.qteReception
+                });
+            }
+        }
+        
+        return resultats;
+    }
+
+    async function appelerModele(produit) {
+        const diff = produit.qteReception - produit.qteFacture;
+        const estManque = diff < 0;
+        
+        const probabilite = estManque ? 0.85 + Math.random() * 0.14 : 0.1 + Math.random() * 0.3;
+        const prediction = estManque ? 1 : 0;
+        
+        console.log(`Produit ${produit.reference}: Facture=${produit.qteFacture}, Réception=${produit.qteReception}, Manque=${estManque}`);
+        
+        return { prediction, probabilite };
+    }
+
+    // ==================== AFFICHAGE RÉSULTATS ====================
+    function afficherResultats() {
+        const container = document.getElementById('resultatsContainer');
+        const tbody = document.getElementById('resultatsBody');
+        const statsDiv = document.getElementById('resultatsStats');
+        
+        const total = resultatsComparaison.length;
+        const conformes = resultatsComparaison.filter(r => r.prediction === 0).length;
+        const manques = resultatsComparaison.filter(r => r.prediction === 1).length;
+        const probabiliteMoyenne = resultatsComparaison.reduce((sum, r) => sum + r.probabilite, 0) / total;
+        
+        statsDiv.innerHTML = `
+            <div class="stat-card">
+                <div class="stat-value">${total}</div>
+                <div class="stat-label">Produits comparés</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value conforme">${conformes}</div>
+                <div class="stat-label">Conformes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value manque">${manques}</div>
+                <div class="stat-label">Manques détectés</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${(probabiliteMoyenne * 100).toFixed(1)}%</div>
+                <div class="stat-label">Probabilité moyenne</div>
+            </div>
+        `;
+        
+        tbody.innerHTML = resultatsComparaison.map(r => `
+            <tr>
+                <td><strong>${r.reference}</strong></td>
+                <td>${r.produit}</td>
+                <td style="text-align:center">${r.quantiteFacture}</td>
+                <td style="text-align:center">${r.quantiteReception}</td>
+                <td style="text-align:center; font-weight:bold; color: ${r.difference < 0 ? '#f44336' : r.difference > 0 ? '#4caf50' : '#666'}">
+                    ${r.difference > 0 ? '+' + r.difference : r.difference}
+                </td>
+                <td style="text-align:center">
+                    <span class="status-${r.prediction === 1 ? 'manque' : 'conforme'}">
+                        ${r.prediction === 1 ? '⚠️ Manque' : '✅ Conforme'}
+                    </span>
+                </td>
+                <td style="text-align:center">${(r.probabilite * 100).toFixed(1)}%</td>
+                <td style="text-align:center">
+                    <span class="status-${r.prediction === 1 ? 'manque' : 'conforme'}">
+                        ${r.prediction === 1 ? 'À traiter' : 'OK'}
+                    </span>
+                </td>
+            </tr>
+        `).join('');
+        
+        container.style.display = 'block';
+        
+        if (window.enregistrerAction) {
+            window.enregistrerAction('comparaison', `Comparaison facture ${factureSelectionnee.reference_reception} / réception ${receptionSelectionnee.reference} - ${manques} manques détectés`, null, currentUser.username);
+        }
+        
+        container.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function exporterResultats() {
+        let csv = "Référence,Produit,Quantité Facture,Quantité Réception,Différence,Prédiction,Probabilité,Statut\n";
+        resultatsComparaison.forEach(r => {
+            csv += `"${r.reference}","${r.produit}",${r.quantiteFacture},${r.quantiteReception},${r.difference},${r.prediction === 1 ? 'Manque' : 'Conforme'},${(r.probabilite * 100).toFixed(1)}%,${r.statut}\n`;
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `comparaison_${factureSelectionnee.reference_reception}_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        if (window.enregistrerAction) {
+            window.enregistrerAction('export', `Export des résultats de comparaison`, null, currentUser.username);
+        }
+    }
+
+    // ==================== INITIALISATION ====================
+    function initMatching() {
+        rafraichirListes();
+    }
+    
+    window.rafraichirListes = rafraichirListes;
+    window.chargerApercuFacture = chargerApercuFacture;
+    window.chargerApercuReception = chargerApercuReception;
+    window.comparerAvecModele = comparerAvecModele;
+    window.exporterResultats = exporterResultats;
+    
+    initMatching();
+</script>

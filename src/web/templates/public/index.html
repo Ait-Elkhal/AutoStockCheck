@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoStockCheck - Vérification automatique des commandes</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📦 AutoStockCheck</h1>
+            <p>Plateforme d'automatisation de la vérification des commandes clients</p>
+            <div style="position: absolute; top: 20px; right: 20px;">
+                <a href="/login" class="btn" style="background: white; color: var(--primary);">🔐 Se connecter</a>
+                <a href="/register" class="btn btn-primary" style="margin-left: 10px;">📝 S'inscrire</a>
+            </div>
+        </div>
+
+        <!-- Navigation publique -->
+        <div class="nav-tabs">
+            <button class="nav-btn active" onclick="showTab('presentation')">🏠 Présentation</button>
+            <button class="nav-btn" onclick="showTab('modeles')">🤖 Modèles IA</button>
+            <button class="nav-btn" onclick="showTab('donnees')">📊 Données</button>
+            <button class="nav-btn" onclick="showTab('automatisation')">⚙️ Automatisation</button>
+            <button class="nav-btn" onclick="showTab('contact')">📞 Contact</button>
+        </div>
+
+        <!-- Onglet Présentation -->
+        <div id="presentation" class="tab-content">
+            <div class="card">
+                <div class="card-title">🎯 Objectif de la plateforme</div>
+                <p>AutoStockCheck est une plateforme intelligente d'automatisation de la vérification des commandes clients. Notre solution permet de :</p>
+                <ul style="margin-top: 15px; margin-left: 20px;">
+                    <li>✅ Automatiser la comparaison entre factures clients et stock physique</li>
+                    <li>✅ Détecter automatiquement les manques de stock avec l'IA</li>
+                    <li>✅ Envoyer des rapports automatisés aux clients</li>
+                    <li>✅ Assurer une traçabilité complète des vérifications</li>
+                    <li>✅ Réduire les erreurs humaines et gagner du temps</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🎯 Pour qui ?</div>
+                <div class="row" style="grid-template-columns: repeat(3, 1fr);">
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 3rem;">🏭</div>
+                        <h3>Entrepôts</h3>
+                        <p>Gestion des stocks et vérification des commandes</p>
+                    </div>
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 3rem;">📦</div>
+                        <h3>E-commerce</h3>
+                        <p>Automatisation des expéditions</p>
+                    </div>
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 3rem;">🚚</div>
+                        <h3>Logistique</h3>
+                        <p>Traçabilité et optimisation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglet Modèles IA -->
+        <div id="modeles" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title">🤖 Modèles d'Intelligence Artificielle utilisés</div>
+                <table class="table">
+                    <thead>
+                        <tr><th>Modèle</th><th>Type</th><th>Performance (F1)</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>SVM (Linear)</strong></td><td>Classification</td><td><span class="badge badge-success">1.00</span></td><td>Modèle sélectionné pour la production</td></tr>
+                        <tr><td>Decision Tree</td><td>Classification</td><td><span class="badge badge-success">1.00</span></td><td>Arbre de décision interprétable</td></tr>
+                        <tr><td>Random Forest</td><td>Ensemble</td><td><span class="badge badge-success">0.91</span></td><td>Forêt aléatoire robuste</td></tr>
+                        <tr><td>Neural Network</td><td>Deep Learning</td><td><span class="badge badge-success">1.00</span></td><td>Réseau de neurones profond</td></tr>
+                        <tr><td>Logistic Regression</td><td>Classification</td><td><span class="badge badge-warning">0.65</span></td><td>Modèle linéaire simple</td></tr>
+                        <tr><td>Isolation Forest</td><td>Anomalie</td><td><span class="badge badge-warning">0.25</span></td><td>Détection d'anomalies</td></tr>
+                    </tbody>
+                </table>
+                <p style="margin-top: 15px;"><strong>🏆 Modèle sélectionné : SVM (Linear)</strong> - 100% de précision sur 27 431 échantillons</p>
+            </div>
+        </div>
+
+        <!-- Onglet Données -->
+        <div id="donnees" class="tab-content" style="display: none;">
+            <div class="row">
+                <div class="card">
+                    <div class="card-title">📊 Données d'entraînement</div>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-value">27 431</div><div class="stat-label">Échantillons</div></div>
+                        <div class="stat-card"><div class="stat-value">14</div><div class="stat-label">Features</div></div>
+                        <div class="stat-card"><div class="stat-value">6</div><div class="stat-label">Modèles</div></div>
+                        <div class="stat-card"><div class="stat-value">100%</div><div class="stat-label">Précision</div></div>
+                    </div>
+                    <h3>Distribution des données</h3>
+                    <ul>
+                        <li>✅ 20 015 échantillons conformes (73%)</li>
+                        <li>⚠️ 7 416 échantillons avec manques (27%)</li>
+                        <li>📁 50 fichiers Excel de test</li>
+                        <li>🔬 14 features discriminantes</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="card-title">🔬 Features utilisées</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <span class="badge badge-primary">diff_quantite</span>
+                        <span class="badge badge-primary">produit_absent</span>
+                        <span class="badge badge-primary">quantite_insuffisante</span>
+                        <span class="badge badge-primary">ratio_stock</span>
+                        <span class="badge badge-primary">etat_produit</span>
+                        <span class="badge badge-primary">fiabilite_fournisseur</span>
+                        <span class="badge badge-primary">popularite</span>
+                        <span class="badge badge-primary">saisonnalite</span>
+                        <span class="badge badge-primary">prix</span>
+                        <span class="badge badge-primary">valeur_ligne</span>
+                        <span class="badge badge-primary">produit_cher</span>
+                        <span class="badge badge-primary">diff_x_prix</span>
+                        <span class="badge badge-primary">absent_x_prix</span>
+                        <span class="badge badge-primary">etat_x_popularite</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglet Automatisation -->
+        <div id="automatisation" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title">⚙️ Architecture d'automatisation</div>
+                <pre style="background: #f4f4f4; padding: 15px; border-radius: 10px; overflow-x: auto;">
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Facture Client │────▶│   n8n Webhook   │────▶│  API Flask     │
+│  (Excel/JSON)   │     │  /webhook/api   │     │  /predict      │
+└─────────────────┘     └─────────────────┘     └───────┬─────────┘
+                                                         │
+                                                         ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Rapport Client │◀────│  n8n Workflow   │◀────│  Modèle SVM    │
+│  (Email/PDF)    │     │  (automatique)  │     │  (100% perf)   │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                </pre>
+                <p><strong>🔗 Webhook URL:</strong> <code>http://localhost:5678/webhook/api</code></p>
+                <p><strong>📧 Email responsable stock:</strong> stock.manager@ecu-worldwide.com</p>
+            </div>
+        </div>
+
+        <!-- Onglet Contact -->
+        <div id="contact" class="tab-content" style="display: none;">
+            <div class="row">
+                <div class="card">
+                    <div class="card-title">📞 ECU Worldwide</div>
+                    <p><strong>Siège social:</strong> Casablanca, Maroc</p>
+                    <p><strong>📧 Email:</strong> <a href="mailto:support@autostockcheck.com">support@autostockcheck.com</a></p>
+                    <p><strong>📞 Téléphone:</strong> +212 5 22 12 34 56</p>
+                    <p><strong>🌐 Site web:</strong> <a href="#">www.ecu-worldwide.com</a></p>
+                    <hr>
+                    <p><strong>Support technique:</strong> 24h/24, 7j/7</p>
+                    <p><strong>Service client:</strong> Lun-Ven, 9h-18h</p>
+                </div>
+                <div class="card">
+                    <div class="card-title">📋 Informations légales</div>
+                    <p><strong>ECU Worldwide</strong> est une entreprise leader dans la logistique et le transport de marchandises.</p>
+                    <p>AutoStockCheck est une solution développée pour automatiser la vérification des commandes clients.</p>
+                    <p><strong>Version:</strong> 1.0.0</p>
+                    <p><strong>Dernière mise à jour:</strong> Mars 2026</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer" style="text-align: center; margin-top: 40px; color: white;">
+            <p>© 2026 ECU Worldwide - Tous droits réservés | <a href="/login" style="color: white;">Accès plateforme</a></p>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+            document.getElementById(tabId).style.display = 'block';
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

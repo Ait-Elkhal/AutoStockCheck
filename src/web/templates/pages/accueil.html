@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil - Vérification automatique des commandes{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>📦 AutoStockCheck</h1>
+    <p>La solution intelligente pour vérifier automatiquement vos commandes clients</p>
+    <a href="/register" class="btn-hero">🚀 Commencer maintenant</a>
+</div>
+
+<div class="row">
+    <div class="card">
+        <div class="card-title">🎯 Notre mission</div>
+        <p>AutoStockCheck automatise la vérification entre les factures clients et le stock physique, éliminant les erreurs humaines et accélérant le traitement des commandes.</p>
+        <ul style="margin-top: 15px; margin-left: 20px;">
+            <li>✅ Vérification instantanée</li>
+            <li>✅ Détection automatique des manques</li>
+            <li>✅ Rapports automatisés</li>
+            <li>✅ Traçabilité complète</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📊 Chiffres clés</div>
+        <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+            <div class="stat-card">
+                <div class="stat-value">27k+</div>
+                <div class="stat-label">Échantillons</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">100%</div>
+                <div class="stat-label">Précision</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">6</div>
+                <div class="stat-label">Modèles IA</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">14</div>
+                <div class="stat-label">Features</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">⚙️ Comment ça fonctionne ?</div>
+    <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; text-align: center;">
+        <div><div style="font-size: 2rem;">📄</div><strong>1. Facture client</strong><br>Saisie des données</div>
+        <div><div style="font-size: 2rem;">🏭</div><strong>2. Stock réel</strong><br>Quantités disponibles</div>
+        <div><div style="font-size: 2rem;">🤖</div><strong>3. IA SVM</strong><br>Analyse et prédiction</div>
+        <div><div style="font-size: 2rem;">📧</div><strong>4. Rapport</strong><br>Notification client</div>
+    </div>
+</div>
+{% endblock %}

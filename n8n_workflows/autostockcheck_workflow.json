@@ -1,0 +1,160 @@
+{
+  "name": "AutoStockCheck - Vérification des commandes",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "facture",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-facture",
+      "name": "📄 Facture Client",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "path": "stock",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-stock",
+      "name": "📦 Stock Réel",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 450]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fusionner les données facture et stock\nconst facture = $input.first().json;\nconst stock = $input.all()[1].json;\n\n// Données par défaut\nconst quantiteFacture = facture.quantite || 0;\nconst prix = facture.prix || 0;\nconst reference = facture.reference || stock.reference || \"UNKNOWN\";\nconst clientEmail = facture.client_email || \"client@test.com\";\nconst clientNom = facture.client_nom || \"Client\";\n\nconst quantiteStock = stock.quantite || 0;\nconst etatProduit = stock.etat_produit || 0.95;\nconst popularite = facture.popularite || 0.6;\n\n// Préparer les données\nconst data = {\n  facture: {\n    quantite: quantiteFacture,\n    prix: prix,\n    popularite: popularite\n  },\n  stock: {\n    quantite: quantiteStock,\n    etat_produit: etatProduit\n  },\n  reference: reference,\n  client_email: clientEmail,\n  client_nom: clientNom,\n  quantite_facture: quantiteFacture,\n  quantite_stock: quantiteStock\n};\n\nreturn data;"
+      },
+      "id": "fusion-donnees",
+      "name": "🔗 Fusion Données",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 375]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5000/predict",
+        "authentication": "none",
+        "sendBody": true,
+        "options": {
+          "bodyContentType": "json"
+        }
+      },
+      "id": "api-prediction",
+      "name": "🤖 API Prédiction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 375]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.prediction }}",
+              "operation": "equals",
+              "value2": "1"
+            }
+          ]
+        }
+      },
+      "id": "verification-manque",
+      "name": "⚡ Manque ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 375]
+    },
+    {
+      "parameters": {
+        "toEmail": "={{ $json.client_email }}",
+        "subject": "✅ Commande {{ $json.reference }} - Conforme",
+        "text": "Bonjour {{ $json.client_nom }},\n\nVotre commande {{ $json.reference }} a été vérifiée.\n\n📊 Détails:\n- Quantité: {{ $json.quantite_facture }}\n- Prix: {{ $json.facture.prix }} €\n\n✅ Statut: Commande conforme\n\nCordialement,\nService logistique ECU Worldwide"
+      },
+      "id": "email-conforme",
+      "name": "📧 Email Conforme",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1050, 250]
+    },
+    {
+      "parameters": {
+        "toEmail": "stock.manager@ecu-worldwide.com",
+        "subject": "⚠️ ALERTE - Manque - Commande {{ $json.reference }}",
+        "text": "Bonjour,\n\n⚠️ MANQUE DÉTECTÉ sur la commande {{ $json.reference }}!\n\n📊 Détails:\n- Quantité facturée: {{ $json.quantite_facture }}\n- Quantité stock: {{ $json.quantite_stock }}\n- Différence: {{ $json.quantite_facture - $json.quantite_stock }} unités\n\n🔍 Action: Vérifiez physiquement le stock.\n\nCordialement,\nAutoStockCheck"
+      },
+      "id": "email-alerte",
+      "name": "🚨 Email Alerte Stock",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1050, 500]
+    },
+    {
+      "parameters": {
+        "path": "reponse-employe",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-reponse",
+      "name": "📩 Réponse Employé",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Générer le rapport final pour le client\nconst data = $input.first().json;\nconst original = data.originalData || {};\nconst reponse = data.reponseEmploye || {};\n\nconst manqueConfirme = reponse.manque_confirme === true || \n                       reponse.message?.toLowerCase().includes('manque');\n\nconst rapport = `Bonjour ${original.client_nom || 'Client'},\n\nSuite à votre commande ${original.reference || 'N/A'}:\n\n${reponse.message || 'Le stock a été vérifié.'}\n\n${manqueConfirme ? '⚠️ Un manque a été confirmé. Une solution vous sera proposée.' : '✅ Commande conforme.'}\n\nCordialement,\nECU Worldwide`;\n\nreturn {\n  to: original.client_email || \"client@ecu.com\",\n  subject: `Rapport commande ${original.reference || 'N/A'}`,\n  body: rapport\n};"
+      },
+      "id": "generer-rapport",
+      "name": "📝 Générer Rapport",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 500]
+    },
+    {
+      "parameters": {
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "text": "={{ $json.body }}"
+      },
+      "id": "email-rapport",
+      "name": "📧 Email Rapport Client",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1650, 500]
+    }
+  ],
+  "connections": {
+    "📄 Facture Client": {
+      "main": [[{"node": "🔗 Fusion Données", "type": "main", "index": 0}]]
+    },
+    "📦 Stock Réel": {
+      "main": [[{"node": "🔗 Fusion Données", "type": "main", "index": 1}]]
+    },
+    "🔗 Fusion Données": {
+      "main": [[{"node": "🤖 API Prédiction", "type": "main", "index": 0}]]
+    },
+    "🤖 API Prédiction": {
+      "main": [[{"node": "⚡ Manque ?", "type": "main", "index": 0}]]
+    },
+    "⚡ Manque ?": {
+      "main": [
+        [{"node": "📧 Email Conforme", "type": "main", "index": 0}],
+        [{"node": "🚨 Email Alerte Stock", "type": "main", "index": 0}]
+      ]
+    },
+    "🚨 Email Alerte Stock": {
+      "main": [[{"node": "📩 Réponse Employé", "type": "main", "index": 0}]]
+    },
+    "📩 Réponse Employé": {
+      "main": [[{"node": "📝 Générer Rapport", "type": "main", "index": 0}]]
+    },
+    "📝 Générer Rapport": {
+      "main": [[{"node": "📧 Email Rapport Client", "type": "main", "index": 0}]]
+    }
+  }
+}

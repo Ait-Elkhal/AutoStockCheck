@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoStockCheck - {% block title %}Vérification automatique des commandes{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Barre de menu dynamique -->
+    <nav class="navbar" id="navbar">
+        <div class="navbar-container">
+            <a href="/" class="logo">
+                <span>📦</span>
+                AutoStockCheck
+            </a>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link {% if active_page == 'accueil' %}active{% endif %}">🏠 Accueil</a></li>
+                <li><a href="/models" class="nav-link {% if active_page == 'models' %}active{% endif %}">🤖 Modèles</a></li>
+                <li><a href="/contact" class="nav-link {% if active_page == 'contact' %}active{% endif %}">📞 Contact</a></li>
+                <li><a href="/register" class="nav-link btn-inscrire">📝 S'inscrire</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Bouton scroll to top -->
+    <button class="scroll-top-btn" id="scrollTopBtn" title="Retour en haut">↑</button>
+
+    <!-- Contenu principal -->
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>© 2026 AutoStockCheck - ECU Worldwide | Solution de vérification automatique des commandes</p>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,262 @@
+<link rel="stylesheet" href="/static/css/history.css">
+
+<div class="history-section">
+    <div class="history-header">
+        <h2>📋 Historique des commandes</h2>
+        <button class="notification-btn" onclick="toggleNotifications()">
+            🔔
+            <span id="notificationBadge" class="notification-badge" style="display: none;">0</span>
+        </button>
+    </div>
+
+    <div class="history-filters">
+        <div class="search-box">
+            <input type="text" id="searchHistory" placeholder="Rechercher par référence, client, responsable..." onkeyup="filtrerHistorique()">
+        </div>
+        <select id="filterStatus" class="filter-select" onchange="filtrerHistorique()">
+            <option value="all">Tous les statuts</option>
+            <option value="validated">✅ Validée</option>
+            <option value="pending">🟡 En attente</option>
+            <option value="forgotten">🔴 Oubliée</option>
+        </select>
+        <select id="filterPayment" class="filter-select" onchange="filtrerHistorique()">
+            <option value="all">Tous les paiements</option>
+            <option value="paid">💰 Payé</option>
+            <option value="unpaid">💳 Non payé</option>
+        </select>
+        <button class="btn btn-primary" onclick="exporterHistoriqueCSV()">📎 Exporter CSV</button>
+    </div>
+
+    <div id="historyList" class="history-table"></div>
+</div>
+
+<div id="notificationsPanel" class="notifications-panel">
+    <div class="notifications-header">
+        <span>🔔 Notifications</span>
+        <button class="btn" onclick="toggleNotifications()" style="background: none; color: white;">✕</button>
+    </div>
+    <div id="notificationsList" class="notifications-list"></div>
+</div>
+
+<div id="modalConfirmDelete" class="modal-confirm">
+    <div class="modal-confirm-content">
+        <h3>⚠️ Confirmation de suppression</h3>
+        <p>Êtes-vous sûr de vouloir supprimer cette commande ?</p>
+        <p><strong id="deleteCommandRef"></strong></p>
+        <p>Cette action est irréversible et sera notifiée au chef d'entreprise.</p>
+        <div class="modal-confirm-buttons">
+            <button class="btn" onclick="fermerModalConfirm()">Annuler</button>
+            <button class="btn btn-primary" onclick="confirmerSuppression()" style="background: #dc3545;">Confirmer suppression</button>
+        </div>
+    </div>
+</div>
+
+<div id="toastMessage" class="toast-notification"></div>
+
+<script>
+    let commandeASupprimer = null;
+    let historiqueCommandes = JSON.parse(localStorage.getItem('historiqueCommandes') || '[]');
+    let notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+
+    function synchroniserAvecAgenda() {
+        const agendaCommands = JSON.parse(localStorage.getItem('agendaCommands') || '[]');
+        agendaCommands.forEach(cmd => {
+            const existe = historiqueCommandes.some(h => h.reference === cmd.reference && h.date === cmd.date && h.heure === cmd.heure);
+            if (!existe) {
+                historiqueCommandes.push({
+                    id: cmd.id,
+                    reference: cmd.reference,
+                    description: cmd.description || '',
+                    statut: cmd.statut,
+                    date: cmd.date,
+                    heure: cmd.heure,
+                    client: cmd.client || 'À compléter',
+                    responsable: cmd.responsable || 'À assigner',
+                    payment: cmd.payment || 'unpaid',
+                    created_at: cmd.created_at || new Date().toISOString(),
+                    modified_at: new Date().toISOString()
+                });
+            }
+        });
+        localStorage.setItem('historiqueCommandes', JSON.stringify(historiqueCommandes));
+    }
+
+    function afficherHistorique() {
+        const container = document.getElementById('historyList');
+        if (historiqueCommandes.length === 0) {
+            container.innerHTML = '<p style="text-align:center; padding: 40px;">📭 Aucune commande dans l\'historique</p>';
+            return;
+        }
+        
+        const sortedHistory = [...historiqueCommandes].sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        container.innerHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th><th>Heure</th><th>Référence</th><th>Client</th><th>Responsable</th><th>Statut</th><th>Paiement</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${sortedHistory.map(cmd => `
+                        <tr data-reference="${cmd.reference}" data-status="${cmd.statut}" data-payment="${cmd.payment}">
+                            <td>${cmd.date}</td>
+                            <td>${cmd.heure}</td>
+                            <td><strong>${cmd.reference}</strong><br><small>${cmd.description ? cmd.description.substring(0,30) : ''}</small></td>
+                            <td>${cmd.client || '-'}</td>
+                            <td>${cmd.responsable || '-'}</td>
+                            <td><span class="status-badge status-${cmd.statut === 'validated' ? 'validated' : cmd.statut === 'pending' ? 'pending' : 'forgotten'}">${cmd.statut === 'validated' ? '✅ Validée' : cmd.statut === 'pending' ? '🟡 En attente' : '🔴 Oubliée'}</span></td>
+                            <td><span class="status-badge payment-${cmd.payment === 'paid' ? 'paid' : 'unpaid'}">${cmd.payment === 'paid' ? '💰 Payé' : '💳 Non payé'}</span></td>
+                            <td>
+                                <button class="action-btn edit" onclick="modifierCommandeHistorique(${cmd.id})">✏️</button>
+                                <button class="action-btn delete" onclick="demanderSuppressionCommande(${cmd.id}, '${cmd.reference}')">🗑️</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function filtrerHistorique() {
+        const searchTerm = document.getElementById('searchHistory').value.toLowerCase();
+        const statusFilter = document.getElementById('filterStatus').value;
+        const paymentFilter = document.getElementById('filterPayment').value;
+        const rows = document.querySelectorAll('#historyList tbody tr');
+        rows.forEach(row => {
+            const reference = row.querySelector('td:nth-child(3) strong')?.textContent.toLowerCase() || '';
+            const client = row.querySelector('td:nth-child(4)')?.textContent.toLowerCase() || '';
+            const responsable = row.querySelector('td:nth-child(5)')?.textContent.toLowerCase() || '';
+            const status = row.dataset.status;
+            const payment = row.dataset.payment;
+            const matchSearch = reference.includes(searchTerm) || client.includes(searchTerm) || responsable.includes(searchTerm);
+            const matchStatus = statusFilter === 'all' || status === statusFilter;
+            const matchPayment = paymentFilter === 'all' || payment === paymentFilter;
+            row.style.display = matchSearch && matchStatus && matchPayment ? '' : 'none';
+        });
+    }
+
+    function ajouterNotification(message, type = 'info', commandeRef = null) {
+        const notification = { id: Date.now(), message, type, commandeRef, date: new Date().toISOString(), read: false };
+        notifications.unshift(notification);
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+        afficherNotifications();
+        afficherToast(message);
+    }
+
+    function afficherNotifications() {
+        const container = document.getElementById('notificationsList');
+        const unreadCount = notifications.filter(n => !n.read).length;
+        const badge = document.getElementById('notificationBadge');
+        if (unreadCount > 0) { badge.textContent = unreadCount; badge.style.display = 'flex'; }
+        else { badge.style.display = 'none'; }
+        
+        if (notifications.length === 0) { container.innerHTML = '<p style="text-align:center; padding:20px;">Aucune notification</p>'; return; }
+        
+        container.innerHTML = notifications.map(notif => `
+            <div class="notification-item ${!notif.read ? 'unread' : ''}" onclick="marquerCommeLu(${notif.id})">
+                <div class="notification-title">${notif.message}</div>
+                <div class="notification-date">${new Date(notif.date).toLocaleString()}</div>
+                ${notif.commandeRef ? `<div style="font-size: 0.7rem; color: #4361ee;">Commande: ${notif.commandeRef}</div>` : ''}
+            </div>
+        `).join('');
+    }
+
+    function marquerCommeLu(id) {
+        const notif = notifications.find(n => n.id === id);
+        if (notif) notif.read = true;
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+        afficherNotifications();
+    }
+
+    function toggleNotifications() {
+        const panel = document.getElementById('notificationsPanel');
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function afficherToast(message) {
+        const toast = document.getElementById('toastMessage');
+        toast.textContent = message;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    function modifierCommandeHistorique(id) {
+        const commande = historiqueCommandes.find(c => c.id === id);
+        if (!commande) return;
+        
+        const newStatut = prompt(`Modifier le statut de ${commande.reference}\nStatuts: validated, pending, forgotten`, commande.statut);
+        if (newStatut && ['validated', 'pending', 'forgotten'].includes(newStatut)) {
+            commande.statut = newStatut;
+            commande.modified_at = new Date().toISOString();
+            localStorage.setItem('historiqueCommandes', JSON.stringify(historiqueCommandes));
+            afficherHistorique();
+            ajouterNotification(`📝 Commande ${commande.reference} modifiée: statut → ${newStatut}`, 'info', commande.reference);
+        }
+        
+        const newPayment = prompt(`Modifier le paiement de ${commande.reference}\nPaiement: paid, unpaid`, commande.payment);
+        if (newPayment && ['paid', 'unpaid'].includes(newPayment)) {
+            commande.payment = newPayment;
+            localStorage.setItem('historiqueCommandes', JSON.stringify(historiqueCommandes));
+            afficherHistorique();
+            ajouterNotification(`💰 Paiement commande ${commande.reference} modifié: ${newPayment === 'paid' ? 'Payé' : 'Non payé'}`, 'info', commande.reference);
+        }
+    }
+
+    function demanderSuppressionCommande(id, reference) {
+        commandeASupprimer = id;
+        document.getElementById('deleteCommandRef').textContent = reference;
+        document.getElementById('modalConfirmDelete').style.display = 'flex';
+    }
+
+    function fermerModalConfirm() {
+        document.getElementById('modalConfirmDelete').style.display = 'none';
+        commandeASupprimer = null;
+    }
+
+    function confirmerSuppression() {
+        if (commandeASupprimer) {
+            const commande = historiqueCommandes.find(c => c.id === commandeASupprimer);
+            if (commande) {
+                historiqueCommandes = historiqueCommandes.filter(c => c.id !== commandeASupprimer);
+                localStorage.setItem('historiqueCommandes', JSON.stringify(historiqueCommandes));
+                ajouterNotification(`🗑️ COMMANDE SUPPRIMÉE: ${commande.reference} par ${commande.responsable || 'inconnu'}`, 'warning', commande.reference);
+                afficherToast(`Commande ${commande.reference} supprimée`);
+                fermerModalConfirm();
+                afficherHistorique();
+            }
+        }
+    }
+
+    function exporterHistoriqueCSV() {
+        let csv = "Date,Heure,Référence,Description,Client,Responsable,Statut,Paiement\n";
+        historiqueCommandes.forEach(cmd => {
+            csv += `"${cmd.date}","${cmd.heure}","${cmd.reference}","${cmd.description || ''}","${cmd.client || ''}","${cmd.responsable || ''}","${cmd.statut}","${cmd.payment}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `historique_commandes_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        afficherToast("📎 Historique exporté en CSV");
+    }
+
+    window.afficherHistorique = afficherHistorique;
+    window.filtrerHistorique = filtrerHistorique;
+    window.exporterHistoriqueCSV = exporterHistoriqueCSV;
+    window.modifierCommandeHistorique = modifierCommandeHistorique;
+    window.demanderSuppressionCommande = demanderSuppressionCommande;
+    window.fermerModalConfirm = fermerModalConfirm;
+    window.confirmerSuppression = confirmerSuppression;
+    window.toggleNotifications = toggleNotifications;
+    window.marquerCommeLu = marquerCommeLu;
+    window.afficherNotifications = afficherNotifications;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        synchroniserAvecAgenda();
+        afficherHistorique();
+        afficherNotifications();
+    });
+</script>

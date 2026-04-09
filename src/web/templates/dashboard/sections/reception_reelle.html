@@ -1,0 +1,796 @@
+<link rel="stylesheet" href="/static/css/reception_reelle.css">
+
+<div class="reception-reelle-container">
+    <div class="reception-header">
+        <h2>📦 Réception réelle des commandes</h2>
+        <div class="reception-actions">
+            <button class="btn" onclick="rafraichirListe()">🔄 Rafraîchir</button>
+        </div>
+    </div>
+
+    <!-- Carte d'activation de commande -->
+    <div class="activation-card">
+        <h3>🔄 Activer une commande</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Référence commande *</label>
+                <input type="text" id="commandeRef" class="form-control" placeholder="CMD-001" required>
+            </div>
+            <div class="form-group">
+                <label>Fournisseur / Client</label>
+                <input type="text" id="fournisseur" class="form-control" placeholder="Nom du fournisseur">
+            </div>
+            <div class="form-group">
+                <label>Date de réception</label>
+                <input type="date" id="dateReception" class="form-control">
+            </div>
+        </div>
+
+        <!-- Zone de scan et ajout de produits -->
+        <div class="scanner-section">
+            <h4>📷 Ajouter des produits</h4>
+            
+            <!-- Scan code-barres -->
+            <div class="scanner-input-group">
+                <input type="text" id="scanCode" class="scanner-input" placeholder="Scanner le code-barres ou entrer la référence" onkeypress="handleScanKeyPress(event)">
+                <input type="number" id="scanQuantite" class="quantity-input" placeholder="Qté" value="1" min="1">
+                <button class="scan-btn" onclick="ajouterParScan()">📷 Scanner</button>
+                <button class="scan-btn" onclick="simulerScan()">📱 Simuler scan</button>
+            </div>
+            
+            <!-- Ajout manuel -->
+            <div class="ajout-manuel-section">
+                <h5 style="margin: 10px 0;">✏️ Ajout manuel</h5>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Référence produit *</label>
+                        <input type="text" id="manuelReference" class="form-control" placeholder="REF-001">
+                    </div>
+                    <div class="form-group">
+                        <label>Nom du produit *</label>
+                        <input type="text" id="manuelNom" class="form-control" placeholder="Nom du produit">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="manuelDescription" class="form-control" rows="2" placeholder="Description du produit..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>État du produit</label>
+                        <select id="manuelEtat" class="form-control">
+                            <option value="Neuf">🆕 Neuf</option>
+                            <option value="Très bon">✨ Très bon état</option>
+                            <option value="Bon">👍 Bon état</option>
+                            <option value="Correct">🟡 Correct</option>
+                            <option value="À contrôler">🔍 À contrôler</option>
+                            <option value="Défectueux">⚠️ Défectueux</option>
+                            <option value="Reconditionné">🔄 Reconditionné</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prix unitaire (€)</label>
+                        <input type="number" id="manuelPrix" class="form-control" value="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Quantité</label>
+                        <input type="number" id="manuelQuantite" class="form-control" value="1" min="1">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-primary" onclick="ajouterManuel()" style="width: 100%;">➕ Ajouter produit</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Import Excel avec extracteur -->
+            <div class="scanner-input-group">
+                <button class="scan-btn" onclick="ouvrirModalImportExcel()">📎 Importer Excel</button>
+                <span style="color: #666; font-size: 0.8rem;">Format: Référence (obligatoire), Quantité (obligatoire), Nom, Description, État, Prix...</span>
+            </div>
+            <input type="file" id="importExcel" accept=".xlsx,.xls" style="display: none;" onchange="extraireEtValiderExcel(this.files[0])">
+        </div>
+
+        <!-- Liste des produits reçus -->
+        <h4>📋 Produits reçus</h4>
+        <div class="produits-list" id="produitsRecusList">
+            <p style="color: #999; text-align: center;">Aucun produit ajouté</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="commande-actions">
+            <button class="btn" onclick="annulerCommande()">🗑️ Annuler</button>
+            <button class="btn btn-success" onclick="terminerCommande()">✅ Commande terminée</button>
+        </div>
+    </div>
+
+    <!-- Zone de dépôt de fichiers Excel existants -->
+    <div class="dropzone-reelle" onclick="document.getElementById('fileInputReelle').click()" ondragover="dragoverReelle(event)" ondragleave="dragleaveReelle(event)" ondrop="dropReelle(event)">
+        <div class="dropzone-icon">📁📄</div>
+        <div class="dropzone-text">Déposez vos fichiers Excel de réception ici ou cliquez pour sélectionner</div>
+        <div class="dropzone-hint">Formats acceptés: .xlsx, .xls</div>
+        <input type="file" id="fileInputReelle" accept=".xlsx,.xls" style="display: none;" onchange="extraireEtValiderExcel(this.files[0])">
+    </div>
+
+    <!-- Tableau des commandes reçues -->
+    <div class="commandes-table-container">
+        <table class="commandes-table">
+            <thead>
+                全
+                    <th>Fichier</th>
+                    <th>Référence</th>
+                    <th>Fournisseur</th>
+                    <th>Date réception</th>
+                    <th>Produits</th>
+                    <th>Actions</th>
+                </thead>
+            <tbody id="commandesRecuesList"></tbody>
+        </table
+    </div>
+</div>
+
+<!-- Modal Import Excel -->
+<div id="modalImportExcel" class="modal-scan">
+    <div class="modal-scan-content" style="max-width: 700px;">
+        <div class="modal-commande-header">
+            <h3>📊 Extraction du fichier Excel</h3>
+            <button class="btn-close" onclick="fermerModalImport()">✕</button>
+        </div>
+        
+        <div id="importPreview" style="max-height: 400px; overflow-y: auto;">
+            <div class="loading"><div class="spinner"></div><p>Analyse du fichier...</p></div>
+        </div>
+        
+        <div id="importActions" style="display: none; margin-top: 20px;">
+            <div class="form-group">
+                <label>⚠️ Colonnes manquantes :</label>
+                <div id="missingColumns" style="color: #f44336; margin-bottom: 10px;"></div>
+            </div>
+            <div class="form-group">
+                <label>📋 Colonnes trouvées :</label>
+                <div id="foundColumns" style="color: #4caf50; margin-bottom: 10px;"></div>
+            </div>
+            <div class="form-group">
+                <label>📊 Aperçu des données (5 premières lignes) :</label>
+                <div id="dataPreview" style="overflow-x: auto;"></div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn" onclick="fermerModalImport()">Annuler</button>
+                <button class="btn btn-primary" id="confirmImportBtn" onclick="confirmerImport()">✅ Importer les produits</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Visualisation du fichier Excel -->
+<div id="modalVisualisationFichier" class="modal-scan">
+    <div class="modal-scan-content" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">
+        <div class="modal-commande-header">
+            <h3 id="visuTitle">📄 Visualisation du fichier</h3>
+            <button class="btn-close" onclick="fermerModalVisualisation()">✕</button>
+        </div>
+        <div id="visuContent" style="max-height: 60vh; overflow-y: auto;"></div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button class="btn btn-primary" onclick="telechargerDepuisModal()">⬇️ Télécharger</button>
+            <button class="btn" onclick="fermerModalVisualisation()">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal scan caméra -->
+<div id="modalScan" class="modal-scan">
+    <div class="modal-scan-content">
+        <h3>📷 Scanner un code-barres</h3>
+        <div class="scan-preview" id="scanPreview">
+            <div style="text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 10px;">📱</div>
+                <div>Positionnez le code-barres devant la caméra</div>
+                <div class="scan-animation" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+        <div class="scanner-input-group" style="margin-top: 15px;">
+            <input type="text" id="scanResult" class="form-control" placeholder="Code-barres scanné" style="flex: 1;">
+            <input type="number" id="scanModalQuantite" class="quantity-input" placeholder="Qté" value="1" min="1">
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+            <button class="btn" onclick="fermerModalScan()">Annuler</button>
+            <button class="btn btn-primary" onclick="validerScan()">Valider</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+    // ==================== DONNÉES ====================
+    let commandesRecues = JSON.parse(localStorage.getItem('commandesRecues') || '[]');
+    let currentUser = JSON.parse(localStorage.getItem('user') || '{"username": "Employé"}');
+    let produitsActuels = [];
+    let excelDataTemp = null;
+    let currentVisualisationCommande = null;
+    
+    // Initialiser la date du jour
+    document.getElementById('dateReception').value = new Date().toISOString().split('T')[0];
+    
+    // Données d'exemple
+    if (commandesRecues.length === 0) {
+        commandesRecues = [
+            {
+                id: 1,
+                nom: "reception_CMD-001.xlsx",
+                reference: "CMD-001",
+                fournisseur: "SARL TechPlus",
+                dateReception: "2026-03-28",
+                produits: [
+                    { reference: "REF-001", nom: "Ordinateur portable", quantite: 5, description: "Dell XPS 15", etat: "Neuf", prix: 899.99 },
+                    { reference: "REF-002", nom: "Souris sans fil", quantite: 10, description: "Logitech MX Master", etat: "Neuf", prix: 25.00 }
+                ],
+                dateAjout: new Date().toISOString(),
+                ajoutePar: "Employé Stock"
+            }
+        ];
+        localStorage.setItem('commandesRecues', JSON.stringify(commandesRecues));
+    }
+
+    // ==================== AFFICHAGE TABLEAU ====================
+    function afficherCommandesRecues() {
+        const tbody = document.getElementById('commandesRecuesList');
+        
+        if (commandesRecues.length === 0) {
+            tbody.innerHTML = '恩<td colspan="6" style="text-align:center; padding:40px;">📭 Aucune commande reçue</td> </tr>';
+            return;
+        }
+        
+        tbody.innerHTML = commandesRecues.map(cmd => `
+            <tr onclick="visualiserFichier(${cmd.id})" style="cursor: pointer;">
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="excel-icon">XLSX</div>
+                        <span>${cmd.nom}</span>
+                    </div>
+                </td>
+                <td><strong>${cmd.reference}</strong> (unique)</td>
+                <td>${cmd.fournisseur}</td>
+                <td>${new Date(cmd.dateReception).toLocaleDateString()}</td>
+                <td>${cmd.produits.length} produits</td>
+                <td>
+                    <button class="action-btn view" onclick="event.stopPropagation(); visualiserFichier(${cmd.id})" title="Voir le contenu">👁️ Voir</button>
+                    <button class="action-btn delete" onclick="event.stopPropagation(); supprimerCommande(${cmd.id})" title="Supprimer">🗑️</button>
+                 </td>
+             </tr>
+        `).join('');
+    }
+    
+    // ==================== VISUALISATION DU FICHIER ====================
+    function visualiserFichier(id) {
+        const commande = commandesRecues.find(c => c.id === id);
+        if (!commande) return;
+        
+        currentVisualisationCommande = commande;
+        
+        const modal = document.getElementById('modalVisualisationFichier');
+        const title = document.getElementById('visuTitle');
+        const content = document.getElementById('visuContent');
+        
+        title.innerHTML = `📄 ${commande.nom} - Référence: ${commande.reference}`;
+        
+        // Générer le tableau HTML
+        let html = `
+            <div style="margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 8px;">
+                <p><strong>📅 Date de réception:</strong> ${new Date(commande.dateReception).toLocaleDateString()}</p>
+                <p><strong>🏭 Fournisseur:</strong> ${commande.fournisseur || 'Non spécifié'}</p>
+                <p><strong>👤 Ajouté par:</strong> ${commande.ajoutePar}</p>
+                <p><strong>📦 Nombre de produits:</strong> ${commande.produits.length}</p>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                <thead>
+                    <tr style="background: #4361ee; color: white;">
+                        <th style="padding: 10px; border: 1px solid #ddd;">Référence</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">Produit</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">Quantité</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">Description</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">État</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">Prix unitaire</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        commande.produits.forEach(p => {
+            html += `
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;"><strong>${p.reference}</strong></td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${p.nom}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${p.quantite}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${p.description || '-'}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">
+                        <span class="status-badge" style="background: ${p.etat === 'Neuf' ? '#d4edda' : p.etat === 'Très bon' ? '#cce5ff' : '#fff3cd'};">
+                            ${p.etat || 'Non spécifié'}
+                        </span>
+                    </td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${p.prix ? p.prix.toFixed(2) + ' €' : '-'}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                </tbody>
+            </table>
+        `;
+        
+        content.innerHTML = html;
+        modal.style.display = 'flex';
+    }
+    
+    function telechargerDepuisModal() {
+        if (!currentVisualisationCommande) return;
+        
+        const commande = currentVisualisationCommande;
+        const donnees = [
+            ["Référence", "Produit", "Quantité", "Description", "État", "Prix unitaire"],
+            ...commande.produits.map(p => [p.reference, p.nom, p.quantite, p.description || '', p.etat || 'Neuf', p.prix || 0])
+        ];
+        
+        const ws = XLSX.utils.aoa_to_sheet(donnees);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Réception");
+        XLSX.writeFile(wb, commande.nom);
+        
+        alert(`✅ Téléchargement de ${commande.nom} lancé`);
+    }
+    
+    function fermerModalVisualisation() {
+        document.getElementById('modalVisualisationFichier').style.display = 'none';
+        currentVisualisationCommande = null;
+    }
+    
+    // ==================== SUPPRESSION COMMANDE ====================
+    function supprimerCommande(id) {
+        if (confirm("Supprimer cette commande ? Cette action est irréversible.")) {
+            const commande = commandesRecues.find(c => c.id === id);
+            commandesRecues = commandesRecues.filter(c => c.id !== id);
+            localStorage.setItem('commandesRecues', JSON.stringify(commandesRecues));
+            afficherCommandesRecues();
+            
+            if (window.enregistrerAction) {
+                window.enregistrerAction('suppression', `Commande ${commande.reference} supprimée de la réception`, commande.reference, currentUser.username);
+            }
+            
+            alert(`✅ Commande ${commande.reference} supprimée`);
+        }
+    }
+    
+    // ==================== TERMINER COMMANDE ====================
+    function terminerCommande() {
+        const reference = document.getElementById('commandeRef').value.trim();
+        const fournisseur = document.getElementById('fournisseur').value.trim();
+        const dateReception = document.getElementById('dateReception').value;
+        
+        if (!reference) {
+            alert("Veuillez entrer une référence de commande");
+            return;
+        }
+        
+        // Vérifier si la référence existe déjà
+        const referenceExistante = commandesRecues.some(c => c.reference === reference);
+        if (referenceExistante) {
+            alert(`❌ La référence ${reference} existe déjà. La référence doit être unique.`);
+            document.getElementById('commandeRef').focus();
+            return;
+        }
+        
+        if (produitsActuels.length === 0) {
+            alert("Veuillez ajouter au moins un produit");
+            return;
+        }
+        
+        const donnees = [
+            ["Référence", "Produit", "Quantité", "Description", "État", "Prix unitaire"],
+            ...produitsActuels.map(p => [p.reference, p.nom, p.quantite, p.description || '', p.etat || 'Neuf', p.prix || 0])
+        ];
+        
+        const ws = XLSX.utils.aoa_to_sheet(donnees);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Réception");
+        
+        const nomFichier = `reception_${reference}_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`;
+        XLSX.writeFile(wb, nomFichier);
+        
+        const nouvelleCommande = {
+            id: Date.now(),
+            nom: nomFichier,
+            reference: reference,
+            fournisseur: fournisseur || "Non spécifié",
+            dateReception: dateReception,
+            produits: [...produitsActuels],
+            dateAjout: new Date().toISOString(),
+            ajoutePar: currentUser.username || "Employé"
+        };
+        
+        commandesRecues.unshift(nouvelleCommande);
+        localStorage.setItem('commandesRecues', JSON.stringify(commandesRecues));
+        
+        produitsActuels = [];
+        afficherProduits();
+        document.getElementById('commandeRef').value = '';
+        document.getElementById('fournisseur').value = '';
+        document.getElementById('dateReception').value = new Date().toISOString().split('T')[0];
+        
+        afficherCommandesRecues();
+        alert(`✅ Commande ${reference} terminée. Fichier Excel généré: ${nomFichier}`);
+    }
+    
+    // ==================== LE RESTE DES FONCTIONS (ajouterProduit, scan, etc.) ====================
+    function afficherProduits() {
+        const container = document.getElementById('produitsRecusList');
+        
+        if (produitsActuels.length === 0) {
+            container.innerHTML = '<p style="color: #999; text-align: center;">Aucun produit ajouté</p>';
+            return;
+        }
+        
+        container.innerHTML = produitsActuels.map((p, index) => {
+            const etatClass = {
+                'Neuf': '🆕',
+                'Très bon': '✨',
+                'Bon': '👍',
+                'Correct': '🟡',
+                'À contrôler': '🔍',
+                'Défectueux': '⚠️',
+                'Reconditionné': '🔄'
+            };
+            return `
+                <div class="produit-item">
+                    <div class="produit-info">
+                        <div class="produit-reference"><strong>${p.reference}</strong> - ${p.nom}</div>
+                        <div class="produit-description" style="font-size: 0.75rem; color: #666; margin-top: 3px;">📝 ${p.description || 'Aucune description'}</div>
+                        <div class="produit-etat" style="font-size: 0.7rem; margin-top: 2px;">${etatClass[p.etat] || '📦'} État: ${p.etat || 'Non spécifié'}</div>
+                        <div class="produit-quantite" style="font-size: 0.8rem; margin-top: 3px;">📊 Quantité: ${p.quantite} ${p.prix ? `| 💰 Prix: ${p.prix.toFixed(2)} €` : ''}</div>
+                    </div>
+                    <div class="produit-actions">
+                        <button class="remove-btn" onclick="retirerProduit(${index})">🗑️</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function retirerProduit(index) {
+        produitsActuels.splice(index, 1);
+        afficherProduits();
+    }
+    
+    function ajouterProduit(reference, nom, quantite, description = '', etat = 'Neuf', prix = 0) {
+        if (!reference) {
+            alert("Veuillez entrer une référence");
+            return;
+        }
+        if (isNaN(quantite) || quantite <= 0) {
+            alert("Veuillez entrer une quantité valide");
+            return;
+        }
+        
+        const existing = produitsActuels.find(p => p.reference === reference);
+        if (existing) {
+            existing.quantite += quantite;
+            if (description) existing.description = description;
+            if (etat) existing.etat = etat;
+            if (prix) existing.prix = prix;
+        } else {
+            produitsActuels.push({
+                reference: reference,
+                nom: nom || `Produit ${reference}`,
+                quantite: quantite,
+                description: description || '',
+                etat: etat || 'Neuf',
+                prix: prix || 0
+            });
+        }
+        afficherProduits();
+    }
+    
+    function ajouterParScan() {
+        const reference = document.getElementById('scanCode').value.trim();
+        const quantite = parseInt(document.getElementById('scanQuantite').value);
+        
+        if (!reference) {
+            alert("Veuillez scanner un code-barres ou entrer une référence");
+            return;
+        }
+        
+        const nom = prompt("Nom du produit:", `Produit ${reference}`);
+        const description = prompt("Description:", "");
+        const etat = prompt("État du produit (Neuf/Très bon/Bon/Correct/À contrôler/Défectueux/Reconditionné):", "Neuf");
+        const prix = parseFloat(prompt("Prix unitaire (€):", "0")) || 0;
+        
+        ajouterProduit(reference, nom || `Produit ${reference}`, quantite, description || '', etat || 'Neuf', prix);
+        document.getElementById('scanCode').value = '';
+        document.getElementById('scanQuantite').value = '1';
+        document.getElementById('scanCode').focus();
+    }
+    
+    function ajouterManuel() {
+        const reference = document.getElementById('manuelReference').value.trim();
+        const nom = document.getElementById('manuelNom').value.trim();
+        const description = document.getElementById('manuelDescription').value.trim();
+        const etat = document.getElementById('manuelEtat').value;
+        const prix = parseFloat(document.getElementById('manuelPrix').value);
+        const quantite = parseInt(document.getElementById('manuelQuantite').value);
+        
+        if (!reference) {
+            alert("Veuillez entrer une référence");
+            return;
+        }
+        
+        if (!nom) {
+            alert("Veuillez entrer un nom de produit");
+            return;
+        }
+        
+        ajouterProduit(reference, nom, quantite, description, etat, prix);
+        
+        document.getElementById('manuelReference').value = '';
+        document.getElementById('manuelNom').value = '';
+        document.getElementById('manuelDescription').value = '';
+        document.getElementById('manuelPrix').value = '0';
+        document.getElementById('manuelQuantite').value = '1';
+        document.getElementById('manuelReference').focus();
+    }
+    
+    function simulerScan() {
+        const modal = document.getElementById('modalScan');
+        document.getElementById('scanResult').value = '';
+        document.getElementById('scanModalQuantite').value = '1';
+        modal.style.display = 'flex';
+        
+        setTimeout(() => {
+            const fakeCode = `REF-${Math.floor(Math.random() * 1000)}`;
+            document.getElementById('scanResult').value = fakeCode;
+        }, 2000);
+    }
+    
+    function validerScan() {
+        const code = document.getElementById('scanResult').value.trim();
+        const quantite = parseInt(document.getElementById('scanModalQuantite').value);
+        
+        if (code) {
+            const nom = prompt("Nom du produit:", `Produit ${code}`);
+            const description = prompt("Description:", "");
+            const etat = prompt("État du produit:", "Neuf");
+            const prix = parseFloat(prompt("Prix unitaire (€):", "0")) || 0;
+            ajouterProduit(code, nom || `Produit ${code}`, quantite, description || '', etat || 'Neuf', prix);
+            fermerModalScan();
+        } else {
+            alert("Aucun code scanné");
+        }
+    }
+    
+    function fermerModalScan() {
+        document.getElementById('modalScan').style.display = 'none';
+    }
+    
+    function handleScanKeyPress(event) {
+        if (event.key === 'Enter') {
+            ajouterParScan();
+        }
+    }
+    
+    function annulerCommande() {
+        if (produitsActuels.length > 0 && confirm("Annuler cette commande ? Les produits saisis seront perdus.")) {
+            produitsActuels = [];
+            afficherProduits();
+            document.getElementById('commandeRef').value = '';
+            document.getElementById('fournisseur').value = '';
+        }
+    }
+    
+    // ==================== EXTRACTEUR EXCEL ====================
+    function extraireEtValiderExcel(file) {
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                
+                if (!jsonData || jsonData.length < 2) {
+                    alert("Le fichier Excel est vide ou ne contient pas assez de données");
+                    return;
+                }
+                
+                const headers = jsonData[0].map(h => String(h).toLowerCase().trim());
+                const dataRows = jsonData.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== null && cell !== ''));
+                
+                const colonnesManquantes = [];
+                const colonnesTrouvees = [];
+                
+                const trouveReference = headers.some(h => h.includes('reference') || h.includes('ref') || h === 'code');
+                const trouveQuantite = headers.some(h => h.includes('quantite') || h.includes('qté') || h.includes('qty'));
+                
+                if (!trouveReference) colonnesManquantes.push('Référence');
+                if (!trouveQuantite) colonnesManquantes.push('Quantité');
+                
+                for (const col of headers) {
+                    colonnesTrouvees.push(col);
+                }
+                
+                const modal = document.getElementById('modalImportExcel');
+                const previewDiv = document.getElementById('importPreview');
+                const actionsDiv = document.getElementById('importActions');
+                const missingColsDiv = document.getElementById('missingColumns');
+                const foundColsDiv = document.getElementById('foundColumns');
+                const dataPreviewDiv = document.getElementById('dataPreview');
+                
+                if (colonnesManquantes.length > 0) {
+                    missingColsDiv.innerHTML = `❌ Colonnes obligatoires manquantes : ${colonnesManquantes.join(', ')}<br>Le fichier ne peut pas être importé.`;
+                    foundColsDiv.innerHTML = `✅ Colonnes trouvées : ${colonnesTrouvees.join(', ')}`;
+                    dataPreviewDiv.innerHTML = '<p style="color: #f44336;">Import impossible - colonnes obligatoires manquantes</p>';
+                    document.getElementById('confirmImportBtn').disabled = true;
+                } else {
+                    missingColsDiv.innerHTML = `✅ Toutes les colonnes obligatoires sont présentes`;
+                    foundColsDiv.innerHTML = `📋 Colonnes trouvées : ${colonnesTrouvees.join(', ')}`;
+                    
+                    let previewHtml = '<table style="border-collapse: collapse; width: 100%; font-size: 0.7rem;">';
+                    previewHtml += '<thead><tr style="background: #f0f0f0;">';
+                    headers.forEach(h => {
+                        previewHtml += `<th style="border: 1px solid #ddd; padding: 5px;">${h}</th>`;
+                    });
+                    previewHtml += '</tr></thead><tbody>';
+                    
+                    for (let i = 0; i < Math.min(5, dataRows.length); i++) {
+                        previewHtml += '<tr>';
+                        for (let j = 0; j < headers.length; j++) {
+                            previewHtml += `<td style="border: 1px solid #ddd; padding: 5px;">${dataRows[i][j] || '-'}</td>`;
+                        }
+                        previewHtml += '</tr>';
+                    }
+                    previewHtml += '</tbody></table>';
+                    dataPreviewDiv.innerHTML = previewHtml;
+                    document.getElementById('confirmImportBtn').disabled = false;
+                }
+                
+                excelDataTemp = {
+                    headers: headers,
+                    rows: dataRows,
+                    fileName: file.name
+                };
+                
+                previewDiv.style.display = 'none';
+                actionsDiv.style.display = 'block';
+                modal.style.display = 'flex';
+                
+            } catch (error) {
+                console.error(error);
+                alert("Erreur lors de la lecture du fichier Excel. Vérifiez le format.");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+    
+    function confirmerImport() {
+        if (!excelDataTemp) return;
+        
+        const referenceCommande = document.getElementById('commandeRef').value.trim();
+        if (!referenceCommande) {
+            alert("Veuillez d'abord saisir la référence de la commande avant d'importer les produits");
+            fermerModalImport();
+            document.getElementById('commandeRef').focus();
+            return;
+        }
+        
+        const headers = excelDataTemp.headers;
+        const rows = excelDataTemp.rows;
+        
+        let refIndex = -1;
+        let qteIndex = -1;
+        let nomIndex = -1;
+        let descIndex = -1;
+        let etatIndex = -1;
+        let prixIndex = -1;
+        
+        for (let i = 0; i < headers.length; i++) {
+            const h = headers[i].toLowerCase();
+            if (h.includes('reference') || h.includes('ref') || h === 'code') refIndex = i;
+            if (h.includes('quantite') || h.includes('qté') || h.includes('qty')) qteIndex = i;
+            if (h.includes('nom') || h.includes('produit') || h.includes('designation')) nomIndex = i;
+            if (h.includes('description') || h.includes('desc')) descIndex = i;
+            if (h.includes('etat') || h.includes('état') || h.includes('condition')) etatIndex = i;
+            if (h.includes('prix') || h.includes('price') || h.includes('pu')) prixIndex = i;
+        }
+        
+        let produitsImportes = 0;
+        
+        for (const row of rows) {
+            if (!row[refIndex]) continue;
+            
+            const reference = String(row[refIndex]).trim();
+            const quantite = parseInt(row[qteIndex]) || 1;
+            const nom = nomIndex !== -1 && row[nomIndex] ? String(row[nomIndex]) : `Produit ${reference}`;
+            const description = descIndex !== -1 && row[descIndex] ? String(row[descIndex]) : '';
+            const etat = etatIndex !== -1 && row[etatIndex] ? String(row[etatIndex]) : 'Neuf';
+            const prix = prixIndex !== -1 && row[prixIndex] ? parseFloat(row[prixIndex]) : 0;
+            
+            ajouterProduit(reference, nom, quantite, description, etat, prix);
+            produitsImportes++;
+        }
+        
+        alert(`✅ ${produitsImportes} produits importés avec succès pour la commande ${referenceCommande}`);
+        fermerModalImport();
+        excelDataTemp = null;
+    }
+    
+    function ouvrirModalImportExcel() {
+        document.getElementById('importExcel').click();
+    }
+    
+    function fermerModalImport() {
+        document.getElementById('modalImportExcel').style.display = 'none';
+        excelDataTemp = null;
+    }
+    
+    function uploadFichierReception(file) {
+        extraireEtValiderExcel(file);
+    }
+    
+    function dragoverReelle(event) {
+        event.preventDefault();
+        document.querySelector('.dropzone-reelle').classList.add('drag-over');
+    }
+    
+    function dragleaveReelle(event) {
+        event.preventDefault();
+        document.querySelector('.dropzone-reelle').classList.remove('drag-over');
+    }
+    
+    function dropReelle(event) {
+        event.preventDefault();
+        document.querySelector('.dropzone-reelle').classList.remove('drag-over');
+        const file = event.dataTransfer.files[0];
+        if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+            extraireEtValiderExcel(file);
+        } else {
+            alert("Veuillez déposer un fichier Excel (.xlsx ou .xls)");
+        }
+    }
+    
+    function rafraichirListe() {
+        afficherCommandesRecues();
+    }
+    
+    function initReceptionReelle() {
+        afficherCommandesRecues();
+    }
+    
+    // Exposer les fonctions
+    window.ajouterParScan = ajouterParScan;
+    window.ajouterManuel = ajouterManuel;
+    window.simulerScan = simulerScan;
+    window.validerScan = validerScan;
+    window.fermerModalScan = fermerModalScan;
+    window.handleScanKeyPress = handleScanKeyPress;
+    window.retirerProduit = retirerProduit;
+    window.annulerCommande = annulerCommande;
+    window.terminerCommande = terminerCommande;
+    window.extraireEtValiderExcel = extraireEtValiderExcel;
+    window.confirmerImport = confirmerImport;
+    window.ouvrirModalImportExcel = ouvrirModalImportExcel;
+    window.fermerModalImport = fermerModalImport;
+    window.visualiserFichier = visualiserFichier;
+    window.telechargerDepuisModal = telechargerDepuisModal;
+    window.fermerModalVisualisation = fermerModalVisualisation;
+    window.supprimerCommande = supprimerCommande;
+    window.rafraichirListe = rafraichirListe;
+    window.uploadFichierReception = uploadFichierReception;
+    window.dragoverReelle = dragoverReelle;
+    window.dragleaveReelle = dragleaveReelle;
+    window.dropReelle = dropReelle;
+    
+    initReceptionReelle();
+</script>

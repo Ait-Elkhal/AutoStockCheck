@@ -1,0 +1,639 @@
+<link rel="stylesheet" href="/static/css/agenda.css">
+
+<div class="agenda-container">
+    <!-- Barre du haut avec année centrée -->
+    <div class="agenda-header-bar">
+        <div id="yearSelector" class="year-selector">
+            <button class="btn-year-prev" onclick="changerAnnee(-1)">◀</button>
+            <div class="current-year" id="currentYear">2026</div>
+            <button class="btn-year-next" onclick="changerAnnee(1)">▶</button>
+        </div>
+    </div>
+
+    <!-- Grille des mois -->
+    <div id="monthsGrid" class="months-grid"></div>
+
+    <!-- Timeline -->
+    <div id="timelineContainer" class="timeline-container" style="display: none;">
+        <div class="timeline-back-btn" onclick="retourAuxMois()">◀</div>
+        <div class="timeline-header">
+            <div class="timeline-title" id="timelineTitle"></div>
+        </div>
+        <div id="timelineContent" class="timeline-grid"></div>
+    </div>
+</div>
+
+<!-- MODAL POUR AFFICHER LES COMMANDES D'UNE CASE -->
+<div id="modalCaseCommandes" class="modal-commande">
+    <div class="modal-commande-content" style="max-width: 700px;">
+        <div class="modal-commande-header">
+            <h3 id="modalCaseTitle">📦 Commandes du créneau</h3>
+            <button class="btn-close" onclick="fermerModalCase()">✕</button>
+        </div>
+        <div id="modalCaseInfo" style="margin-bottom: 15px; padding: 8px; background: #f5f5f5; border-radius: 8px;">
+            <strong>📅 Date:</strong> <span id="modalCaseDate"></span> - <strong>⏰ Heure:</strong> <span id="modalCaseHeure"></span>
+        </div>
+        <div id="modalCaseListe" style="max-height: 500px; overflow-y: auto;"></div>
+    </div>
+</div>
+
+<!-- MODAL POUR AJOUTER/MODIFIER UNE COMMANDE -->
+<div id="modalCommande" class="modal-commande">
+    <div class="modal-commande-content">
+        <div class="modal-commande-header">
+            <h3 id="modalTitle">📦 Nouvelle commande</h3>
+            <button class="btn-close" onclick="fermerModalCommande()">✕</button>
+        </div>
+        
+        <div id="modalInfo" style="margin-bottom: 15px; padding: 8px; background: #f5f5f5; border-radius: 8px;">
+            <strong>📅 Date:</strong> <span id="modalDate"></span> - <strong>⏰ Heure:</strong> <span id="modalHeure"></span>
+        </div>
+        
+        <form id="commandeForm" onsubmit="event.preventDefault(); ajouterCommande();">
+            <div class="form-group">
+                <label>Référence commande *</label>
+                <input type="text" id="commandeReference" class="form-control" placeholder="CMD-001">
+                <small id="referenceError" style="color: #f44336; display: none;">Cette référence existe déjà dans le système</small>
+            </div>
+            <div class="form-group">
+                <label>Description / Détails</label>
+                <textarea id="commandeDescription" class="form-control" rows="2" placeholder="Informations sur la commande..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Client</label>
+                <input type="text" id="commandeClient" class="form-control" placeholder="Nom du client">
+            </div>
+            <div class="form-group">
+                <label>Responsable livraison</label>
+                <input type="text" id="commandeResponsable" class="form-control" placeholder="Nom du responsable">
+            </div>
+            <div class="form-group">
+                <label>Statut</label>
+                <select id="commandeStatut" class="form-control">
+                    <option value="pending">🟡 En attente</option>
+                    <option value="validated">🟢 Validée / Traitée</option>
+                    <option value="forgotten">🔴 Commande oubliée</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Paiement</label>
+                <select id="commandePayment" class="form-control">
+                    <option value="unpaid">💳 Non payé</option>
+                    <option value="paid">💰 Payé</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                <button type="button" class="btn" onclick="fermerModalCommande()">Annuler</button>
+                <button type="submit" class="btn btn-primary">💾 Ajouter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ==================== CONFIGURATION ====================
+        let currentYear = new Date().getFullYear();
+        let commands = JSON.parse(localStorage.getItem('agendaCommands') || '[]');
+        let historiqueCommandes = JSON.parse(localStorage.getItem('historiqueCommandes') || '[]');
+        let heures = ['08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'];
+
+        const moisNoms = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+        let currentDate = '';
+        let currentHeure = '';
+        let currentCaseCommandes = [];
+
+        // ==================== VÉRIFICATION RÉFÉRENCE UNIQUE GLOBALE ====================
+        function referenceExisteGlobalement(reference) {
+            const existeAgenda = commands.some(cmd => cmd.reference.toLowerCase() === reference.toLowerCase());
+            const existeHistorique = historiqueCommandes.some(cmd => cmd.reference.toLowerCase() === reference.toLowerCase());
+            return existeAgenda || existeHistorique;
+        }
+
+        // ==================== SAUVEGARDE DANS L'HISTORIQUE ====================
+        function sauvegarderDansHistorique(reference, description, statut, date, heure, client, responsable, payment) {
+            const existe = historiqueCommandes.some(cmd => cmd.reference === reference);
+            if (existe) return;
+            
+            const newHistoryCommand = {
+                id: Date.now(),
+                reference: reference,
+                description: description || '',
+                statut: statut,
+                date: date,
+                heure: heure,
+                client: client || 'Client non spécifié',
+                responsable: responsable || 'Non assigné',
+                payment: payment || 'unpaid',
+                created_at: new Date().toISOString(),
+                modified_at: new Date().toISOString()
+            };
+            
+            historiqueCommandes.push(newHistoryCommand);
+            localStorage.setItem('historiqueCommandes', JSON.stringify(historiqueCommandes));
+            
+            if (window.enregistrerAction) {
+                window.enregistrerAction('ajout', `Commande ${reference} ajoutée`, reference, responsable);
+            }
+        }
+
+        // ==================== AFFICHAGE DES COMMANDES DANS UNE CASE ====================
+        function genererAffichageCommandes(commandesCase) {
+            const count = commandesCase.length;
+            if (count === 0) return '';
+            
+            const commandesAAfficher = commandesCase.slice(0, 5);
+            const reste = count - 5;
+            
+            const commandesHtml = commandesAAfficher.map(cmd => {
+                const couleur = cmd.statut === 'validated' ? '#4caf50' : cmd.statut === 'pending' ? '#ffc107' : '#f44336';
+                const initiale = cmd.reference.substring(0, 1).toUpperCase();
+                return `
+                    <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+                        <div style="width: 20px; height: 20px; background: ${couleur}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: bold; color: white;">
+                            ${initiale}
+                        </div>
+                        <span style="font-size: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50px;">
+                            ${cmd.reference}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+            
+            const autreHtml = reste > 0 ? `
+                <div style="display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                    <div style="width: 20px; height: 20px; background: #9c27b0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: bold; color: white;">
+                        +${reste}
+                    </div>
+                    <span style="font-size: 0.6rem; color: #666;">autres</span>
+                </div>
+            ` : '';
+            
+            return `<div style="display: flex; flex-direction: column; gap: 2px;">${commandesHtml}${autreHtml}</div>`;
+        }
+
+        // ==================== MODAL POUR VOIR TOUTES LES COMMANDES D'UNE CASE ====================
+        function ouvrirModalCase(date, heure) {
+            const commandesCase = commands.filter(c => c.date === date && c.heure === heure);
+            currentCaseCommandes = commandesCase;
+            
+            const modal = document.getElementById('modalCaseCommandes');
+            document.getElementById('modalCaseDate').textContent = date;
+            document.getElementById('modalCaseHeure').textContent = heure;
+            document.getElementById('modalCaseTitle').textContent = `📦 Commandes du ${date} à ${heure}`;
+            
+            if (commandesCase.length === 0) {
+                document.getElementById('modalCaseListe').innerHTML = '<p style="text-align:center; padding: 40px;">Aucune commande pour ce créneau</p>';
+            } else {
+                document.getElementById('modalCaseListe').innerHTML = commandesCase.map(cmd => `
+                    <div style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ${cmd.statut === 'validated' ? '#4caf50' : cmd.statut === 'pending' ? '#ffc107' : '#f44336'};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <strong style="font-size: 1rem;">📦 ${cmd.reference}</strong>
+                                <span style="margin-left: 10px; padding: 2px 8px; border-radius: 12px; background: ${cmd.statut === 'validated' ? '#4caf50' : cmd.statut === 'pending' ? '#ffc107' : '#f44336'}; color: white; font-size: 0.7rem;">
+                                    ${cmd.statut === 'validated' ? 'Validée' : cmd.statut === 'pending' ? 'En attente' : 'Oubliée'}
+                                </span>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn" style="background: #ffc107; padding: 4px 10px;" onclick="modifierCommandeDepuisCase('${cmd.id}')">✏️</button>
+                                <button class="btn" style="background: #dc3545; color: white; padding: 4px 10px;" onclick="supprimerCommandeDepuisCase('${cmd.id}')">🗑️</button>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; font-size: 0.8rem;">
+                            <div><strong>📝 Description:</strong> ${cmd.description || '-'}</div>
+                            <div><strong>👤 Client:</strong> ${cmd.client || '-'}</div>
+                            <div><strong>👔 Responsable:</strong> <a href="#" onclick="voirDetailsResponsable('${cmd.responsable}'); return false;">${cmd.responsable || '-'}</a></div>
+                            <div><strong>💰 Paiement:</strong> <span style="color: ${cmd.payment === 'paid' ? '#4caf50' : '#f44336'}">${cmd.payment === 'paid' ? 'Payé' : 'Non payé'}</span></div>
+                        </div>
+                        ${cmd.description ? `<div style="margin-top: 8px; padding: 8px; background: #fff; border-radius: 6px; font-size: 0.75rem; color: #666;">📋 ${cmd.description}</div>` : ''}
+                    </div>
+                `).join('');
+            }
+            
+            modal.style.display = 'flex';
+        }
+
+        function fermerModalCase() {
+            document.getElementById('modalCaseCommandes').style.display = 'none';
+        }
+
+        function modifierCommandeDepuisCase(id) {
+            const command = commands.find(c => c.id == id);
+            if (command) {
+                fermerModalCase();
+                ouvrirModalEditionCommande(command.date, command.heure, command.id);
+            }
+        }
+
+        function supprimerCommandeDepuisCase(id) {
+            if (confirm('Supprimer cette commande ?')) {
+                const command = commands.find(c => c.id == id);
+                commands = commands.filter(c => c.id != id);
+                localStorage.setItem('agendaCommands', JSON.stringify(commands));
+                
+                if (window.enregistrerAction) {
+                    window.enregistrerAction('suppression', `Commande ${command.reference} supprimée`, command.reference, command.responsable);
+                }
+                
+                fermerModalCase();
+                
+                if (document.getElementById('timelineContainer').style.display === 'block') {
+                    const title = document.getElementById('timelineTitle').innerText;
+                    const monthMatch = title.match(/(\w+) (\d{4})/);
+                    if (monthMatch) {
+                        const monthIndex = moisNoms.indexOf(monthMatch[1]);
+                        if (monthIndex !== -1) afficherTimelineMois(currentYear, monthIndex);
+                    } else {
+                        const weekMatch = title.match(/Semaine (\d+) - (\w+)/);
+                        if (weekMatch) {
+                            const weekNum = parseInt(weekMatch[1]);
+                            const monthIndex = moisNoms.indexOf(weekMatch[2]);
+                            if (monthIndex !== -1) afficherTimelineSemaine(currentYear, monthIndex, weekNum);
+                        }
+                    }
+                }
+            }
+        }
+
+        function ouvrirModalEditionCommande(date, heure, commandId = null) {
+            currentDate = date;
+            currentHeure = heure;
+            
+            const modal = document.getElementById('modalCommande');
+            document.getElementById('modalDate').textContent = date;
+            document.getElementById('modalHeure').textContent = heure;
+            document.getElementById('referenceError').style.display = 'none';
+            
+            if (commandId) {
+                const command = commands.find(c => c.id == commandId);
+                if (command) {
+                    document.getElementById('commandeReference').value = command.reference;
+                    document.getElementById('commandeReference').disabled = true;
+                    document.getElementById('commandeDescription').value = command.description || '';
+                    document.getElementById('commandeClient').value = command.client || '';
+                    document.getElementById('commandeResponsable').value = command.responsable || '';
+                    document.getElementById('commandeStatut').value = command.statut;
+                    document.getElementById('commandePayment').value = command.payment || 'unpaid';
+                    document.getElementById('modalTitle').textContent = '✏️ Modifier la commande';
+                    
+                    const submitBtn = document.querySelector('#commandeForm button[type="submit"]');
+                    submitBtn.textContent = '💾 Modifier';
+                    submitBtn.onclick = () => modifierCommandeExistante(command.id);
+                    return;
+                }
+            }
+            
+            document.getElementById('commandeReference').disabled = false;
+            document.getElementById('commandeReference').value = '';
+            document.getElementById('commandeDescription').value = '';
+            document.getElementById('commandeClient').value = '';
+            document.getElementById('commandeResponsable').value = '';
+            document.getElementById('commandeStatut').value = 'pending';
+            document.getElementById('commandePayment').value = 'unpaid';
+            document.getElementById('modalTitle').textContent = '📦 Nouvelle commande';
+            
+            const submitBtn = document.querySelector('#commandeForm button[type="submit"]');
+            submitBtn.textContent = '💾 Ajouter';
+            submitBtn.onclick = ajouterCommande;
+            
+            modal.style.display = 'flex';
+        }
+
+        function ajouterCommande() {
+            const reference = document.getElementById('commandeReference').value.trim();
+            const description = document.getElementById('commandeDescription').value;
+            const client = document.getElementById('commandeClient').value;
+            const responsable = document.getElementById('commandeResponsable').value;
+            const statut = document.getElementById('commandeStatut').value;
+            const payment = document.getElementById('commandePayment').value;
+            const errorSpan = document.getElementById('referenceError');
+            
+            if (!reference) {
+                alert('Veuillez saisir une référence de commande');
+                return;
+            }
+            
+            if (referenceExisteGlobalement(reference)) {
+                errorSpan.style.display = 'block';
+                setTimeout(() => { errorSpan.style.display = 'none'; }, 3000);
+                return;
+            }
+            
+            const newCommand = {
+                id: Date.now(),
+                date: currentDate,
+                heure: currentHeure,
+                reference: reference,
+                description: description,
+                statut: statut,
+                client: client,
+                responsable: responsable,
+                payment: payment,
+                created_at: new Date().toISOString()
+            };
+            
+            commands.push(newCommand);
+            localStorage.setItem('agendaCommands', JSON.stringify(commands));
+            
+            sauvegarderDansHistorique(reference, description, statut, currentDate, currentHeure, client, responsable, payment);
+            
+            document.getElementById('commandeReference').value = '';
+            document.getElementById('commandeDescription').value = '';
+            document.getElementById('commandeClient').value = '';
+            document.getElementById('commandeResponsable').value = '';
+            errorSpan.style.display = 'none';
+            
+            fermerModalCommande();
+            
+            if (document.getElementById('timelineContainer').style.display === 'block') {
+                const title = document.getElementById('timelineTitle').innerText;
+                const monthMatch = title.match(/(\w+) (\d{4})/);
+                if (monthMatch) {
+                    const monthIndex = moisNoms.indexOf(monthMatch[1]);
+                    if (monthIndex !== -1) afficherTimelineMois(currentYear, monthIndex);
+                } else {
+                    const weekMatch = title.match(/Semaine (\d+) - (\w+)/);
+                    if (weekMatch) {
+                        const weekNum = parseInt(weekMatch[1]);
+                        const monthIndex = moisNoms.indexOf(weekMatch[2]);
+                        if (monthIndex !== -1) afficherTimelineSemaine(currentYear, monthIndex, weekNum);
+                    }
+                }
+            }
+            
+            alert(`✅ Commande ${reference} ajoutée avec succès`);
+        }
+
+        function modifierCommandeExistante(id) {
+            const command = commands.find(c => c.id == id);
+            if (!command) return;
+            
+            const newStatut = document.getElementById('commandeStatut').value;
+            const newPayment = document.getElementById('commandePayment').value;
+            const newDescription = document.getElementById('commandeDescription').value;
+            const newClient = document.getElementById('commandeClient').value;
+            const newResponsable = document.getElementById('commandeResponsable').value;
+            
+            const oldStatut = command.statut;
+            
+            command.statut = newStatut;
+            command.payment = newPayment;
+            command.description = newDescription;
+            command.client = newClient;
+            command.responsable = newResponsable;
+            command.modified_at = new Date().toISOString();
+            
+            localStorage.setItem('agendaCommands', JSON.stringify(commands));
+            
+            const historyCommand = historiqueCommandes.find(h => h.reference === command.reference);
+            if (historyCommand) {
+                historyCommand.statut = newStatut;
+                historyCommand.payment = newPayment;
+                historyCommand.description = newDescription;
+                historyCommand.client = newClient;
+                historyCommand.responsable = newResponsable;
+                historyCommand.modified_at = new Date().toISOString();
+                localStorage.setItem('historiqueCommandes', JSON.stringify(historiqueCommandes));
+            }
+            
+            if (window.enregistrerAction) {
+                window.enregistrerAction('modification', `Commande ${command.reference} modifiée (statut: ${oldStatut} → ${newStatut})`, command.reference, newResponsable);
+            }
+            
+            fermerModalCommande();
+            
+            if (document.getElementById('timelineContainer').style.display === 'block') {
+                const title = document.getElementById('timelineTitle').innerText;
+                const monthMatch = title.match(/(\w+) (\d{4})/);
+                if (monthMatch) {
+                    const monthIndex = moisNoms.indexOf(monthMatch[1]);
+                    if (monthIndex !== -1) afficherTimelineMois(currentYear, monthIndex);
+                } else {
+                    const weekMatch = title.match(/Semaine (\d+) - (\w+)/);
+                    if (weekMatch) {
+                        const weekNum = parseInt(weekMatch[1]);
+                        const monthIndex = moisNoms.indexOf(weekMatch[2]);
+                        if (monthIndex !== -1) afficherTimelineSemaine(currentYear, monthIndex, weekNum);
+                    }
+                }
+            }
+            
+            alert(`✅ Commande ${command.reference} modifiée avec succès`);
+        }
+
+        function fermerModalCommande() {
+            document.getElementById('modalCommande').style.display = 'none';
+            document.getElementById('commandeReference').disabled = false;
+        }
+
+        // ==================== FONCTIONS D'AFFICHAGE DE L'AGENDA ====================
+        function afficherMois() {
+            document.getElementById('timelineContainer').style.display = 'none';
+            document.getElementById('monthsGrid').style.display = 'grid';
+            document.getElementById('yearSelector').style.display = 'flex';
+            
+            const container = document.getElementById('monthsGrid');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < 12; i++) {
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYearNow = now.getFullYear();
+                
+                let statusClass = '';
+                let statusIcon = '';
+                if (currentYearNow > currentYear || (currentYearNow === currentYear && i < currentMonth)) {
+                    statusClass = 'past';
+                    statusIcon = '📅';
+                } else if (currentYearNow === currentYear && i === currentMonth) {
+                    statusClass = 'current';
+                    statusIcon = '⭐';
+                } else {
+                    statusClass = 'future';
+                    statusIcon = '🚀';
+                }
+                
+                const monthCard = document.createElement('div');
+                monthCard.className = 'month-card';
+                monthCard.onclick = (function(y, m) { 
+                    return function() { afficherTimelineMois(y, m); }; 
+                })(currentYear, i);
+                
+                monthCard.innerHTML = `
+                    <div class="month-header ${statusClass}">
+                        ${moisNoms[i]} ${statusIcon}
+                    </div>
+                    <div class="weeks-container" id="weeks-${currentYear}-${i}">
+                        <div style="text-align:center; padding:12px;">⏳</div>
+                    </div>
+                    <div class="month-total" id="total-${currentYear}-${i}">
+                        🟢0 🟡0 🔴0
+                    </div>
+                `;
+                container.appendChild(monthCard);
+            }
+            
+            for (let i = 0; i < 12; i++) chargerSemaines(currentYear, i);
+        }
+        
+        function chargerSemaines(year, month) {
+            const weeksContainer = document.getElementById(`weeks-${year}-${month}`);
+            const totalContainer = document.getElementById(`total-${year}-${month}`);
+            if (!weeksContainer) return;
+            
+            const firstDay = new Date(year, month, 1);
+            const firstDayWeekday = firstDay.getDay();
+            const startOffset = firstDayWeekday === 0 ? 6 : firstDayWeekday - 1;
+            
+            let totalValidated = 0, totalPending = 0, totalForgotten = 0;
+            let weeksHtml = '';
+            
+            for (let w = 1; w <= 4; w++) {
+                const startDate = new Date(year, month, 1 - startOffset + (w - 1) * 7);
+                const endDate = new Date(startDate);
+                endDate.setDate(startDate.getDate() + 6);
+                
+                let weekValidated = 0, weekPending = 0, weekForgotten = 0;
+                
+                commands.forEach(cmd => {
+                    const cmdDate = new Date(cmd.date);
+                    if (cmdDate >= startDate && cmdDate <= endDate) {
+                        if (cmd.statut === 'validated') weekValidated++;
+                        else if (cmd.statut === 'pending') weekPending++;
+                        else if (cmd.statut === 'forgotten') weekForgotten++;
+                    }
+                });
+                
+                totalValidated += weekValidated;
+                totalPending += weekPending;
+                totalForgotten += weekForgotten;
+                
+                weeksHtml += `
+                    <div class="week-card" onclick="afficherTimelineSemaine(${year}, ${month}, ${w}); event.stopPropagation();">
+                        <div class="week-number">S${w}</div>
+                        <div class="week-stats">
+                            ${weekValidated > 0 ? `<span class="validated">🟢${weekValidated}</span>` : ''}
+                            ${weekPending > 0 ? `<span class="pending">🟡${weekPending}</span>` : ''}
+                            ${weekForgotten > 0 ? `<span class="forgotten">🔴${weekForgotten}</span>` : ''}
+                            ${!weekValidated && !weekPending && !weekForgotten ? '📭' : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            weeksContainer.innerHTML = weeksHtml;
+            if (totalContainer) {
+                totalContainer.innerHTML = `
+                    🟢${totalValidated} 🟡${totalPending} 🔴${totalForgotten} 📊${totalValidated+totalPending+totalForgotten}
+                `;
+            }
+        }
+        
+        function afficherTimelineMode(html, title) {
+            document.getElementById('monthsGrid').style.display = 'none';
+            document.getElementById('yearSelector').style.display = 'none';
+            document.getElementById('timelineTitle').innerHTML = `📅 ${title}`;
+            document.getElementById('timelineContent').innerHTML = html;
+            document.getElementById('timelineContainer').style.display = 'block';
+        }
+        
+        function afficherTimelineMois(year, month) {
+            const days = [];
+            const startDate = new Date(year, month, 1);
+            const endDate = new Date(year, month + 1, 0);
+            let current = new Date(startDate);
+            while (current <= endDate) {
+                days.push(new Date(current));
+                current.setDate(current.getDate() + 1);
+            }
+            genererTimeline(days, `${moisNoms[month]} ${year}`);
+        }
+        
+        function afficherTimelineSemaine(year, month, weekNumber) {
+            const firstDay = new Date(year, month, 1);
+            const firstDayWeekday = firstDay.getDay();
+            const startOffset = firstDayWeekday === 0 ? 6 : firstDayWeekday - 1;
+            const startDate = new Date(year, month, 1 - startOffset + (weekNumber - 1) * 7);
+            
+            const days = [];
+            for (let i = 0; i < 7; i++) {
+                const day = new Date(startDate);
+                day.setDate(startDate.getDate() + i);
+                days.push(day);
+            }
+            genererTimeline(days, `Semaine ${weekNumber} - ${moisNoms[month]}`);
+        }
+        
+        function genererTimeline(days, title) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let html = `
+                <div class="timeline-header-row">
+                    <div class="timeline-hour-col">H</div>
+                    ${days.map(day => {
+                        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                        const isToday = day.toDateString() === today.toDateString();
+                        const dayName = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'][day.getDay()];
+                        return `
+                            <div class="timeline-day-col ${isWeekend ? 'weekend' : ''} ${isToday ? 'today' : ''}">
+                                <div><strong>${day.getDate()}</strong></div>
+                                <div style="font-size:0.6rem">${dayName}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            for (let h of heures) {
+                html += `<div class="timeline-row">
+                    <div class="timeline-hour">${h}:00</div>`;
+                
+                for (let day of days) {
+                    const dateKey = day.toISOString().split('T')[0];
+                    const commandesCase = commands.filter(c => c.date === dateKey && c.heure === `${h}:00`);
+                    
+                    html += `
+                        <div class="timeline-cell" onclick="ouvrirModalCase('${dateKey}', '${h}:00')">
+                            ${genererAffichageCommandes(commandesCase)}
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+            }
+            
+            afficherTimelineMode(html, title);
+        }
+        
+        function retourAuxMois() { afficherMois(); }
+        
+        function changerAnnee(delta) { 
+            currentYear += delta; 
+            document.getElementById('currentYear').textContent = currentYear; 
+            afficherMois(); 
+        }
+        
+        // Exposer les fonctions globalement
+        window.afficherMois = afficherMois;
+        window.afficherTimelineMois = afficherTimelineMois;
+        window.afficherTimelineSemaine = afficherTimelineSemaine;
+        window.retourAuxMois = retourAuxMois;
+        window.changerAnnee = changerAnnee;
+        window.ouvrirModalCase = ouvrirModalCase;
+        window.fermerModalCase = fermerModalCase;
+        window.ouvrirModalEditionCommande = ouvrirModalEditionCommande;
+        window.fermerModalCommande = fermerModalCommande;
+        window.modifierCommandeDepuisCase = modifierCommandeDepuisCase;
+        window.supprimerCommandeDepuisCase = supprimerCommandeDepuisCase;
+        window.voirDetailsResponsable = function(nom) {
+            if (window.voirDetailsResponsableGlobal) window.voirDetailsResponsableGlobal(nom);
+            else alert(`Responsable: ${nom}`);
+        };
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('currentYear').textContent = currentYear;
+            afficherMois();
+        });
+    })();
+</script>

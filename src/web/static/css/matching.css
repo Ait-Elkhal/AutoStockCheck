@@ -1,0 +1,247 @@
+/* ==================== MATCHING STYLES ==================== */
+.matching-container {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+}
+
+/* Header */
+.matching-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.matching-header h2 {
+    margin: 0;
+    color: #4361ee;
+}
+
+/* Sélection des fichiers */
+.selection-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 25px;
+}
+
+.selection-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+}
+
+.selection-card h3 {
+    margin: 0 0 15px 0;
+    font-size: 1rem;
+    color: #4361ee;
+}
+
+.file-info {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: #666;
+    padding: 8px;
+    background: white;
+    border-radius: 8px;
+}
+
+/* Alerte référence commune */
+.ref-alert {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+
+/* Aperçu des fichiers */
+.apercu-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 25px;
+}
+
+.apercu-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.apercu-card h4 {
+    margin: 0;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 0.9rem;
+}
+
+.preview-content {
+    padding: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 0.75rem;
+}
+
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.preview-table th,
+.preview-table td {
+    border: 1px solid #ddd;
+    padding: 6px;
+    text-align: left;
+}
+
+.preview-table th {
+    background: #f5f5f5;
+}
+
+/* Bouton de comparaison */
+.compare-section {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.btn-compare {
+    padding: 12px 30px;
+    font-size: 1rem;
+}
+
+/* Résultats */
+.resultats-container {
+    margin-top: 25px;
+    border-top: 2px solid #4361ee;
+    padding-top: 20px;
+}
+
+.resultats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.resultats-stats {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.stat-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 12px 20px;
+    text-align: center;
+    flex: 1;
+    min-width: 120px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #4361ee;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: #666;
+}
+
+.stat-value.conforme {
+    color: #4caf50;
+}
+
+.stat-value.manque {
+    color: #f44336;
+}
+
+/* Tableau des résultats */
+.resultats-table-container {
+    overflow-x: auto;
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+}
+
+.resultats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.resultats-table th {
+    background: #4361ee;
+    color: white;
+    padding: 10px;
+    position: sticky;
+    top: 0;
+    text-align: left;
+}
+
+.resultats-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.resultats-table tr:hover {
+    background: #f5f5f5;
+}
+
+/* Statuts */
+.status-conforme {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.status-manque {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.status-alerte {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+/* Spinner */
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .selection-row,
+    .apercu-row {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .resultats-stats {
+        flex-direction: column;
+    }
+    
+    .stat-card {
+        width: 100%;
+    }
+}

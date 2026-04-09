@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data
+data/raw/
+data/processed/
+data/database/*.db
+*.xlsx
+*.csv
+*.xls
+
+# Logs
+logs/
+*.log
+
+# Models
+models_saved/
+*.pkl
+*.joblib
+
+# Reports
+reports/
+*.pdf
+
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# n8n
+n8n_workflows/*.json.backup
+
+# Temporary files
+*.tmp
+*.bak

@@ -1,0 +1,419 @@
+/* ==================== RÉCEPTION DE COMMANDE ==================== */
+.reception-container {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.reception-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.reception-header h2 {
+    margin: 0;
+    color: #4361ee;
+}
+
+.reception-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Zone de dépôt de fichiers */
+.dropzone {
+    border: 2px dashed #4361ee;
+    border-radius: 15px;
+    padding: 30px;
+    text-align: center;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 25px;
+}
+
+.dropzone:hover {
+    background: #e3f2fd;
+    border-color: #1e88e5;
+}
+
+.dropzone.drag-over {
+    background: #e3f2fd;
+    border-color: #0d47a1;
+}
+
+.dropzone-icon {
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+}
+
+.dropzone-text {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* Filtres */
+.reception-filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-input {
+    flex: 2;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.filter-select {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+}
+
+/* Tableau des factures */
+.factures-table-container {
+    overflow-x: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    background: white;
+}
+
+.factures-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.factures-table th {
+    background: #f8f9fa;
+    padding: 14px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #5f6368;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.factures-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+
+.factures-table tr:hover {
+    background: #f8f9fa;
+    cursor: pointer;
+}
+
+/* Logo Excel */
+.file-name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.excel-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #1e7145 0%, #107c41 100%);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.7rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.file-title {
+    font-weight: 500;
+    color: #202124;
+}
+
+/* Badges de statut */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.status-en-attente {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-traite {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-erreur {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Boutons d'action */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: 5px;
+    transition: all 0.2s;
+    font-size: 0.8rem;
+}
+
+.action-btn:hover {
+    background: #e0e0e0;
+}
+
+.action-btn.view {
+    color: #4361ee;
+}
+
+.action-btn.edit {
+    color: #ffc107;
+}
+
+.action-btn.delete {
+    color: #dc3545;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+/* Modal upload */
+.modal-upload {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-upload-content {
+    background: white;
+    border-radius: 15px;
+    max-width: 500px;
+    width: 90%;
+    padding: 25px;
+}
+
+.modal-upload-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-upload-header h3 {
+    margin: 0;
+}
+
+/* ==================== PAGE VISUALISATION FACTURE ==================== */
+.facture-view-container {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.view-header h2 {
+    margin: 0;
+    color: #4361ee;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.back-btn {
+    background: #f0f0f0;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.back-btn:hover {
+    background: #e0e0e0;
+}
+
+.facture-info-bar {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #666;
+}
+
+.info-value {
+    color: #333;
+}
+
+/* Barre de recherche dans le tableau */
+.table-search-bar {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.table-search-input {
+    flex: 2;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+/* Tableau des données extraites */
+.extracted-table-container {
+    overflow-x: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.extracted-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.extracted-table th {
+    background: #4361ee;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.extracted-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.extracted-table tr:hover {
+    background: #f5f5f5;
+}
+
+/* Zone d'erreur */
+.error-section {
+    background: #fff3cd;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    border-left: 4px solid #ffc107;
+}
+
+.error-section h4 {
+    margin: 0 0 10px 0;
+    color: #856404;
+}
+
+.error-comment {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    margin: 10px 0;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.error-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.btn-error {
+    background: #ffc107;
+    color: #333;
+}
+
+.btn-error:hover {
+    background: #e0a800;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .factures-table th,
+    .factures-table td {
+        padding: 8px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .facture-info-bar {
+        flex-direction: column;
+    }
+}

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoStockCheck - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📦 AutoStockCheck</h1>
+            <p>Plateforme d'automatisation de la vérification des commandes | ECU Worldwide</p>
+            <div style="position: absolute; top: 20px; right: 20px;">
+                <span id="userName" style="margin-right: 15px;"></span>
+                <button class="btn" onclick="logout()" style="background: #ef476f; color: white;">Déconnexion</button>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-tabs">
+            <button class="nav-btn active" onclick="showTab('presentation')">🏠 Présentation</button>
+            <button class="nav-btn" onclick="showTab('verification')">🔍 Vérification</button>
+            <button class="nav-btn" onclick="showTab('historique')">📋 Historique</button>
+            <button class="nav-btn" onclick="showTab('emails')">📧 Emails</button>
+            <button class="nav-btn" onclick="showTab('rapports')">📄 Rapports</button>
+            <button class="nav-btn" onclick="showTab('stats')">📊 Statistiques</button>
+            <button class="nav-btn" onclick="showTab('config')">⚙️ Configuration</button>
+        </div>
+
+        <!-- Onglet Présentation -->
+        <div id="presentation" class="tab-content">
+            <div class="card">
+                <div class="card-title">🎯 Objectif de la plateforme</div>
+                <p>AutoStockCheck est une plateforme intelligente d'automatisation de la vérification des commandes clients. Notre solution permet de :</p>
+                <ul style="margin-top: 15px; margin-left: 20px;">
+                    <li>✅ Automatiser la comparaison entre factures clients et stock physique</li>
+                    <li>✅ Détecter automatiquement les manques de stock avec l'IA</li>
+                    <li>✅ Envoyer des rapports automatisés aux clients</li>
+                    <li>✅ Assurer une traçabilité complète des vérifications</li>
+                    <li>✅ Réduire les erreurs humaines et gagner du temps</li>
+                </ul>
+            </div>
+
+            <div class="row">
+                <div class="card">
+                    <div class="card-title">🤖 Modèles IA utilisés</div>
+                    <table class="table">
+                        <thead>
+                            <tr><th>Modèle</th><th>Type</th><th>Performance (F1)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>SVM (Linear)</td><td>Classification</td><td><span class="badge badge-success">1.00</span></td></tr>
+                            <tr><td>Decision Tree</td><td>Classification</td><td><span class="badge badge-success">1.00</span></td></tr>
+                            <tr><td>Random Forest</td><td>Ensemble</td><td><span class="badge badge-success">0.91</span></td></tr>
+                            <tr><td>Neural Network</td><td>Deep Learning</td><td><span class="badge badge-success">1.00</span></td></tr>
+                            <tr><td>Logistic Regression</td><td>Classification</td><td><span class="badge badge-warning">0.65</span></td></tr>
+                            <tr><td>Isolation Forest</td><td>Anomalie</td><td><span class="badge badge-warning">0.25</span></td></tr>
+                        </tbody>
+                    </table>
+                    <p style="margin-top: 15px;"><small>📊 Modèle sélectionné: <strong>SVM (Linear)</strong> - 100% de précision sur 27 431 échantillons</small></p>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📊 Données d'entraînement</div>
+                    <p><strong>27 431 échantillons</strong> générés synthétiquement</p>
+                    <ul style="margin-top: 10px;">
+                        <li>✅ 20 015 échantillons conformes (73%)</li>
+                        <li>✅ 7 416 échantillons avec manques (27%)</li>
+                        <li>✅ 14 features discriminantes</li>
+                        <li>✅ 50 fichiers Excel de test</li>
+                    </ul>
+                    <div class="stats-grid" style="margin-top: 15px;">
+                        <div class="stat-card"><div class="stat-value">14</div><div class="stat-label">Features</div></div>
+                        <div class="stat-card"><div class="stat-value">27k</div><div class="stat-label">Échantillons</div></div>
+                        <div class="stat-card"><div class="stat-value">6</div><div class="stat-label">Modèles</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="card">
+                    <div class="card-title">⚙️ Automatisation avec n8n</div>
+                    <p>La plateforme est entièrement automatisée via <strong>n8n</strong> :</p>
+                    <ul>
+                        <li>📥 Réception automatique des factures par webhook</li>
+                        <li>🤖 Appel à l'API de prédiction</li>
+                        <li>📧 Envoi d'alertes au responsable stock</li>
+                        <li>📄 Génération et envoi des rapports clients</li>
+                        <li>📊 Traçabilité complète des échanges</li>
+                    </ul>
+                    <p style="margin-top: 15px;"><strong>Webhook URL:</strong> <code>http://localhost:5678/webhook/api</code></p>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📞 Contact et Support</div>
+                    <p><strong>ECU Worldwide</strong></p>
+                    <p>📧 Email: <a href="mailto:support@autostockcheck.com">support@autostockcheck.com</a></p>
+                    <p>📞 Téléphone: +212 5 22 12 34 56</p>
+                    <p>🌐 Site web: <a href="#">www.ecu-worldwide.com</a></p>
+                    <hr>
+                    <p><strong>Support technique:</strong> 24h/24, 7j/7</p>
+                    <p><strong>Service client:</strong> Lun-Ven, 9h-18h</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglet Vérification -->
+        <div id="verification" class="tab-content" style="display: none;">
+            <div class="row">
+                <div class="card">
+                    <div class="card-title">📄 Facture Client</div>
+                    <div class="form-group">
+                        <label>Référence commande *</label>
+                        <input type="text" id="reference" class="form-control" placeholder="CMD-001" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Produit</label>
+                        <input type="text" id="produit" class="form-control" placeholder="Nom du produit">
+                    </div>
+                    <div class="form-group">
+                        <label>Quantité commandée *</label>
+                        <input type="number" id="qte_facture" class="form-control" value="5" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Prix unitaire (€)</label>
+                        <input type="number" id="prix" class="form-control" value="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Email client *</label>
+                        <input type="email" id="client_email" class="form-control" placeholder="client@email.com" required>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">🏭 Stock Réel</div>
+                    <div class="form-group">
+                        <label>Quantité en stock *</label>
+                        <input type="number" id="qte_stock" class="form-control" value="5" required>
+                    </div>
+                    <div class="form-group">
+                        <label>État du produit (0-1)</label>
+                        <input type="number" id="etat_produit" class="form-control" value="0.95" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Emplacement</label>
+                        <input type="text" id="emplacement" class="form-control" placeholder="ZONE-A12">
+                    </div>
+                    <button class="btn btn-primary" onclick="verifier()" style="width: 100%; margin-top: 10px;">🔍 Vérifier la commande</button>
+                </div>
+            </div>
+
+            <div id="resultat" style="display: none;"></div>
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Analyse en cours...</p>
+            </div>
+        </div>
+
+        <!-- Onglet Historique -->
+        <div id="historique" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title">📋 Historique des vérifications</div>
+                <div id="historique-list"></div>
+                <button class="btn btn-primary" onclick="chargerHistorique()" style="margin-top: 20px;">🔄 Rafraîchir</button>
+            </div>
+        </div>
+
+        <!-- Onglet Emails -->
+        <div id="emails" class="tab-content" style="display: none;">
+            <div class="row">
+                <div class="card">
+                    <div class="card-title">📥 Emails reçus</div>
+                    <div id="emails-recus"></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">📤 Emails envoyés</div>
+                    <div id="emails-envoyes"></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">✉️ Envoyer un email</div>
+                <div class="form-group">
+                    <label>Destinataire</label>
+                    <input type="email" id="email_destinataire" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Objet</label>
+                    <input type="text" id="email_objet" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea id="email_message" class="form-control" rows="4"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="envoyerEmail()">📧 Envoyer</button>
+            </div>
+        </div>
+
+        <!-- Onglet Rapports -->
+        <div id="rapports" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title">📄 Rapports générés</div>
+                <div id="rapports-list"></div>
+                <button class="btn btn-primary" onclick="genererRapport()">📊 Générer rapport mensuel</button>
+            </div>
+        </div>
+
+        <!-- Onglet Statistiques -->
+        <div id="stats" class="tab-content" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Commandes traitées</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-conformes">0</div><div class="stat-label">Commandes conformes</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-manques">0</div><div class="stat-label">Manques détectés</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-taux">0%</div><div class="stat-label">Taux de détection</div></div>
+            </div>
+            <div class="card"><div class="card-title">📈 Évolution des prédictions</div><canvas id="evolution-chart" width="800" height="400"></canvas></div>
+            <div class="card"><div class="card-title">🎯 Performance du modèle</div><canvas id="performance-chart" width="800" height="300"></canvas></div>
+        </div>
+
+        <!-- Onglet Configuration -->
+        <div id="config" class="tab-content" style="display: none;">
+            <div class="row">
+                <div class="card">
+                    <div class="card-title">⚙️ Informations entreprise</div>
+                    <div class="form-group"><label>Nom de l'entreprise</label><input type="text" id="config_company" class="form-control"></div>
+                    <div class="form-group"><label>Type de stockage</label><input type="text" id="config_storage" class="form-control"></div>
+                    <div class="form-group"><label>Email responsable stock</label><input type="email" id="config_email_stock" class="form-control"></div>
+                    <div class="form-group"><label>Email notification client</label><input type="email" id="config_email_notif" class="form-control"></div>
+                    <button class="btn btn-primary" onclick="sauvegarderConfig()">💾 Sauvegarder</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">📧 Templates d'emails</div>
+                    <div class="form-group"><label>Template - Commande conforme</label><textarea id="template_conforme" class="form-control" rows="4"></textarea></div>
+                    <div class="form-group"><label>Template - Manque détecté</label><textarea id="template_manque" class="form-control" rows="4"></textarea></div>
+                    <button class="btn btn-primary" onclick="sauvegarderTemplates()">💾 Sauvegarder</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

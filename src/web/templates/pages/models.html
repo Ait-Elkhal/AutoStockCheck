@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Modèles IA - Nos algorithmes{% endblock %}
+
+{% block content %}
+<h1 style="color: white; margin-bottom: 30px;">🤖 Modèles d'Intelligence Artificielle</h1>
+
+<div class="card">
+    <div class="card-title">🏆 Modèle sélectionné : SVM (Linear)</div>
+    <p><strong>Performance :</strong> 100% de précision sur 27 431 échantillons</p>
+    <p><strong>Pourquoi ce modèle ?</strong> SVM est ultra-rapide (0.001s par prédiction) et parfaitement adapté à la détection des manques de stock.</p>
+</div>
+
+<div class="card">
+    <div class="card-title">📊 Comparaison des modèles</div>
+    <table class="table">
+        <thead>
+            <tr><th>Modèle</th><th>Type</th><th>F1-Score</th><th>Temps prédiction</th><th>Description</th>
+        </thead>
+        <tbody>
+            <tr style="background: rgba(67, 97, 238, 0.1);"><td><strong>SVM (Linear)</strong></td><td>Classification</td><td><span class="badge badge-success">1.00</span></td><td>0.001s</td><td>⭐ Modèle final - Ultra-rapide</td></tr>
+            <tr><td>Decision Tree</td><td>Classification</td><td><span class="badge badge-success">1.00</span></td><td>0.003s</td><td>Arbre interprétable</td></tr>
+            <tr><td>Random Forest</td><td>Ensemble</td><td><span class="badge badge-success">0.91</span></td><td>0.165s</td><td>Robuste aux données bruitées</td></tr>
+            <tr><td>Neural Network</td><td>Deep Learning</td><td><span class="badge badge-success">1.00</span></td><td>0.004s</td><td>Réseau de neurones profond</td></tr>
+            <tr><td>Logistic Regression</td><td>Classification</td><td><span class="badge badge-warning">0.65</span></td><td>0.001s</td><td>Modèle linéaire simple</td></tr>
+            <tr><td>Isolation Forest</td><td>Anomalie</td><td><span class="badge badge-warning">0.25</span></td><td>0.642s</td><td>Détection d'anomalies</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="row">
+    <div class="card">
+        <div class="card-title">🔬 Features utilisées (14)</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <span class="badge badge-primary">diff_quantite</span>
+            <span class="badge badge-primary">produit_absent</span>
+            <span class="badge badge-primary">quantite_insuffisante</span>
+            <span class="badge badge-primary">ratio_stock</span>
+            <span class="badge badge-primary">etat_produit</span>
+            <span class="badge badge-primary">fiabilite_fournisseur</span>
+            <span class="badge badge-primary">popularite</span>
+            <span class="badge badge-primary">saisonnalite</span>
+            <span class="badge badge-primary">prix</span>
+            <span class="badge badge-primary">valeur_ligne</span>
+            <span class="badge badge-primary">produit_cher</span>
+            <span class="badge badge-primary">diff_x_prix</span>
+            <span class="badge badge-primary">absent_x_prix</span>
+            <span class="badge badge-primary">etat_x_popularite</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📊 Données d'entraînement</div>
+        <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+            <div class="stat-card"><div class="stat-value">27,431</div><div class="stat-label">Échantillons</div></div>
+            <div class="stat-card"><div class="stat-value">73%</div><div class="stat-label">Conformes</div></div>
+            <div class="stat-card"><div class="stat-value">27%</div><div class="stat-label">Manques</div></div>
+            <div class="stat-card"><div class="stat-value">50</div><div class="stat-label">Fichiers test</div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

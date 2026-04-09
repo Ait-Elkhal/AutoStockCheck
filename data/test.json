@@ -1,0 +1,9 @@
+﻿{
+  "facture": {
+    "quantite": 5,
+    "prix": 100
+  },
+  "stock": {
+    "quantite": 5
+  }
+}

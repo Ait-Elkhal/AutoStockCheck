@@ -1,0 +1,348 @@
+/* ==================== GESTION DE STOCK ==================== */
+.stock-container {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+}
+
+/* Header */
+.stock-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.stock-header h2 {
+    margin: 0;
+    color: #4361ee;
+}
+
+.stock-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Alertes */
+.cumul-alert {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.btn-small {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    background: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #333;
+}
+
+/* Statistiques */
+.stock-stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #4361ee;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.75rem;
+    margin-top: 5px;
+}
+
+/* Barre de recherche */
+.stock-search-bar {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 2;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.filter-select {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+}
+
+/* Tableau */
+.stock-table-container {
+    overflow-x: auto;
+    max-height: 50vh;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+}
+
+.stock-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.stock-table th {
+    background: #4361ee;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.stock-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.stock-table tr:hover {
+    background: #f5f5f5;
+}
+
+/* Badges */
+.stock-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+}
+
+.stock-badge.rupture {
+    background: #f44336;
+    color: white;
+}
+
+.stock-badge.bas {
+    background: #ffc107;
+    color: #333;
+}
+
+.stock-badge.normal {
+    background: #4caf50;
+    color: white;
+}
+
+/* Boutons d'action */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: all 0.2s;
+}
+
+.action-btn.edit {
+    background: #ffc107;
+    color: #333;
+}
+
+.action-btn.delete {
+    background: #dc3545;
+    color: white;
+}
+
+.action-btn.stock {
+    background: #17a2b8;
+    color: white;
+}
+
+.action-btn:hover {
+    opacity: 0.8;
+    transform: scale(1.02);
+}
+
+/* Formulaire */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+/* Modals */
+.modal-produit {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-produit-content {
+    background: white;
+    border-radius: 15px;
+    max-width: 550px;
+    width: 90%;
+    padding: 25px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-commande-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-commande-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #666;
+}
+
+/* Gestion stock */
+.gestion-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.gestion-btn {
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.gestion-btn.ajouter {
+    background: #4caf50;
+    color: white;
+}
+
+.gestion-btn.retirer {
+    background: #ffc107;
+    color: #333;
+}
+
+.gestion-btn.modifier {
+    background: #17a2b8;
+    color: white;
+}
+
+.gestion-btn.reappro {
+    background: #4361ee;
+    color: white;
+}
+
+.gestion-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+/* Cumul du jour */
+.cumul-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.cumul-quantite {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.cumul-entree {
+    color: #4caf50;
+}
+
+.cumul-sortie {
+    color: #f44336;
+}
+
+/* Message aucun résultat */
+.no-result-message {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-size: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .stock-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stock-search-bar {
+        flex-direction: column;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .stock-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

@@ -1,0 +1,26 @@
+<div class="dashboard-card">
+    <div class="card-header">
+        <h2>📊 Tableau de bord</h2>
+    </div>
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="stat-value">0</div><div class="stat-label">Commandes traitées</div></div>
+        <div class="stat-card"><div class="stat-value">0</div><div class="stat-label">Conformes</div></div>
+        <div class="stat-card"><div class="stat-value">0</div><div class="stat-label">Manques</div></div>
+        <div class="stat-card"><div class="stat-value">0%</div><div class="stat-label">Taux détection</div></div>
+    </div>
+    <canvas id="dashboardChart" height="200"></canvas>
+</div>
+
+<script>
+    // Charger les statistiques
+    fetch('/api/stats', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.querySelectorAll('.stat-card')[0].querySelector('.stat-value').textContent = data.total || 0;
+        document.querySelectorAll('.stat-card')[1].querySelector('.stat-value').textContent = data.conformes || 0;
+        document.querySelectorAll('.stat-card')[2].querySelector('.stat-value').textContent = data.manques || 0;
+        document.querySelectorAll('.stat-card')[3].querySelector('.stat-value').textContent = `${(data.taux || 0).toFixed(1)}%`;
+    });
+</script>

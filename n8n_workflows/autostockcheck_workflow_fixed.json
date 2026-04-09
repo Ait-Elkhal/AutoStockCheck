@@ -1,0 +1,175 @@
+{
+    "name": "AutoStockCheck - Vérification des commandes",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "facture",
+          "responseMode": "onReceived",
+          "options": {}
+        },
+        "id": "node-webhook-facture",
+        "name": "📄 Facture Client",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1.1,
+        "position": [250, 300]
+      },
+      {
+        "parameters": {
+          "path": "stock",
+          "responseMode": "onReceived",
+          "options": {}
+        },
+        "id": "node-webhook-stock",
+        "name": "📦 Stock Réel",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1.1,
+        "position": [250, 500]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Fusionner les données des deux webhooks\nconst factureData = $input.first().json;\nconst stockData = $input.all()[1].json;\n\n// Extraire les données facture\nconst quantiteFacture = factureData.quantite || 0;\nconst prix = factureData.prix || 0;\nconst reference = factureData.reference || stockData.reference || \"UNKNOWN\";\nconst clientEmail = factureData.client_email || \"client@test.com\";\nconst clientNom = factureData.client_nom || \"Client\";\nconst produit = factureData.produit || stockData.produit || \"Produit\";\n\n// Extraire les données stock\nconst quantiteStock = stockData.quantite || 0;\nconst etatProduit = stockData.etat_produit || 0.95;\nconst popularite = factureData.popularite || 0.6;\n\n// Retourner les données fusionnées\nreturn {\n  facture: {\n    quantite: quantiteFacture,\n    prix: prix,\n    popularite: popularite\n  },\n  stock: {\n    quantite: quantiteStock,\n    etat_produit: etatProduit\n  },\n  reference: reference,\n  client_email: clientEmail,\n  client_nom: clientNom,\n  produit: produit,\n  quantite_facture: quantiteFacture,\n  quantite_stock: quantiteStock\n};"
+        },
+        "id": "node-fusion",
+        "name": "🔗 Fusion Données",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [500, 400]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://localhost:5000/predict",
+          "authentication": "none",
+          "sendBody": true,
+          "options": {
+            "bodyContentType": "json"
+          }
+        },
+        "id": "node-api",
+        "name": "🤖 API Prédiction",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1,
+        "position": [750, 400]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "string": [
+              {
+                "value1": "={{ $json.prediction }}",
+                "operation": "equals",
+                "value2": "1"
+              }
+            ]
+          }
+        },
+        "id": "node-if",
+        "name": "⚡ Manque ?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [1000, 400]
+      },
+      {
+        "parameters": {
+          "respondWithWebhook": true,
+          "responseBody": "={\n  \"status\": \"success\",\n  \"resultat\": \"Commande conforme\",\n  \"prediction\": {{ $json.prediction }},\n  \"reference\": \"{{ $json.reference }}\",\n  \"quantite_facture\": {{ $json.quantite_facture }},\n  \"quantite_stock\": {{ $json.quantite_stock }},\n  \"message\": \"✅ Aucun manque détecté\"\n}",
+          "responseHeaders": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "id": "node-conforme",
+        "name": "✅ Réponse Conforme",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [1250, 300]
+      },
+      {
+        "parameters": {
+          "respondWithWebhook": true,
+          "responseBody": "={\n  \"status\": \"warning\",\n  \"resultat\": \"Manque détecté\",\n  \"prediction\": {{ $json.prediction }},\n  \"reference\": \"{{ $json.reference }}\",\n  \"quantite_facture\": {{ $json.quantite_facture }},\n  \"quantite_stock\": {{ $json.quantite_stock }},\n  \"probabilite_manque\": {{ $json.probabilite_manque }},\n  \"message\": \"⚠️ Manque de stock détecté! Veuillez vérifier physiquement.\"\n}",
+          "responseHeaders": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "id": "node-manque",
+        "name": "⚠️ Réponse Manque",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [1250, 500]
+      }
+    ],
+    "connections": {
+      "📄 Facture Client": {
+        "main": [
+          [
+            {
+              "node": "🔗 Fusion Données",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📦 Stock Réel": {
+        "main": [
+          [
+            {
+              "node": "🔗 Fusion Données",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "🔗 Fusion Données": {
+        "main": [
+          [
+            {
+              "node": "🤖 API Prédiction",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🤖 API Prédiction": {
+        "main": [
+          [
+            {
+              "node": "⚡ Manque ?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "⚡ Manque ?": {
+        "main": [
+          [
+            {
+              "node": "✅ Réponse Conforme",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "⚠️ Réponse Manque",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  }

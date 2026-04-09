@@ -1,0 +1,606 @@
+<link rel="stylesheet" href="/static/css/stock.css">
+
+<div class="stock-container">
+    <div class="stock-header">
+        <h2>🏭 Gestion du Stock</h2>
+        <div class="stock-actions">
+            <button class="btn btn-primary" onclick="ouvrirModalAjoutProduit()">➕ Ajouter produit</button>
+            <button class="btn btn-warning" onclick="finaliserJournee()">📅 Finaliser la journée</button>
+            <button class="btn" onclick="exporterStockCSV()">📎 Exporter CSV</button>
+            <button class="btn" onclick="rafraichirStock()">🔄 Rafraîchir</button>
+        </div>
+    </div>
+
+    <!-- Indicateur des cumuls du jour -->
+    <div id="dailyCumulAlert" class="cumul-alert" style="display: none;">
+        <span>📊 Cumul du jour en attente</span>
+        <button class="btn-small" onclick="afficherCumulJour()">Voir le détail</button>
+        <button class="btn-small" onclick="finaliserJournee()">Finaliser maintenant</button>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="stock-stats">
+        <div class="stat-card">
+            <div class="stat-value" id="statTotalProduits">0</div>
+            <div class="stat-label">Total produits</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statValeurStock">0 €</div>
+            <div class="stat-label">Valeur du stock</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statStockBas">0</div>
+            <div class="stat-label">Stock bas</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statRupture">0</div>
+            <div class="stat-label">En rupture</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statCumulJour">0</div>
+            <div class="stat-label">Mouvements du jour</div>
+        </div>
+    </div>
+
+    <!-- Barre de recherche et filtres -->
+    <div class="stock-search-bar">
+        <input type="text" id="searchStock" class="search-input" placeholder="🔍 Rechercher par emplacement, référence, nom, catégorie..." onkeyup="filtrerStock()">
+        <select id="filterStockStatus" class="filter-select" onchange="filtrerStock()">
+            <option value="all">📊 Tous les stocks</option>
+            <option value="rupture">⚠️ Rupture (0)</option>
+            <option value="bas">🟡 Stock bas</option>
+            <option value="normal">🟢 Stock normal</option>
+        </select>
+        <select id="filterCategorie" class="filter-select" onchange="filtrerStock()">
+            <option value="all">📂 Toutes catégories</option>
+            <option value="Informatique">Informatique</option>
+            <option value="Périphérique">Périphérique</option>
+            <option value="Stockage">Stockage</option>
+            <option value="Consommable">Consommable</option>
+            <option value="Accessoire">Accessoire</option>
+        </select>
+    </div>
+
+    <!-- Tableau des stocks -->
+    <div class="stock-table-container">
+        <table class="stock-table">
+            <thead>
+                全
+                    <th>📍 Emplacement</th>
+                    <th>📦 Référence</th>
+                    <th>🏷️ Produit</th>
+                    <th>📂 Catégorie</th>
+                    <th>📊 Quantité</th>
+                    <th>⚠️ Seuil</th>
+                    <th>🟢 Statut</th>
+                    <th>💰 Prix</th>
+                    <th>⚙️ Actions</th>
+                </tr>
+            </thead>
+            <tbody id="stockList"></tbody>
+        </table>
+    </div>
+
+    <div id="noResultMessage" class="no-result-message" style="display: none;">
+        📭 Aucun produit trouvé
+    </div>
+</div>
+
+<!-- Modal Ajouter / Modifier Produit -->
+<div id="modalProduitForm" class="modal-produit">
+    <div class="modal-produit-content">
+        <div class="modal-commande-header">
+            <h3 id="modalProduitTitle">➕ Ajouter un produit</h3>
+            <button class="btn-close" onclick="fermerModalProduitForm()">✕</button>
+        </div>
+        <form id="produitForm" onsubmit="event.preventDefault(); sauvegarderProduit();">
+            <input type="hidden" id="editEmplacement" value="">
+            <div class="form-group">
+                <label>📍 Emplacement * (clé primaire)</label>
+                <input type="text" id="emplacement" class="form-control" placeholder="Ex: A-01-02" required>
+                <small>Format: Zone-Étagère-Colonne (ex: A-01-02)</small>
+            </div>
+            <div class="form-group">
+                <label>📦 Référence *</label>
+                <input type="text" id="reference" class="form-control" placeholder="REF-001" required>
+            </div>
+            <div class="form-group">
+                <label>🏷️ Nom du produit *</label>
+                <input type="text" id="nom" class="form-control" placeholder="Nom du produit" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📂 Catégorie</label>
+                    <select id="categorie" class="form-control">
+                        <option value="Informatique">Informatique</option>
+                        <option value="Périphérique">Périphérique</option>
+                        <option value="Stockage">Stockage</option>
+                        <option value="Consommable">Consommable</option>
+                        <option value="Accessoire">Accessoire</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>💰 Prix unitaire (€)</label>
+                    <input type="number" id="prix" class="form-control" value="0" step="0.01">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>📊 Quantité</label>
+                    <input type="number" id="quantite" class="form-control" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>⚠️ Stock minimum d'alerte</label>
+                    <input type="number" id="stockMin" class="form-control" value="5" min="0">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn" onclick="fermerModalProduitForm()">Annuler</button>
+                <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Gestion Stock -->
+<div id="modalGestionStock" class="modal-produit">
+    <div class="modal-produit-content">
+        <div class="modal-commande-header">
+            <h3 id="modalGestionTitle">📦 Gestion du stock</h3>
+            <button class="btn-close" onclick="fermerModalGestionStock()">✕</button>
+        </div>
+        <div id="gestionStockContent"></div>
+    </div>
+</div>
+
+<!-- Modal Cumul du Jour -->
+<div id="modalCumulJour" class="modal-produit">
+    <div class="modal-produit-content" style="max-width: 600px;">
+        <div class="modal-commande-header">
+            <h3>📊 Cumul des mouvements du jour</h3>
+            <button class="btn-close" onclick="fermerModalCumul()">✕</button>
+        </div>
+        <div id="cumulJourContent"></div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button class="btn" onclick="fermerModalCumul()">Fermer</button>
+            <button class="btn btn-primary" onclick="finaliserJournee()">✅ Finaliser la journée</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Résumé Finalisation -->
+<div id="modalResumeJournee" class="modal-produit">
+    <div class="modal-produit-content" style="max-width: 700px;">
+        <div class="modal-commande-header">
+            <h3>📅 Résumé de la journée</h3>
+            <button class="btn-close" onclick="fermerModalResume()">✕</button>
+        </div>
+        <div id="resumeJourneeContent"></div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button class="btn" onclick="fermerModalResume()">Annuler</button>
+            <button class="btn btn-primary" onclick="validerFinalisation()">✅ Valider et enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== DONNÉES ====================
+    let stockData = JSON.parse(localStorage.getItem('stockData') || '[]');
+    let cumulJournalier = JSON.parse(localStorage.getItem('cumulJournalierStock') || '{"date": null, "mouvements": {}}');
+    let historiqueRegistre = JSON.parse(localStorage.getItem('registreActions') || '[]');
+    
+    // Vérifier si on a changé de jour
+    const aujourdhui = new Date().toISOString().split('T')[0];
+    if (cumulJournalier.date !== aujourdhui) {
+        cumulJournalier = { date: aujourdhui, mouvements: {} };
+        localStorage.setItem('cumulJournalierStock', JSON.stringify(cumulJournalier));
+    }
+    
+    // Données d'exemple
+    if (stockData.length === 0) {
+        stockData = [
+            { emplacement: "A-01-01", reference: "REF-001", nom: "Ordinateur portable Dell", categorie: "Informatique", prix: 899.99, quantite: 12, stockMin: 5, dateAjout: new Date().toISOString() },
+            { emplacement: "A-01-02", reference: "REF-002", nom: "Souris sans fil Logitech", categorie: "Périphérique", prix: 25.00, quantite: 8, stockMin: 10, dateAjout: new Date().toISOString() },
+            { emplacement: "B-02-01", reference: "REF-003", nom: "Clavier mécanique Corsair", categorie: "Périphérique", prix: 79.90, quantite: 3, stockMin: 5, dateAjout: new Date().toISOString() },
+            { emplacement: "B-02-03", reference: "REF-004", nom: "Écran 24 pouces Samsung", categorie: "Informatique", prix: 199.99, quantite: 0, stockMin: 3, dateAjout: new Date().toISOString() }
+        ];
+        localStorage.setItem('stockData', JSON.stringify(stockData));
+    }
+
+    // ==================== GESTION DU CUMUL JOURNALIER ====================
+    function ajouterAuCumul(reference, nom, type, quantite) {
+        const key = reference;
+        if (!cumulJournalier.mouvements[key]) {
+            cumulJournalier.mouvements[key] = {
+                reference: reference,
+                nom: nom,
+                entree: 0,
+                sortie: 0,
+                solde: 0
+            };
+        }
+        
+        if (type === 'entree') {
+            cumulJournalier.mouvements[key].entree += quantite;
+        } else if (type === 'sortie') {
+            cumulJournalier.mouvements[key].sortie += quantite;
+        }
+        cumulJournalier.mouvements[key].solde = cumulJournalier.mouvements[key].entree - cumulJournalier.mouvements[key].sortie;
+        
+        localStorage.setItem('cumulJournalierStock', JSON.stringify(cumulJournalier));
+        mettreAJourIndicateurCumul();
+    }
+    
+    function mettreAJourIndicateurCumul() {
+        const totalMouvements = Object.keys(cumulJournalier.mouvements).length;
+        const alertDiv = document.getElementById('dailyCumulAlert');
+        const statCumul = document.getElementById('statCumulJour');
+        
+        if (totalMouvements > 0) {
+            alertDiv.style.display = 'flex';
+            statCumul.textContent = totalMouvements;
+        } else {
+            alertDiv.style.display = 'none';
+            statCumul.textContent = '0';
+        }
+    }
+    
+    function afficherCumulJour() {
+        const mouvements = Object.values(cumulJournalier.mouvements);
+        const totalEntrees = mouvements.reduce((sum, m) => sum + m.entree, 0);
+        const totalSorties = mouvements.reduce((sum, m) => sum + m.sortie, 0);
+        
+        const modalContent = document.getElementById('cumulJourContent');
+        if (mouvements.length === 0) {
+            modalContent.innerHTML = '<p>Aucun mouvement enregistré aujourd\'hui.</p>';
+        } else {
+            modalContent.innerHTML = `
+                <div style="margin-bottom: 15px; padding: 10px; background: #f0f0f0; border-radius: 8px;">
+                    <strong>📊 Résumé du ${cumulJournalier.date}</strong><br>
+                    Total entrées: <span class="cumul-entree">+${totalEntrees}</span> | 
+                    Total sorties: <span class="cumul-sortie">-${totalSorties}</span> | 
+                    Solde: ${totalEntrees - totalSorties}
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    ${mouvements.map(m => `
+                        <div class="cumul-item">
+                            <div><strong>${m.reference}</strong> - ${m.nom}</div>
+                            <div>
+                                ${m.entree > 0 ? `<span class="cumul-entree">+${m.entree}</span>` : ''}
+                                ${m.sortie > 0 ? `<span class="cumul-sortie">-${m.sortie}</span>` : ''}
+                                ${m.entree === 0 && m.sortie === 0 ? 'Aucun mouvement' : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        document.getElementById('modalCumulJour').style.display = 'flex';
+    }
+    
+    function fermerModalCumul() { document.getElementById('modalCumulJour').style.display = 'none'; }
+    
+    function finaliserJournee() {
+        const mouvements = Object.values(cumulJournalier.mouvements);
+        if (mouvements.length === 0) {
+            alert("Aucun mouvement à finaliser aujourd'hui.");
+            return;
+        }
+        
+        const totalEntrees = mouvements.reduce((sum, m) => sum + m.entree, 0);
+        const totalSorties = mouvements.reduce((sum, m) => sum + m.sortie, 0);
+        
+        const modalContent = document.getElementById('resumeJourneeContent');
+        modalContent.innerHTML = `
+            <div style="margin-bottom: 20px;">
+                <h4>📅 Résumé du ${cumulJournalier.date}</h4>
+                <p><strong>Total entrées:</strong> <span style="color:#4caf50;">+${totalEntrees}</span></p>
+                <p><strong>Total sorties:</strong> <span style="color:#f44336;">-${totalSorties}</span></p>
+                <p><strong>Solde net:</strong> ${totalEntrees - totalSorties}</p>
+            </div>
+            <div style="max-height: 400px; overflow-y: auto;">
+                <table style="width:100%; border-collapse: collapse;">
+                    <thead><tr style="background:#f0f0f0;"><th>Référence</th><th>Produit</th><th>Entrées</th><th>Sorties</th><th>Solde</th></tr></thead>
+                    <tbody>
+                        ${mouvements.map(m => `
+                            <tr style="border-bottom:1px solid #eee;">
+                                <td>${m.reference}</td><td>${m.nom}</td>
+                                <td style="color:#4caf50;">${m.entree > 0 ? '+' + m.entree : '-'}</td>
+                                <td style="color:#f44336;">${m.sortie > 0 ? '-' + m.sortie : '-'}</td>
+                                <td>${m.solde}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        document.getElementById('modalResumeJournee').style.display = 'flex';
+    }
+    
+    function fermerModalResume() { document.getElementById('modalResumeJournee').style.display = 'none'; }
+    
+    function validerFinalisation() {
+        const mouvements = Object.values(cumulJournalier.mouvements);
+        
+        const totalEntrees = mouvements.reduce((sum, m) => sum + m.entree, 0);
+        const totalSorties = mouvements.reduce((sum, m) => sum + m.sortie, 0);
+        const dateStr = cumulJournalier.date;
+        
+        const resumeMessage = `📅 RÉSUMÉ STOCK ${dateStr}: Total entrées: ${totalEntrees}, Total sorties: ${totalSorties}, Solde: ${totalEntrees - totalSorties}`;
+        
+        if (window.enregistrerAction) {
+            window.enregistrerAction('stock_resume', resumeMessage, null, 'Système');
+            mouvements.forEach(m => {
+                if (m.entree > 0) {
+                    window.enregistrerAction('stock_entree', `${m.entree} ${m.reference} (${m.nom}) entré(s) en stock`, m.reference, null);
+                }
+                if (m.sortie > 0) {
+                    window.enregistrerAction('stock_sortie', `${m.sortie} ${m.reference} (${m.nom}) sorti(s) du stock`, m.reference, null);
+                }
+            });
+        }
+        
+        cumulJournalier = { date: new Date().toISOString().split('T')[0], mouvements: {} };
+        localStorage.setItem('cumulJournalierStock', JSON.stringify(cumulJournalier));
+        
+        fermerModalResume();
+        afficherStock();
+        mettreAJourIndicateurCumul();
+        alert(`✅ Journée finalisée. ${mouvements.length} articles enregistrés dans le registre.`);
+    }
+
+    // ==================== STATISTIQUES ====================
+    function mettreAJourStatistiques() {
+        const total = stockData.length;
+        const valeurTotale = stockData.reduce((sum, p) => sum + (p.quantite * (p.prix || 0)), 0);
+        const stockBas = stockData.filter(p => p.quantite > 0 && p.quantite <= p.stockMin).length;
+        const rupture = stockData.filter(p => p.quantite === 0).length;
+        document.getElementById('statTotalProduits').textContent = total;
+        document.getElementById('statValeurStock').textContent = valeurTotale.toLocaleString() + ' €';
+        document.getElementById('statStockBas').textContent = stockBas;
+        document.getElementById('statRupture').textContent = rupture;
+    }
+
+    // ==================== AFFICHAGE ====================
+    function afficherStock() {
+        const tbody = document.getElementById('stockList');
+        const searchTerm = document.getElementById('searchStock').value.toLowerCase();
+        const statusFilter = document.getElementById('filterStockStatus').value;
+        const categorieFilter = document.getElementById('filterCategorie').value;
+        
+        let filteredStock = stockData.filter(p => {
+            const matchSearch = p.emplacement.toLowerCase().includes(searchTerm) || p.reference.toLowerCase().includes(searchTerm) || p.nom.toLowerCase().includes(searchTerm);
+            const matchCategorie = categorieFilter === 'all' || p.categorie === categorieFilter;
+            let matchStatus = true;
+            if (statusFilter === 'rupture') matchStatus = p.quantite === 0;
+            else if (statusFilter === 'bas') matchStatus = p.quantite > 0 && p.quantite <= p.stockMin;
+            else if (statusFilter === 'normal') matchStatus = p.quantite > p.stockMin;
+            return matchSearch && matchCategorie && matchStatus;
+        });
+        
+        const noResult = document.getElementById('noResultMessage');
+        if (filteredStock.length === 0) { tbody.innerHTML = ''; noResult.style.display = 'block'; return; }
+        noResult.style.display = 'none';
+        
+        tbody.innerHTML = filteredStock.map(p => {
+            let statutClass = '', statutText = '';
+            if (p.quantite === 0) { statutClass = 'rupture'; statutText = '⚠️ Rupture'; }
+            else if (p.quantite <= p.stockMin) { statutClass = 'bas'; statutText = '🟡 Stock bas'; }
+            else { statutClass = 'normal'; statutText = '🟢 Normal'; }
+            
+            return `
+                <tr>
+                    <td><strong>${p.emplacement}</strong></td>
+                    <td>${p.reference}</td>
+                    <td>${p.nom}</td>
+                    <td>${p.categorie || '-'}</td>
+                    <td style="font-weight: bold; color: ${p.quantite === 0 ? '#f44336' : p.quantite <= p.stockMin ? '#ffc107' : '#4caf50'}">${p.quantite}</td>
+                    <td>${p.stockMin}</td>
+                    <td><span class="stock-badge ${statutClass}">${statutText}</span></td>
+                    <td>${p.prix ? p.prix.toLocaleString() + ' €' : '-'}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn edit" onclick="ouvrirModalModifierProduit('${p.emplacement}')" title="Modifier">✏️</button>
+                            <button class="action-btn stock" onclick="ouvrirModalGestionStock('${p.emplacement}')" title="Gérer le stock">📦</button>
+                            <button class="action-btn delete" onclick="supprimerProduit('${p.emplacement}')" title="Supprimer">🗑️</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        mettreAJourStatistiques();
+    }
+
+    function filtrerStock() { afficherStock(); }
+    function rafraichirStock() { afficherStock(); }
+
+    // ==================== AJOUT / MODIFICATION PRODUIT ====================
+    function ouvrirModalAjoutProduit() {
+        document.getElementById('modalProduitTitle').textContent = '➕ Ajouter un produit';
+        document.getElementById('editEmplacement').value = '';
+        document.getElementById('emplacement').value = '';
+        document.getElementById('reference').value = '';
+        document.getElementById('nom').value = '';
+        document.getElementById('categorie').value = 'Informatique';
+        document.getElementById('prix').value = '0';
+        document.getElementById('quantite').value = '0';
+        document.getElementById('stockMin').value = '5';
+        document.getElementById('emplacement').disabled = false;
+        document.getElementById('modalProduitForm').style.display = 'flex';
+    }
+
+    function ouvrirModalModifierProduit(emplacement) {
+        const p = stockData.find(p => p.emplacement === emplacement);
+        if (!p) return;
+        document.getElementById('modalProduitTitle').textContent = '✏️ Modifier le produit';
+        document.getElementById('editEmplacement').value = emplacement;
+        document.getElementById('emplacement').value = p.emplacement;
+        document.getElementById('reference').value = p.reference;
+        document.getElementById('nom').value = p.nom;
+        document.getElementById('categorie').value = p.categorie || 'Informatique';
+        document.getElementById('prix').value = p.prix || 0;
+        document.getElementById('quantite').value = p.quantite;
+        document.getElementById('stockMin').value = p.stockMin;
+        document.getElementById('emplacement').disabled = true;
+        document.getElementById('modalProduitForm').style.display = 'flex';
+    }
+
+    function sauvegarderProduit() {
+        const editEmplacement = document.getElementById('editEmplacement').value;
+        const emplacement = document.getElementById('emplacement').value.trim();
+        const reference = document.getElementById('reference').value.trim();
+        const nom = document.getElementById('nom').value.trim();
+        const categorie = document.getElementById('categorie').value;
+        const prix = parseFloat(document.getElementById('prix').value);
+        const quantite = parseInt(document.getElementById('quantite').value);
+        const stockMin = parseInt(document.getElementById('stockMin').value);
+        
+        if (!emplacement || !reference || !nom) { alert('Champs obligatoires'); return; }
+        
+        if (editEmplacement === '') {
+            if (stockData.some(p => p.emplacement === emplacement)) { alert('Emplacement déjà utilisé'); return; }
+            const nouveau = { emplacement, reference, nom, categorie, prix, quantite, stockMin, dateAjout: new Date().toISOString() };
+            stockData.push(nouveau);
+            ajouterAuCumul(reference, nom, 'entree', quantite);
+            alert(`✅ Produit ${reference} ajouté (sera cumulé pour la fin de journée)`);
+        } else {
+            const index = stockData.findIndex(p => p.emplacement === editEmplacement);
+            if (index !== -1) {
+                const ancien = stockData[index];
+                if (ancien.quantite !== quantite) {
+                    const diff = quantite - ancien.quantite;
+                    if (diff > 0) ajouterAuCumul(reference, nom, 'entree', diff);
+                    else if (diff < 0) ajouterAuCumul(reference, nom, 'sortie', Math.abs(diff));
+                }
+                stockData[index] = { ...stockData[index], reference, nom, categorie, prix, quantite, stockMin };
+                alert(`✅ Produit ${reference} modifié (cumul mis à jour)`);
+            }
+        }
+        localStorage.setItem('stockData', JSON.stringify(stockData));
+        fermerModalProduitForm();
+        afficherStock();
+    }
+
+    function fermerModalProduitForm() { document.getElementById('modalProduitForm').style.display = 'none'; }
+
+    // ==================== GESTION DU STOCK ====================
+    let currentStockProduit = null;
+    
+    function ouvrirModalGestionStock(emplacement) {
+        const produit = stockData.find(p => p.emplacement === emplacement);
+        if (!produit) return;
+        currentStockProduit = produit;
+        document.getElementById('modalGestionTitle').textContent = `📦 Gestion du stock - ${produit.reference}`;
+        document.getElementById('gestionStockContent').innerHTML = `
+            <div style="text-align:center; margin-bottom:20px;">
+                <h3>${produit.nom}</h3>
+                <p>Stock actuel: <strong>${produit.quantite}</strong> unités<br>Seuil: ${produit.stockMin}</p>
+            </div>
+            <div class="gestion-buttons">
+                <button class="gestion-btn ajouter" onclick="gererStock('ajouter')">➕ Ajouter</button>
+                <button class="gestion-btn retirer" onclick="gererStock('retirer')">➖ Retirer</button>
+                <button class="gestion-btn modifier" onclick="gererStock('modifier')">🔢 Définir quantité</button>
+                <button class="gestion-btn reappro" onclick="gererStock('reappro')">🔄 Réappro</button>
+            </div>
+        `;
+        document.getElementById('modalGestionStock').style.display = 'flex';
+    }
+    
+    function gererStock(action) {
+        if (!currentStockProduit) return;
+        const produit = currentStockProduit;
+        let quantite = 0;
+        
+        if (action === 'ajouter') {
+            quantite = parseInt(prompt(`Quantité à AJOUTER pour ${produit.reference}:`, 1));
+            if (quantite && quantite > 0) {
+                produit.quantite += quantite;
+                ajouterAuCumul(produit.reference, produit.nom, 'entree', quantite);
+                alert(`✅ ${quantite} ajouté(s) - cumul mis à jour`);
+            }
+        } else if (action === 'retirer') {
+            quantite = parseInt(prompt(`Quantité à RETIRER pour ${produit.reference}:`, 1));
+            if (quantite && quantite > 0) {
+                produit.quantite = Math.max(0, produit.quantite - quantite);
+                ajouterAuCumul(produit.reference, produit.nom, 'sortie', quantite);
+                alert(`✅ ${quantite} retiré(s) - cumul mis à jour`);
+            }
+        } else if (action === 'modifier') {
+            const nouvelle = parseInt(prompt(`Nouvelle quantité pour ${produit.reference}:`, produit.quantite));
+            if (!isNaN(nouvelle)) {
+                const diff = nouvelle - produit.quantite;
+                if (diff > 0) ajouterAuCumul(produit.reference, produit.nom, 'entree', diff);
+                else if (diff < 0) ajouterAuCumul(produit.reference, produit.nom, 'sortie', Math.abs(diff));
+                produit.quantite = Math.max(0, nouvelle);
+                alert(`✅ Quantité modifiée - cumul mis à jour`);
+            }
+        } else if (action === 'reappro') {
+            const besoin = produit.stockMin - produit.quantite;
+            if (besoin > 0) {
+                produit.quantite = produit.stockMin;
+                ajouterAuCumul(produit.reference, produit.nom, 'entree', besoin);
+                alert(`✅ Réapprovisionné de ${besoin} unités - cumul mis à jour`);
+            } else {
+                alert(`Stock déjà au niveau du seuil (${produit.quantite} >= ${produit.stockMin})`);
+            }
+        }
+        
+        produit.derniereModification = new Date().toISOString();
+        localStorage.setItem('stockData', JSON.stringify(stockData));
+        fermerModalGestionStock();
+        afficherStock();
+    }
+    
+    function fermerModalGestionStock() { document.getElementById('modalGestionStock').style.display = 'none'; currentStockProduit = null; }
+
+    // ==================== SUPPRESSION ====================
+    function supprimerProduit(emplacement) {
+        const produit = stockData.find(p => p.emplacement === emplacement);
+        if (!produit) return;
+        if (confirm(`Supprimer ${produit.reference} (${produit.nom}) ?`)) {
+            ajouterAuCumul(produit.reference, produit.nom, 'sortie', produit.quantite);
+            stockData = stockData.filter(p => p.emplacement !== emplacement);
+            localStorage.setItem('stockData', JSON.stringify(stockData));
+            alert(`✅ Produit supprimé - ${produit.quantite} unités cumulées en sortie`);
+            afficherStock();
+        }
+    }
+
+    // ==================== EXPORT ====================
+    function exporterStockCSV() {
+        let csv = "Emplacement,Référence,Nom,Catégorie,Quantité,Stock Minimum,Prix\n";
+        stockData.forEach(p => { csv += `"${p.emplacement}","${p.reference}","${p.nom}","${p.categorie || ''}",${p.quantite},${p.stockMin},${p.prix || 0}\n`; });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `stock_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert("📎 Stock exporté");
+    }
+
+    // ==================== INITIALISATION ====================
+    function initStock() { afficherStock(); mettreAJourIndicateurCumul(); }
+    
+    // Exposer les fonctions globalement
+    window.afficherStock = afficherStock;
+    window.filtrerStock = filtrerStock;
+    window.rafraichirStock = rafraichirStock;
+    window.ouvrirModalAjoutProduit = ouvrirModalAjoutProduit;
+    window.ouvrirModalModifierProduit = ouvrirModalModifierProduit;
+    window.sauvegarderProduit = sauvegarderProduit;
+    window.fermerModalProduitForm = fermerModalProduitForm;
+    window.ouvrirModalGestionStock = ouvrirModalGestionStock;
+    window.gererStock = gererStock;
+    window.fermerModalGestionStock = fermerModalGestionStock;
+    window.supprimerProduit = supprimerProduit;
+    window.exporterStockCSV = exporterStockCSV;
+    window.afficherCumulJour = afficherCumulJour;
+    window.finaliserJournee = finaliserJournee;
+    window.fermerModalCumul = fermerModalCumul;
+    window.fermerModalResume = fermerModalResume;
+    window.validerFinalisation = validerFinalisation;
+    
+    initStock();
+</script>
