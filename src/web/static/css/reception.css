@@ -417,3 +417,129 @@
         flex-direction: column;
     }
 }
+/* ==================== CORRECTION MODALE AJOUT FACTURE ==================== */
+
+/* Conteneur de la modale - centrage parfait */
+.modal-upload {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Contenu de la modale - hauteur limitée et scrollable */
+.modal-upload-content {
+    background: white;
+    border-radius: 15px;
+    max-width: 550px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header sticky pour rester visible en haut */
+.modal-upload-header {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-upload-header h3 {
+    margin: 0;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+}
+
+/* Zone de défilement pour le contenu */
+.modal-body-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* Boutons en bas - sticky */
+.modal-footer-buttons {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding-top: 15px;
+    margin-top: 15px;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Réduction de la zone d'aperçu */
+#previewContent {
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 0.7rem;
+}
+
+/* Ajustement de la zone de drop */
+.dropzone-upload {
+    border: 2px dashed #4361ee;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 15px;
+}
+
+.dropzone-upload:hover {
+    background: #e3f2fd;
+    border-color: #1e88e5;
+}
+
+.dropzone-upload.drag-over {
+    background: #e3f2fd;
+    border-color: #0d47a1;
+}
+
+/* Pour les petits écrans */
+@media (max-width: 600px) {
+    .modal-upload-content {
+        max-width: 95%;
+        max-height: 85vh;
+        padding: 15px;
+    }
+    
+    .dropzone-upload {
+        padding: 15px;
+    }
+    
+    .dropzone-icon {
+        font-size: 1.8rem;
+    }
+    
+    .dropzone-text {
+        font-size: 0.8rem;
+    }
+}

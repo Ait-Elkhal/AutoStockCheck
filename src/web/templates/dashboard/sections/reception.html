@@ -66,6 +66,7 @@
         <div class="info-item"><span class="info-label">👤 Ajouté par:</span><span class="info-value" id="viewUser"></span></div>
         <div class="info-item"><span class="info-label">📊 Statut:</span><span class="info-value" id="viewStatus"></span></div>
         <div class="info-item"><span class="info-label">🏷️ Référence réception:</span><span class="info-value" id="viewRefReception"></span></div>
+        <div class="info-item"><span class="info-label">💾 Chemin serveur:</span><span class="info-value" id="viewCheminServeur" style="font-size: 0.7rem;"></span></div>
     </div>
 
     <div class="table-search-bar">
@@ -98,41 +99,46 @@
             <button class="btn-close" onclick="fermerModalAjoutFacture()">✕</button>
         </div>
         
-        <!-- Zone de dépôt de fichiers -->
-        <div class="dropzone-upload" id="dropzoneUpload" onclick="document.getElementById('factureFileInput').click()" 
-             ondragover="dragoverUpload(event)" ondragleave="dragleaveUpload(event)" ondrop="dropUpload(event)">
-            <div class="dropzone-icon">📁📄</div>
-            <div class="dropzone-text">Déposez votre fichier Excel ici ou cliquez pour sélectionner</div>
-            <div class="dropzone-hint">Formats acceptés: .xlsx, .xls</div>
-            <input type="file" id="factureFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(this.files[0])">
+        <div class="modal-body-scroll">
+            <!-- Zone de dépôt de fichiers -->
+            <div class="dropzone-upload" id="dropzoneUpload" 
+                 onclick="document.getElementById('factureFileInput').click()" 
+                 ondragover="dragoverUpload(event)" 
+                 ondragleave="dragleaveUpload(event)" 
+                 ondrop="dropUpload(event)">
+                <div class="dropzone-icon">📁📄</div>
+                <div class="dropzone-text">Déposez votre fichier Excel ici ou cliquez pour sélectionner</div>
+                <div class="dropzone-hint">Formats acceptés: .xlsx, .xls</div>
+                <input type="file" id="factureFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(this.files[0])">
+            </div>
+            
+            <!-- Informations du fichier sélectionné -->
+            <div id="fileInfo" style="display: none; margin: 15px 0; padding: 10px; background: #e8f5e9; border-radius: 8px;">
+                <strong>📄 Fichier sélectionné :</strong> <span id="selectedFileName"></span>
+            </div>
+            
+            <!-- Référence de réception -->
+            <div class="form-group">
+                <label>🏷️ Référence de réception *</label>
+                <input type="text" id="refReception" class="form-control" placeholder="REC-001" required>
+                <small>Référence unique pour cette facture</small>
+            </div>
+            
+            <!-- Informations supplémentaires -->
+            <div class="form-group">
+                <label>📝 Informations supplémentaires (optionnel)</label>
+                <input type="text" id="infoSupplementaire" class="form-control" placeholder="Client, fournisseur, etc.">
+            </div>
+            
+            <!-- Aperçu du fichier -->
+            <div id="previewExtraction" style="display: none; margin-top: 15px;">
+                <h4>📊 Aperçu du fichier</h4>
+                <div id="previewContent" style="max-height: 150px; overflow-y: auto; font-size: 0.7rem;"></div>
+            </div>
         </div>
         
-        <!-- Informations du fichier sélectionné -->
-        <div id="fileInfo" style="display: none; margin: 15px 0; padding: 10px; background: #e8f5e9; border-radius: 8px;">
-            <strong>📄 Fichier sélectionné :</strong> <span id="selectedFileName"></span>
-        </div>
-        
-        <!-- Référence de réception -->
-        <div class="form-group">
-            <label>🏷️ Référence de réception *</label>
-            <input type="text" id="refReception" class="form-control" placeholder="REC-001" required>
-            <small>Référence unique pour cette facture</small>
-        </div>
-        
-        <!-- Informations supplémentaires -->
-        <div class="form-group">
-            <label>📝 Informations supplémentaires (optionnel)</label>
-            <input type="text" id="infoSupplementaire" class="form-control" placeholder="Client, fournisseur, etc.">
-        </div>
-        
-        <!-- Aperçu du fichir -->
-        <div id="previewExtraction" style="display: none; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
-            <h4>📊 Aperçu du fichier</h4>
-            <div id="previewContent" style="max-height: 250px; overflow-y: auto; font-size: 0.7rem;"></div>
-        </div>
-        
-        <!-- Boutons -->
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+        <!-- Boutons en bas -->
+        <div class="modal-footer-buttons">
             <button class="btn" onclick="fermerModalAjoutFacture()">Annuler</button>
             <button class="btn btn-primary" id="btnValiderFacture" onclick="validerEtEnregistrerFacture()" disabled>✅ Valider et enregistrer</button>
         </div>
@@ -180,6 +186,16 @@
     .action-btn.download:hover {
         background: #138496;
     }
+    .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: bold;
+    }
+    .status-en-attente { background: #ffc107; color: #333; }
+    .status-traite { background: #4caf50; color: white; }
+    .status-erreur { background: #f44336; color: white; }
 </style>
 
 <script>
@@ -260,6 +276,7 @@
                         <span class="file-title">${f.nom}</span>
                     </div>
                     ${f.informations ? `<div style="font-size: 0.7rem; color: #666; margin-top: 4px;">${f.informations}</div>` : ''}
+                    ${f.chemin_serveur ? `<div style="font-size: 0.6rem; color: #999; margin-top: 2px;">💾 ${f.chemin_serveur}</div>` : ''}
                 </td>
                 <td><strong>${f.reference_reception || '-'}</strong></td>
                 <td>${new Date(f.dateAjout).toLocaleString()}</td>
@@ -326,91 +343,149 @@
     
     function handleFileSelect(file) {
         if (!file) return;
-        
+
         fichierTemp = file;
         document.getElementById('selectedFileName').textContent = file.name;
         document.getElementById('fileInfo').style.display = 'block';
-        
+
         const reader = new FileReader();
+
         reader.onload = function(e) {
             try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-                
-                if (!jsonData || jsonData.length < 2) {
-                    alert("Le fichier Excel est vide ou ne contient pas assez de données");
-                    document.getElementById('btnValiderFacture').disabled = true;
-                    return;
+                const workbook = XLSX.read(e.target.result, { type: 'array' });
+
+                if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                    throw new Error("Aucune feuille trouvée");
                 }
-                
-                const headers = jsonData[0].map(h => String(h).toLowerCase().trim());
-                const dataRows = jsonData.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== null && cell !== ''));
-                
+
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, {
+                    header: 1,
+                    defval: "",
+                    blankrows: false
+                });
+
+                console.log("DATA:", jsonData);
+
+                if (!jsonData || jsonData.length === 0) {
+                    throw new Error("Fichier vide");
+                }
+
+                let headers = null;
+                let startIndex = 0;
+
+                for (let i = 0; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (row && row.some(cell => cell !== "")) {
+                        headers = row.map(h => String(h).toLowerCase().trim());
+                        startIndex = i + 1;
+                        break;
+                    }
+                }
+
+                if (!headers) {
+                    throw new Error("Impossible de détecter les colonnes");
+                }
+
+                const dataRows = jsonData.slice(startIndex).filter(row =>
+                    row.some(cell => cell !== "")
+                );
+
+                if (dataRows.length === 0) {
+                    throw new Error("Aucune donnée trouvée");
+                }
+
                 const refIndex = trouverColonne(headers, synonymesReference);
                 const qteIndex = trouverColonne(headers, synonymesQuantite);
                 const nomIndex = trouverColonne(headers, synonymesNom);
                 const prixIndex = trouverColonne(headers, synonymesPrix);
-                
-                const colonnesManquantes = [];
-                if (refIndex === -1) colonnesManquantes.push('Référence (ou ref, code, sku...)');
-                if (qteIndex === -1) colonnesManquantes.push('Quantité (ou qty, qté, nb...)');
-                
-                const previewDiv = document.getElementById('previewExtraction');
-                const previewContent = document.getElementById('previewContent');
-                
-                if (colonnesManquantes.length > 0) {
-                    previewContent.innerHTML = `
+
+                let score = 0;
+                if (refIndex !== -1) score++;
+                if (qteIndex !== -1) score++;
+                if (nomIndex !== -1) score++;
+                if (prixIndex !== -1) score++;
+
+                if (score < 2) {
+                    document.getElementById('previewContent').innerHTML = `
                         <div style="color: #f44336; padding: 10px; background: #ffebee; border-radius: 8px;">
-                            <strong>❌ Colonnes obligatoires manquantes :</strong><br>
-                            ${colonnesManquantes.join('<br>')}<br><br>
-                            Le fichier ne peut pas être importé.
+                            <strong>❌ Fichier non reconnu comme une facture</strong><br>
+                            Colonnes détectées insuffisantes.<br><br>
+                            👉 Une facture doit contenir au moins :
+                            <ul>
+                                <li>Référence</li>
+                                <li>Quantité</li>
+                                <li>Nom produit</li>
+                                <li>Prix</li>
+                            </ul>
                         </div>
                     `;
                     document.getElementById('btnValiderFacture').disabled = true;
-                } else {
-                    let previewHtml = '<div style="margin-bottom: 10px;"><strong>✅ Colonnes trouvées :</strong></div>';
-                    previewHtml += '<table style="border-collapse: collapse; width: 100%; font-size: 0.7rem; border: 1px solid #ddd;">';
-                    previewHtml += '<thead><tr style="background: #f0f0f0;">';
-                    headers.forEach((h, idx) => {
-                        let badge = '';
-                        if (idx === refIndex) badge = ' (Référence)';
-                        else if (idx === qteIndex) badge = ' (Quantité)';
-                        else if (idx === nomIndex) badge = ' (Nom)';
-                        else if (idx === prixIndex) badge = ' (Prix)';
-                        previewHtml += `<th style="border: 1px solid #ddd; padding: 5px;">${h}${badge}</th>`;
-                    });
-                    previewHtml += '</tr></thead><tbody>';
-                    
-                    for (let i = 0; i < Math.min(5, dataRows.length); i++) {
-                        previewHtml += '<tr>';
-                        for (let j = 0; j < headers.length; j++) {
-                            previewHtml += `<td style="border: 1px solid #ddd; padding: 5px;">${dataRows[i][j] || '-'}</td>`;
-                        }
-                        previewHtml += '</tr>';
-                    }
-                    previewHtml += '</tbody></table>';
-                    previewHtml += '<p style="margin-top: 10px; font-size: 0.7rem; color: #666;">📊 Aperçu des 5 premières lignes</p>';
-                    
-                    previewContent.innerHTML = previewHtml;
-                    document.getElementById('btnValiderFacture').disabled = false;
-                    
-                    donneesExcelTemp = {
-                        headers: headers,
-                        rows: dataRows,
-                        indices: { ref: refIndex, qte: qteIndex, nom: nomIndex, prix: prixIndex }
-                    };
+                    document.getElementById('previewExtraction').style.display = 'block';
+                    return;
                 }
-                
-                previewDiv.style.display = 'block';
-                
+
+                let previewHtml = `
+                    <div style="margin-bottom: 10px;">
+                        <strong>✅ Fichier reconnu comme facture</strong><br>
+                        Score: ${score}/4 colonnes détectées
+                    </div>
+                `;
+
+                previewHtml += '<table style="border-collapse: collapse; width: 100%; font-size: 0.7rem; border: 1px solid #ddd;">';
+                previewHtml += '<thead><tr style="background: #f0f0f0;">';
+
+                headers.forEach((h, idx) => {
+                    let badge = '';
+                    if (idx === refIndex) badge = ' (Réf)';
+                    else if (idx === qteIndex) badge = ' (Qté)';
+                    else if (idx === nomIndex) badge = ' (Nom)';
+                    else if (idx === prixIndex) badge = ' (Prix)';
+                    previewHtml += `<th style="border: 1px solid #ddd; padding: 5px;">${h}${badge}</th>`;
+                });
+
+                previewHtml += '</tr></thead><tbody>';
+
+                for (let i = 0; i < Math.min(5, dataRows.length); i++) {
+                    previewHtml += '<tr>';
+                    for (let j = 0; j < headers.length; j++) {
+                        previewHtml += `<td style="border: 1px solid #ddd; padding: 5px;">${dataRows[i][j] || '-'}</td>`;
+                    }
+                    previewHtml += '</tr>';
+                }
+
+                previewHtml += '</tbody></table>';
+
+                document.getElementById('previewContent').innerHTML = previewHtml;
+                document.getElementById('previewExtraction').style.display = 'block';
+                document.getElementById('btnValiderFacture').disabled = false;
+
+                donneesExcelTemp = {
+                    headers: headers,
+                    rows: dataRows,
+                    indices: {
+                        ref: refIndex,
+                        qte: qteIndex,
+                        nom: nomIndex,
+                        prix: prixIndex
+                    }
+                };
+
             } catch (error) {
-                console.error(error);
-                alert("Erreur lors de la lecture du fichier Excel. Vérifiez le format.");
+                console.error("ERREUR DETAILLEE:", error);
+
+                document.getElementById('previewContent').innerHTML = `
+                    <div style="color: #f44336; padding: 10px; background: #ffebee; border-radius: 8px;">
+                        ❌ Erreur lors de la lecture du fichier<br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+
+                document.getElementById('previewExtraction').style.display = 'block';
                 document.getElementById('btnValiderFacture').disabled = true;
             }
         };
+
         reader.readAsArrayBuffer(file);
     }
     
@@ -431,6 +506,7 @@
         document.getElementById('modalAjoutFacture').style.display = 'none';
     }
     
+    // ==================== VALIDATION ET ENREGISTREMENT AVEC SERVEUR ====================
     function validerEtEnregistrerFacture() {
         const referenceReception = document.getElementById('refReception').value.trim();
         if (!referenceReception) {
@@ -470,30 +546,60 @@
             lignes.push(ligne);
         }
         
-        const nouvelleFacture = {
-            id: Date.now(),
-            nom: fichierTemp.name,
-            reference_reception: referenceReception,
-            informations: info || `Facture reçue le ${new Date().toLocaleString()}`,
-            statut: "en-attente",
-            dateAjout: new Date().toISOString(),
-            ajoutePar: currentUser.username || "Utilisateur",
-            contenu: {
-                en_tete: headers,
-                lignes: lignes
+        // ==== ÉTAPE 1 : Envoyer le fichier au serveur ====
+        const formData = new FormData();
+        formData.append('fichier', fichierTemp);
+        formData.append('reference', referenceReception);
+        
+        const token = localStorage.getItem('token');
+        
+        fetch('/api/upload/facture', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(serverResult => {
+            if (serverResult.status === 'success') {
+                console.log('✅ Fichier sauvegardé sur le serveur:', serverResult.path);
+                
+                // ==== ÉTAPE 2 : Sauvegarder dans localStorage ====
+                const nouvelleFacture = {
+                    id: Date.now(),
+                    nom: fichierTemp.name,
+                    reference_reception: referenceReception,
+                    informations: info || `Facture reçue le ${new Date().toLocaleString()}`,
+                    statut: "en-attente",
+                    dateAjout: new Date().toISOString(),
+                    ajoutePar: currentUser.username || "Utilisateur",
+                    contenu: {
+                        en_tete: headers,
+                        lignes: lignes
+                    },
+                    chemin_serveur: serverResult.path,
+                    nom_fichier_serveur: serverResult.filename
+                };
+                
+                factures.unshift(nouvelleFacture);
+                localStorage.setItem('facturesRecues', JSON.stringify(factures));
+                
+                if (window.enregistrerAction) {
+                    window.enregistrerAction('reception', `Facture ${fichierTemp.name} ajoutée avec référence ${referenceReception}`, null, currentUser.username);
+                }
+                
+                fermerModalAjoutFacture();
+                afficherFactures();
+                alert(`✅ Facture ajoutée avec succès !\n\n📄 Fichier: ${fichierTemp.name}\n🏷️ Référence: ${referenceReception}\n💾 Sauvegardée sur le serveur:\n${serverResult.path}`);
+            } else {
+                alert(`❌ Erreur serveur: ${serverResult.message}`);
             }
-        };
-        
-        factures.unshift(nouvelleFacture);
-        localStorage.setItem('facturesRecues', JSON.stringify(factures));
-        
-        if (window.enregistrerAction) {
-            window.enregistrerAction('reception', `Facture ${fichierTemp.name} ajoutée avec référence ${referenceReception}`, null, currentUser.username);
-        }
-        
-        fermerModalAjoutFacture();
-        afficherFactures();
-        alert(`✅ Facture ajoutée avec succès !\n📄 Fichier: ${fichierTemp.name}\n🏷️ Référence: ${referenceReception}`);
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert("❌ Erreur lors de la sauvegarde sur le serveur. Vérifiez que le serveur est démarré.");
+        });
     }
     
     // ==================== OUVERTURE FACTURE ====================
@@ -510,6 +616,7 @@
         document.getElementById('viewDate').textContent = new Date(facture.dateAjout).toLocaleString();
         document.getElementById('viewUser').textContent = facture.ajoutePar || '-';
         document.getElementById('viewRefReception').textContent = facture.reference_reception || '-';
+        document.getElementById('viewCheminServeur').textContent = facture.chemin_serveur || 'Non sauvegardée sur serveur';
         
         const statusText = facture.statut === 'en-attente' ? '🟡 En attente' : facture.statut === 'traite' ? '🟢 Traité' : '🔴 Erreur';
         document.getElementById('viewStatus').innerHTML = `<span class="status-badge status-${facture.statut === 'en-attente' ? 'en-attente' : facture.statut === 'traite' ? 'traite' : 'erreur'}">${statusText}</span>`;
@@ -626,8 +733,11 @@
     function filtrerFactures() { afficherFactures(); }
     function rafraichirListe() { afficherFactures(); }
     
-    function initReception() { afficherFactures(); }
+    function initReception() { 
+        afficherFactures(); 
+    }
     
+    // Exposer les fonctions globalement
     window.afficherFactures = afficherFactures;
     window.filtrerFactures = filtrerFactures;
     window.rafraichirListe = rafraichirListe;

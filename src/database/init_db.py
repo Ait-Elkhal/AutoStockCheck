@@ -133,9 +133,86 @@ def init_database():
         )
     ''')
     
+    # ==================== NOUVELLES TABLES POUR RÉCEPTION RÉELLE ====================
+    
+    # Table des commandes reçues (réceptions réelles)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS commandes_recues (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            nom TEXT NOT NULL,
+            reference TEXT NOT NULL,
+            fournisseur TEXT,
+            date_reception TEXT,
+            produits TEXT,
+            chemin_fichier TEXT,
+            nom_fichier TEXT,
+            date_ajout TEXT,
+            ajoute_par TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+    
+    # Table des factures reçues
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS factures_recues (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            nom TEXT NOT NULL,
+            reference_reception TEXT NOT NULL,
+            informations TEXT,
+            statut TEXT DEFAULT 'en-attente',
+            contenu TEXT,
+            chemin_fichier TEXT,
+            nom_fichier TEXT,
+            date_ajout TEXT,
+            ajoute_par TEXT,
+            commentaire_erreur TEXT,
+            date_erreur TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+    
+    # Table des fichiers uploadés (générique)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS fichiers_upload (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            type TEXT NOT NULL,
+            reference TEXT NOT NULL,
+            nom_fichier TEXT NOT NULL,
+            chemin TEXT NOT NULL,
+            taille INTEGER DEFAULT 0,
+            client TEXT,
+            date_upload TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+    
+    # Table des réceptions non traitées
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS receptions_non_traitees (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            reference TEXT NOT NULL,
+            client TEXT,
+            date_creation TEXT,
+            statut TEXT DEFAULT 'en_attente',
+            produits TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+    
     conn.commit()
     conn.close()
     print(f"✅ Base de données initialisée: {DB_PATH}")
+    print("   Tables créées: users, companies, orders, emails, contacts")
+    print("   deliveries, stock_items, user_access")
+    print("   commandes_recues, factures_recues, fichiers_upload, receptions_non_traitees")
 
 def get_db():
     """Connexion à la base de données"""
@@ -175,6 +252,39 @@ def create_default_admin():
     
     conn.close()
 
+def ajouter_colonnes_si_necessaire():
+    """Ajoute les colonnes manquantes aux tables existantes"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Vérifier et ajouter les colonnes à commandes_recues
+    cursor.execute("PRAGMA table_info(commandes_recues)")
+    colonnes = [col[1] for col in cursor.fetchall()]
+    
+    if 'chemin_fichier' not in colonnes:
+        cursor.execute("ALTER TABLE commandes_recues ADD COLUMN chemin_fichier TEXT")
+        print("✅ Colonne 'chemin_fichier' ajoutée à commandes_recues")
+    
+    if 'nom_fichier' not in colonnes:
+        cursor.execute("ALTER TABLE commandes_recues ADD COLUMN nom_fichier TEXT")
+        print("✅ Colonne 'nom_fichier' ajoutée à commandes_recues")
+    
+    # Vérifier et ajouter les colonnes à factures_recues
+    cursor.execute("PRAGMA table_info(factures_recues)")
+    colonnes = [col[1] for col in cursor.fetchall()]
+    
+    if 'chemin_fichier' not in colonnes:
+        cursor.execute("ALTER TABLE factures_recues ADD COLUMN chemin_fichier TEXT")
+        print("✅ Colonne 'chemin_fichier' ajoutée à factures_recues")
+    
+    if 'nom_fichier' not in colonnes:
+        cursor.execute("ALTER TABLE factures_recues ADD COLUMN nom_fichier TEXT")
+        print("✅ Colonne 'nom_fichier' ajoutée à factures_recues")
+    
+    conn.commit()
+    conn.close()
+
 if __name__ == "__main__":
     init_database()
     create_default_admin()
+    ajouter_colonnes_si_necessaire()

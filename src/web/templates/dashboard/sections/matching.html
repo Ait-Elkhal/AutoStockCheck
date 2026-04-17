@@ -61,7 +61,7 @@
         <div class="resultats-table-container">
             <table class="resultats-table">
                 <thead>
-                    全
+                    <tr>
                         <th>Référence</th>
                         <th>Produit</th>
                         <th>Qté Facture</th>
@@ -90,6 +90,8 @@
 
     // ==================== INITIALISATION ====================
     function rafraichirListes() {
+        factures = JSON.parse(localStorage.getItem('facturesRecues') || '[]');
+        commandesRecues = JSON.parse(localStorage.getItem('commandesRecues') || '[]');
         chargerListeFactures();
         chargerListeReceptions();
     }
@@ -275,6 +277,7 @@
         btn.innerHTML = '🔍 Comparer avec le modèle IA';
     }
 
+    // ==================== EXTRACTION DES DONNÉES (avec gestion des accents) ====================
     function extraireDonneesFacture() {
         const produits = [];
         const headers = factureSelectionnee.contenu.en_tete || [];
@@ -285,18 +288,22 @@
         let nomIndex = -1;
         
         for (let i = 0; i < headers.length; i++) {
-            const h = headers[i].toLowerCase();
+            const h = String(headers[i]).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            // référence
             if (h.includes('reference') || h.includes('ref') || h === 'code') refIndex = i;
-            if (h.includes('quantite') || h.includes('qty') || h.includes('qté')) qteIndex = i;
+            // quantité (avec ou sans accent)
+            if (h.includes('quantite') || h.includes('qty') || h.includes('qt')) qteIndex = i;
+            // nom / produit
             if (h.includes('nom') || h.includes('produit') || h.includes('designation')) nomIndex = i;
         }
         
         for (const ligne of lignes) {
             if (refIndex !== -1 && ligne[refIndex]) {
+                const qteValue = qteIndex !== -1 ? ligne[qteIndex] : 0;
                 produits.push({
-                    reference: ligne[refIndex],
+                    reference: String(ligne[refIndex]).trim(),
                     nom: nomIndex !== -1 ? ligne[nomIndex] : `Produit ${ligne[refIndex]}`,
-                    qteFacture: parseInt(ligne[qteIndex]) || 0
+                    qteFacture: parseInt(String(qteValue).replace(',', '.')) || 0
                 });
             }
         }
@@ -315,6 +322,7 @@
     function fusionnerParReference(factureData, receptionData) {
         const resultats = [];
         
+        // Parcourir les produits de la facture
         for (const facture of factureData) {
             const reception = receptionData.find(r => r.reference === facture.reference);
             resultats.push({
@@ -326,6 +334,7 @@
             });
         }
         
+        // Ajouter les produits reçus non facturés
         for (const reception of receptionData) {
             const existe = resultats.some(r => r.reference === reception.reference);
             if (!existe) {
@@ -346,23 +355,33 @@
         const diff = produit.qteReception - produit.qteFacture;
         const estManque = diff < 0;
         
-        const probabilite = estManque ? 0.85 + Math.random() * 0.14 : 0.1 + Math.random() * 0.3;
-        const prediction = estManque ? 1 : 0;
+        // Probabilité basée sur l'écart
+        let probabilite;
+        if (estManque) {
+            const ratio = Math.abs(diff) / Math.max(produit.qteFacture, 1);
+            probabilite = Math.min(0.98, 0.7 + ratio * 0.28);
+        } else if (diff === 0) {
+            probabilite = 0.95;
+        } else {
+            probabilite = 0.2;
+        }
         
-        console.log(`Produit ${produit.reference}: Facture=${produit.qteFacture}, Réception=${produit.qteReception}, Manque=${estManque}`);
+        const prediction = estManque ? 1 : 0;
         
         return { prediction, probabilite };
     }
 
-    // ==================== AFFICHAGE RÉSULTATS ====================
+    // ==================== AFFICHAGE RÉSULTATS AVEC DISTINCTION ====================
     function afficherResultats() {
         const container = document.getElementById('resultatsContainer');
         const tbody = document.getElementById('resultatsBody');
         const statsDiv = document.getElementById('resultatsStats');
         
         const total = resultatsComparaison.length;
-        const conformes = resultatsComparaison.filter(r => r.prediction === 0).length;
+        const conformes = resultatsComparaison.filter(r => r.prediction === 0 && r.quantiteFacture > 0).length;
         const manques = resultatsComparaison.filter(r => r.prediction === 1).length;
+        const nonFactures = resultatsComparaison.filter(r => r.quantiteFacture === 0 && r.quantiteReception > 0).length;
+        const manquesReels = resultatsComparaison.filter(r => r.difference < 0).length;
         const probabiliteMoyenne = resultatsComparaison.reduce((sum, r) => sum + r.probabilite, 0) / total;
         
         statsDiv.innerHTML = `
@@ -379,38 +398,95 @@
                 <div class="stat-label">Manques détectés</div>
             </div>
             <div class="stat-card">
+                <div class="stat-value ${nonFactures > 0 ? 'warning' : ''}">${nonFactures}</div>
+                <div class="stat-label">Non commandés</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value ${manquesReels > 0 ? 'manque' : 'conforme'}">${manquesReels}</div>
+                <div class="stat-label">Manques réels</div>
+            </div>
+            <div class="stat-card">
                 <div class="stat-value">${(probabiliteMoyenne * 100).toFixed(1)}%</div>
                 <div class="stat-label">Probabilité moyenne</div>
             </div>
         `;
         
-        tbody.innerHTML = resultatsComparaison.map(r => `
-            <tr>
-                <td><strong>${r.reference}</strong></td>
-                <td>${r.produit}</td>
-                <td style="text-align:center">${r.quantiteFacture}</td>
-                <td style="text-align:center">${r.quantiteReception}</td>
-                <td style="text-align:center; font-weight:bold; color: ${r.difference < 0 ? '#f44336' : r.difference > 0 ? '#4caf50' : '#666'}">
-                    ${r.difference > 0 ? '+' + r.difference : r.difference}
-                </td>
-                <td style="text-align:center">
-                    <span class="status-${r.prediction === 1 ? 'manque' : 'conforme'}">
-                        ${r.prediction === 1 ? '⚠️ Manque' : '✅ Conforme'}
-                    </span>
-                </td>
-                <td style="text-align:center">${(r.probabilite * 100).toFixed(1)}%</td>
-                <td style="text-align:center">
-                    <span class="status-${r.prediction === 1 ? 'manque' : 'conforme'}">
-                        ${r.prediction === 1 ? 'À traiter' : 'OK'}
-                    </span>
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = resultatsComparaison.map(r => {
+            const estManqueReel = r.difference < 0;
+            const estNonFacture = r.quantiteFacture === 0 && r.quantiteReception > 0;
+            const estSurplus = r.difference > 0 && r.quantiteFacture > 0;
+            const bonnePrediction = (estManqueReel && r.prediction === 1) || (!estManqueReel && r.prediction === 0);
+            
+            // Déterminer le libellé, la classe CSS et l'action
+            let statutLibelle = "";
+            let statutClasse = "";
+            let actionLibelle = "";
+            let couleurDifference = "";
+            
+            if (estNonFacture) {
+                statutLibelle = "📦 Non commandé";
+                statutClasse = "warning";
+                actionLibelle = "À vérifier";
+                couleurDifference = "#ff9800";
+            } else if (estSurplus) {
+                statutLibelle = "📈 Surplus";
+                statutClasse = "warning";
+                actionLibelle = "À contrôler";
+                couleurDifference = "#ff9800";
+            } else if (r.prediction === 1) {
+                statutLibelle = "⚠️ Manque";
+                statutClasse = "manque";
+                actionLibelle = "À traiter";
+                couleurDifference = "#f44336";
+            } else {
+                statutLibelle = "✅ Conforme";
+                statutClasse = "conforme";
+                actionLibelle = "OK";
+                couleurDifference = r.difference === 0 ? "#666" : "#4caf50";
+            }
+            
+            // Formater l'affichage de la différence
+            let differenceTexte = "";
+            if (r.difference > 0) {
+                differenceTexte = `+${r.difference}`;
+            } else if (r.difference < 0) {
+                differenceTexte = `${r.difference}`;
+            } else {
+                differenceTexte = "0";
+            }
+            
+            return `
+                <tr style="${!bonnePrediction ? 'background: rgba(255, 152, 0, 0.15);' : ''}">
+                    <td><strong>${r.reference}</strong></td>
+                    <td>${r.produit}</td>
+                    <td style="text-align:center; font-weight:bold;">${r.quantiteFacture}</td>
+                    <td style="text-align:center; font-weight:bold;">${r.quantiteReception}</td>
+                    <td style="text-align:center; font-weight:bold; color: ${couleurDifference}">
+                        ${differenceTexte}
+                    </td>
+                    <td style="text-align:center">
+                        <span class="status-${statutClasse}">
+                            ${statutLibelle}
+                        </span>
+                        ${!bonnePrediction ? '<br><small style="color:#ff9800;">⚠️ Erreur</small>' : ''}
+                    </td>
+                    <td style="text-align:center">${(r.probabilite * 100).toFixed(1)}%</td>
+                    <td style="text-align:center">
+                        <span class="status-${statutClasse}">
+                            ${actionLibelle}
+                        </span>
+                    </td>
+                </table>
+            `;
+        }).join('');
         
         container.style.display = 'block';
         
         if (window.enregistrerAction) {
-            window.enregistrerAction('comparaison', `Comparaison facture ${factureSelectionnee.reference_reception} / réception ${receptionSelectionnee.reference} - ${manques} manques détectés`, null, currentUser.username);
+            window.enregistrerAction('comparaison', 
+                `Comparaison: ${manquesReels} manques réels, ${manques} prédits, ${nonFactures} non commandés`, 
+                null, 
+                currentUser.username);
         }
         
         container.scrollIntoView({ behavior: 'smooth' });
@@ -419,7 +495,16 @@
     function exporterResultats() {
         let csv = "Référence,Produit,Quantité Facture,Quantité Réception,Différence,Prédiction,Probabilité,Statut\n";
         resultatsComparaison.forEach(r => {
-            csv += `"${r.reference}","${r.produit}",${r.quantiteFacture},${r.quantiteReception},${r.difference},${r.prediction === 1 ? 'Manque' : 'Conforme'},${(r.probabilite * 100).toFixed(1)}%,${r.statut}\n`;
+            let statutExport = "";
+            if (r.quantiteFacture === 0 && r.quantiteReception > 0) {
+                statutExport = "Non commandé";
+            } else if (r.prediction === 1) {
+                statutExport = "Manque";
+            } else {
+                statutExport = "Conforme";
+            }
+            
+            csv += `"${r.reference}","${r.produit}",${r.quantiteFacture},${r.quantiteReception},${r.difference},${statutExport},${(r.probabilite * 100).toFixed(1)}%,${r.statut}\n`;
         });
         
         const blob = new Blob([csv], { type: 'text/csv' });

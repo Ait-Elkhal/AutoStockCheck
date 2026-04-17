@@ -1,204 +1,88 @@
 <link rel="stylesheet" href="/static/css/reception_reelle.css">
 
 <div class="reception-reelle-container">
-    <div class="reception-header">
-        <h2>📦 Réception réelle des commandes</h2>
-        <div class="reception-actions">
-            <button class="btn" onclick="rafraichirListe()">🔄 Rafraîchir</button>
+    <!-- Étape 1 : Saisie référence -->
+    <div class="step-card" id="step1Card">
+        <div class="step-header">
+            <div class="step-number">1</div>
+            <h3>🔍 Saisir la référence de réception</h3>
         </div>
-    </div>
-
-    <!-- Carte d'activation de commande -->
-    <div class="activation-card">
-        <h3>🔄 Activer une commande</h3>
-        <div class="form-row">
+        <div class="step-content">
             <div class="form-group">
-                <label>Référence commande *</label>
-                <input type="text" id="commandeRef" class="form-control" placeholder="CMD-001" required>
+                <label>Référence de la commande / Facture</label>
+                <input type="text" id="referenceReception" class="form-control" placeholder="Ex: REC-001, CMD-001" autocomplete="off">
+                <small>Scannez ou saisissez la référence de la réception</small>
             </div>
-            <div class="form-group">
-                <label>Fournisseur / Client</label>
-                <input type="text" id="fournisseur" class="form-control" placeholder="Nom du fournisseur">
-            </div>
-            <div class="form-group">
-                <label>Date de réception</label>
-                <input type="date" id="dateReception" class="form-control">
-            </div>
-        </div>
-
-        <!-- Zone de scan et ajout de produits -->
-        <div class="scanner-section">
-            <h4>📷 Ajouter des produits</h4>
+            <button class="btn btn-primary" onclick="verifierReference()">🔍 Vérifier la référence</button>
             
-            <!-- Scan code-barres -->
-            <div class="scanner-input-group">
-                <input type="text" id="scanCode" class="scanner-input" placeholder="Scanner le code-barres ou entrer la référence" onkeypress="handleScanKeyPress(event)">
-                <input type="number" id="scanQuantite" class="quantity-input" placeholder="Qté" value="1" min="1">
-                <button class="scan-btn" onclick="ajouterParScan()">📷 Scanner</button>
-                <button class="scan-btn" onclick="simulerScan()">📱 Simuler scan</button>
-            </div>
-            
-            <!-- Ajout manuel -->
-            <div class="ajout-manuel-section">
-                <h5 style="margin: 10px 0;">✏️ Ajout manuel</h5>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Référence produit *</label>
-                        <input type="text" id="manuelReference" class="form-control" placeholder="REF-001">
-                    </div>
-                    <div class="form-group">
-                        <label>Nom du produit *</label>
-                        <input type="text" id="manuelNom" class="form-control" placeholder="Nom du produit">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Description</label>
-                        <textarea id="manuelDescription" class="form-control" rows="2" placeholder="Description du produit..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>État du produit</label>
-                        <select id="manuelEtat" class="form-control">
-                            <option value="Neuf">🆕 Neuf</option>
-                            <option value="Très bon">✨ Très bon état</option>
-                            <option value="Bon">👍 Bon état</option>
-                            <option value="Correct">🟡 Correct</option>
-                            <option value="À contrôler">🔍 À contrôler</option>
-                            <option value="Défectueux">⚠️ Défectueux</option>
-                            <option value="Reconditionné">🔄 Reconditionné</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Prix unitaire (€)</label>
-                        <input type="number" id="manuelPrix" class="form-control" value="0" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label>Quantité</label>
-                        <input type="number" id="manuelQuantite" class="form-control" value="1" min="1">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>&nbsp;</label>
-                        <button class="btn btn-primary" onclick="ajouterManuel()" style="width: 100%;">➕ Ajouter produit</button>
-                    </div>
+            <div id="referenceNotFound" style="display: none; margin-top: 15px;">
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 8px;">
+                    <strong>⚠️ Référence non trouvée</strong><br>
+                    Aucune facture en attente ne correspond à cette référence.
+                    <button class="btn btn-warning" onclick="ajouterReceptionNonTraitee()" style="margin-top: 10px;">➕ Ajouter aux réceptions non traitées</button>
                 </div>
             </div>
-            
-            <!-- Import Excel avec extracteur -->
-            <div class="scanner-input-group">
-                <button class="scan-btn" onclick="ouvrirModalImportExcel()">📎 Importer Excel</button>
-                <span style="color: #666; font-size: 0.8rem;">Format: Référence (obligatoire), Quantité (obligatoire), Nom, Description, État, Prix...</span>
-            </div>
-            <input type="file" id="importExcel" accept=".xlsx,.xls" style="display: none;" onchange="extraireEtValiderExcel(this.files[0])">
-        </div>
-
-        <!-- Liste des produits reçus -->
-        <h4>📋 Produits reçus</h4>
-        <div class="produits-list" id="produitsRecusList">
-            <p style="color: #999; text-align: center;">Aucun produit ajouté</p>
-        </div>
-
-        <!-- Actions -->
-        <div class="commande-actions">
-            <button class="btn" onclick="annulerCommande()">🗑️ Annuler</button>
-            <button class="btn btn-success" onclick="terminerCommande()">✅ Commande terminée</button>
         </div>
     </div>
 
-    <!-- Zone de dépôt de fichiers Excel existants -->
-    <div class="dropzone-reelle" onclick="document.getElementById('fileInputReelle').click()" ondragover="dragoverReelle(event)" ondragleave="dragleaveReelle(event)" ondrop="dropReelle(event)">
-        <div class="dropzone-icon">📁📄</div>
-        <div class="dropzone-text">Déposez vos fichiers Excel de réception ici ou cliquez pour sélectionner</div>
-        <div class="dropzone-hint">Formats acceptés: .xlsx, .xls</div>
-        <input type="file" id="fileInputReelle" accept=".xlsx,.xls" style="display: none;" onchange="extraireEtValiderExcel(this.files[0])">
-    </div>
-
-    <!-- Tableau des commandes reçues -->
-    <div class="commandes-table-container">
-        <table class="commandes-table">
-            <thead>
-                全
-                    <th>Fichier</th>
-                    <th>Référence</th>
-                    <th>Fournisseur</th>
-                    <th>Date réception</th>
-                    <th>Produits</th>
-                    <th>Actions</th>
-                </thead>
-            <tbody id="commandesRecuesList"></tbody>
-        </table
-    </div>
-</div>
-
-<!-- Modal Import Excel -->
-<div id="modalImportExcel" class="modal-scan">
-    <div class="modal-scan-content" style="max-width: 700px;">
-        <div class="modal-commande-header">
-            <h3>📊 Extraction du fichier Excel</h3>
-            <button class="btn-close" onclick="fermerModalImport()">✕</button>
+    <!-- Étape 2 : Fiche dynamique de réception -->
+    <div class="step-card" id="step2Card" style="display: none;">
+        <div class="step-header">
+            <div class="step-number">2</div>
+            <h3>📋 Fiche de réception</h3>
         </div>
-        
-        <div id="importPreview" style="max-height: 400px; overflow-y: auto;">
-            <div class="loading"><div class="spinner"></div><p>Analyse du fichier...</p></div>
-        </div>
-        
-        <div id="importActions" style="display: none; margin-top: 20px;">
-            <div class="form-group">
-                <label>⚠️ Colonnes manquantes :</label>
-                <div id="missingColumns" style="color: #f44336; margin-bottom: 10px;"></div>
+        <div class="step-content">
+            <!-- En-tête de la fiche -->
+            <div class="fiche-header">
+                <div class="info-row">
+                    <span class="info-label">🏷️ Référence :</span>
+                    <span class="info-value" id="ficheReference"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">👤 Client :</span>
+                    <input type="text" id="ficheClient" class="form-control" style="width: 250px; display: inline-block;">
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📅 Date :</span>
+                    <span class="info-value" id="ficheDate"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📊 Statut :</span>
+                    <span class="info-value" id="ficheStatut">En cours</span>
+                </div>
             </div>
-            <div class="form-group">
-                <label>📋 Colonnes trouvées :</label>
-                <div id="foundColumns" style="color: #4caf50; margin-bottom: 10px;"></div>
+
+            <!-- Produits de la facture -->
+            <h4>📋 Produits commandés</h4>
+            <div id="produitsCommandesList" class="produits-list"></div>
+
+            <!-- Produits supplémentaires -->
+            <div class="add-product-section">
+                <h4>➕ Produits supplémentaires (non commandés)</h4>
+                <button class="btn btn-secondary" onclick="ajouterProduitSupplementaire()">➕ Ajouter un produit</button>
+                <div id="produitsSuppList" class="produits-list" style="margin-top: 15px;"></div>
             </div>
-            <div class="form-group">
-                <label>📊 Aperçu des données (5 premières lignes) :</label>
-                <div id="dataPreview" style="overflow-x: auto;"></div>
-            </div>
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                <button class="btn" onclick="fermerModalImport()">Annuler</button>
-                <button class="btn btn-primary" id="confirmImportBtn" onclick="confirmerImport()">✅ Importer les produits</button>
+
+            <!-- Actions finales -->
+            <div class="action-buttons">
+                <button class="btn btn-success" onclick="validerReception()">✅ Valider la réception</button>
+                <button class="btn btn-danger" onclick="annulerReception()">🗑️ Annuler</button>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Visualisation du fichier Excel -->
-<div id="modalVisualisationFichier" class="modal-scan">
-    <div class="modal-scan-content" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">
-        <div class="modal-commande-header">
-            <h3 id="visuTitle">📄 Visualisation du fichier</h3>
-            <button class="btn-close" onclick="fermerModalVisualisation()">✕</button>
+    <!-- Étape 7 : Liste des réceptions réelles -->
+    <div class="historique-section" style="margin-top: 30px;">
+        <div class="section-header">
+            <h3>📦 Réceptions réelles enregistrées</h3>
+            <button class="btn btn-primary" onclick="rafraichirListeReceptions()">🔄 Rafraîchir</button>
         </div>
-        <div id="visuContent" style="max-height: 60vh; overflow-y: auto;"></div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-            <button class="btn btn-primary" onclick="telechargerDepuisModal()">⬇️ Télécharger</button>
-            <button class="btn" onclick="fermerModalVisualisation()">Fermer</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal scan caméra -->
-<div id="modalScan" class="modal-scan">
-    <div class="modal-scan-content">
-        <h3>📷 Scanner un code-barres</h3>
-        <div class="scan-preview" id="scanPreview">
-            <div style="text-align: center;">
-                <div style="font-size: 3rem; margin-bottom: 10px;">📱</div>
-                <div>Positionnez le code-barres devant la caméra</div>
-                <div class="scan-animation" style="margin-top: 20px;"></div>
-            </div>
-        </div>
-        <div class="scanner-input-group" style="margin-top: 15px;">
-            <input type="text" id="scanResult" class="form-control" placeholder="Code-barres scanné" style="flex: 1;">
-            <input type="number" id="scanModalQuantite" class="quantity-input" placeholder="Qté" value="1" min="1">
-        </div>
-        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
-            <button class="btn" onclick="fermerModalScan()">Annuler</button>
-            <button class="btn btn-primary" onclick="validerScan()">Valider</button>
+        <div class="commandes-table-container">
+            <table class="commandes-table">
+                <thead>
+                    <tr><th>Référence</th><th>Client</th><th>Date</th><th>Produits</th><th>Statut</th><th>Actions</th></thead>
+                <tbody id="receptionsList"></tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -207,590 +91,558 @@
 
 <script>
     // ==================== DONNÉES ====================
+    let factures = JSON.parse(localStorage.getItem('facturesRecues') || '[]');
+    let receptionsNonTraitees = JSON.parse(localStorage.getItem('receptionsNonTraitees') || '[]');
     let commandesRecues = JSON.parse(localStorage.getItem('commandesRecues') || '[]');
+    
+    let factureCourante = null;
+    let produitsBase = [];
+    let produitsSupp = [];
+    let referenceCourante = '';
     let currentUser = JSON.parse(localStorage.getItem('user') || '{"username": "Employé"}');
-    let produitsActuels = [];
-    let excelDataTemp = null;
-    let currentVisualisationCommande = null;
-    
-    // Initialiser la date du jour
-    document.getElementById('dateReception').value = new Date().toISOString().split('T')[0];
-    
-    // Données d'exemple
-    if (commandesRecues.length === 0) {
-        commandesRecues = [
-            {
-                id: 1,
-                nom: "reception_CMD-001.xlsx",
-                reference: "CMD-001",
-                fournisseur: "SARL TechPlus",
-                dateReception: "2026-03-28",
-                produits: [
-                    { reference: "REF-001", nom: "Ordinateur portable", quantite: 5, description: "Dell XPS 15", etat: "Neuf", prix: 899.99 },
-                    { reference: "REF-002", nom: "Souris sans fil", quantite: 10, description: "Logitech MX Master", etat: "Neuf", prix: 25.00 }
-                ],
-                dateAjout: new Date().toISOString(),
-                ajoutePar: "Employé Stock"
-            }
-        ];
-        localStorage.setItem('commandesRecues', JSON.stringify(commandesRecues));
-    }
 
-    // ==================== AFFICHAGE TABLEAU ====================
-    function afficherCommandesRecues() {
-        const tbody = document.getElementById('commandesRecuesList');
+    // ==================== AFFICHER LISTE DES RÉCEPTIONS ====================
+    function afficherListeReceptions() {
+        const tbody = document.getElementById('receptionsList');
         
         if (commandesRecues.length === 0) {
-            tbody.innerHTML = '恩<td colspan="6" style="text-align:center; padding:40px;">📭 Aucune commande reçue</td> </tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px;">📭 Aucune réception enregistrée</td></tr>';
             return;
         }
         
         tbody.innerHTML = commandesRecues.map(cmd => `
-            <tr onclick="visualiserFichier(${cmd.id})" style="cursor: pointer;">
-                <td>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="excel-icon">XLSX</div>
-                        <span>${cmd.nom}</span>
-                    </div>
-                </td>
-                <td><strong>${cmd.reference}</strong> (unique)</td>
-                <td>${cmd.fournisseur}</td>
+            <tr>
+                <td><strong>${cmd.reference}</strong></td>
+                <td>${cmd.client || '-'}</td>
                 <td>${new Date(cmd.dateReception).toLocaleDateString()}</td>
-                <td>${cmd.produits.length} produits</td>
+                <td>${cmd.produits?.length || 0} produits</td>
+                <td><span class="status-badge ${cmd.statut === 'valide' ? 'status-success' : 'status-warning'}">${cmd.statut === 'valide' ? '✅ Validé' : '⚠️ Anomalies'}</span></td>
                 <td>
-                    <button class="action-btn view" onclick="event.stopPropagation(); visualiserFichier(${cmd.id})" title="Voir le contenu">👁️ Voir</button>
-                    <button class="action-btn delete" onclick="event.stopPropagation(); supprimerCommande(${cmd.id})" title="Supprimer">🗑️</button>
-                 </td>
-             </tr>
+                    <button class="action-btn view" onclick="voirDetailReception(${cmd.id})" title="Voir détails">👁️</button>
+                    <button class="action-btn download" onclick="telechargerFichierReception(${cmd.id})" title="Télécharger Excel">📎</button>
+                </td>
+            </tr>
         `).join('');
     }
     
-    // ==================== VISUALISATION DU FICHIER ====================
-    function visualiserFichier(id) {
-        const commande = commandesRecues.find(c => c.id === id);
-        if (!commande) return;
+    function voirDetailReception(id) {
+        const reception = commandesRecues.find(c => c.id === id);
+        if (!reception) return;
         
-        currentVisualisationCommande = commande;
+        let message = `📋 DÉTAIL DE LA RÉCEPTION\n\n`;
+        message += `🏷️ Référence: ${reception.reference}\n`;
+        message += `👤 Client: ${reception.client || 'Non spécifié'}\n`;
+        message += `📅 Date: ${new Date(reception.dateReception).toLocaleDateString()}\n`;
+        message += `📊 Statut: ${reception.statut}\n`;
+        message += `━`.repeat(40) + `\n`;
+        message += `📦 PRODUITS REÇUS:\n\n`;
         
-        const modal = document.getElementById('modalVisualisationFichier');
-        const title = document.getElementById('visuTitle');
-        const content = document.getElementById('visuContent');
-        
-        title.innerHTML = `📄 ${commande.nom} - Référence: ${commande.reference}`;
-        
-        // Générer le tableau HTML
-        let html = `
-            <div style="margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 8px;">
-                <p><strong>📅 Date de réception:</strong> ${new Date(commande.dateReception).toLocaleDateString()}</p>
-                <p><strong>🏭 Fournisseur:</strong> ${commande.fournisseur || 'Non spécifié'}</p>
-                <p><strong>👤 Ajouté par:</strong> ${commande.ajoutePar}</p>
-                <p><strong>📦 Nombre de produits:</strong> ${commande.produits.length}</p>
-            </div>
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
-                <thead>
-                    <tr style="background: #4361ee; color: white;">
-                        <th style="padding: 10px; border: 1px solid #ddd;">Référence</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Produit</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Quantité</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Description</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">État</th>
-                        <th style="padding: 10px; border: 1px solid #ddd;">Prix unitaire</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-        
-        commande.produits.forEach(p => {
-            html += `
-                <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd;"><strong>${p.reference}</strong></td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${p.nom}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${p.quantite}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${p.description || '-'}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">
-                        <span class="status-badge" style="background: ${p.etat === 'Neuf' ? '#d4edda' : p.etat === 'Très bon' ? '#cce5ff' : '#fff3cd'};">
-                            ${p.etat || 'Non spécifié'}
-                        </span>
-                    </td>
-                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${p.prix ? p.prix.toFixed(2) + ' €' : '-'}</td>
-                </tr>
-            `;
+        reception.produits.forEach(p => {
+            message += `📌 ${p.reference}: ${p.quantite} x ${p.nom}\n`;
+            message += `   État: ${p.etat}\n`;
+            if (p.type === "supplement") message += `   (Hors facture)\n`;
+            message += `\n`;
         });
         
-        html += `
-                </tbody>
-            </table>
-        `;
-        
-        content.innerHTML = html;
-        modal.style.display = 'flex';
+        alert(message);
     }
     
-    function telechargerDepuisModal() {
-        if (!currentVisualisationCommande) return;
+    function telechargerFichierReception(id) {
+        const reception = commandesRecues.find(c => c.id === id);
+        if (!reception) return;
         
-        const commande = currentVisualisationCommande;
         const donnees = [
-            ["Référence", "Produit", "Quantité", "Description", "État", "Prix unitaire"],
-            ...commande.produits.map(p => [p.reference, p.nom, p.quantite, p.description || '', p.etat || 'Neuf', p.prix || 0])
+            ["Type", "Référence", "Produit", "Quantité reçue", "Quantité commandée", "État"],
+            ...reception.produits.map(p => [
+                p.type === "commande" ? "Commandé" : "Supplémentaire",
+                p.reference, p.nom, p.quantite, p.quantiteCommandee || "-", p.etat
+            ])
         ];
         
         const ws = XLSX.utils.aoa_to_sheet(donnees);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Réception");
-        XLSX.writeFile(wb, commande.nom);
+        XLSX.writeFile(wb, reception.nom || `reception_${reception.reference}.xlsx`);
+    }
+    
+    function rafraichirListeReceptions() {
+        commandesRecues = JSON.parse(localStorage.getItem('commandesRecues') || '[]');
+        afficherListeReceptions();
+    }
+
+    // ==================== ÉTAPE 1 : VÉRIFICATION RÉFÉRENCE ====================
+    function verifierReference() {
+        const ref = document.getElementById('referenceReception').value.trim();
+        const notFoundDiv = document.getElementById('referenceNotFound');
         
-        alert(`✅ Téléchargement de ${commande.nom} lancé`);
-    }
-    
-    function fermerModalVisualisation() {
-        document.getElementById('modalVisualisationFichier').style.display = 'none';
-        currentVisualisationCommande = null;
-    }
-    
-    // ==================== SUPPRESSION COMMANDE ====================
-    function supprimerCommande(id) {
-        if (confirm("Supprimer cette commande ? Cette action est irréversible.")) {
-            const commande = commandesRecues.find(c => c.id === id);
-            commandesRecues = commandesRecues.filter(c => c.id !== id);
-            localStorage.setItem('commandesRecues', JSON.stringify(commandesRecues));
-            afficherCommandesRecues();
-            
-            if (window.enregistrerAction) {
-                window.enregistrerAction('suppression', `Commande ${commande.reference} supprimée de la réception`, commande.reference, currentUser.username);
-            }
-            
-            alert(`✅ Commande ${commande.reference} supprimée`);
-        }
-    }
-    
-    // ==================== TERMINER COMMANDE ====================
-    function terminerCommande() {
-        const reference = document.getElementById('commandeRef').value.trim();
-        const fournisseur = document.getElementById('fournisseur').value.trim();
-        const dateReception = document.getElementById('dateReception').value;
-        
-        if (!reference) {
-            alert("Veuillez entrer une référence de commande");
+        if (!ref) {
+            alert("Veuillez saisir une référence");
             return;
         }
         
-        // Vérifier si la référence existe déjà
-        const referenceExistante = commandesRecues.some(c => c.reference === reference);
-        if (referenceExistante) {
-            alert(`❌ La référence ${reference} existe déjà. La référence doit être unique.`);
-            document.getElementById('commandeRef').focus();
+        factureCourante = factures.find(f => f.reference_reception === ref);
+        
+        if (factureCourante) {
+            notFoundDiv.style.display = 'none';
+            creerFicheReception(ref);
+        } else {
+            notFoundDiv.style.display = 'block';
+        }
+    }
+    
+    function ajouterReceptionNonTraitee() {
+        const ref = document.getElementById('referenceReception').value.trim();
+        
+        if (!ref) return;
+        
+        const existe = receptionsNonTraitees.some(r => r.reference === ref);
+        if (existe) {
+            alert(`⚠️ La référence "${ref}" est déjà dans la liste des réceptions non traitées.`);
             return;
         }
         
-        if (produitsActuels.length === 0) {
-            alert("Veuillez ajouter au moins un produit");
-            return;
-        }
-        
-        const donnees = [
-            ["Référence", "Produit", "Quantité", "Description", "État", "Prix unitaire"],
-            ...produitsActuels.map(p => [p.reference, p.nom, p.quantite, p.description || '', p.etat || 'Neuf', p.prix || 0])
-        ];
-        
-        const ws = XLSX.utils.aoa_to_sheet(donnees);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Réception");
-        
-        const nomFichier = `reception_${reference}_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`;
-        XLSX.writeFile(wb, nomFichier);
-        
-        const nouvelleCommande = {
+        const nouvelleReception = {
             id: Date.now(),
-            nom: nomFichier,
-            reference: reference,
-            fournisseur: fournisseur || "Non spécifié",
-            dateReception: dateReception,
-            produits: [...produitsActuels],
-            dateAjout: new Date().toISOString(),
-            ajoutePar: currentUser.username || "Employé"
+            reference: ref,
+            client: "Client à définir",
+            dateCreation: new Date().toISOString(),
+            statut: "en_attente",
+            produits: []
         };
         
-        commandesRecues.unshift(nouvelleCommande);
-        localStorage.setItem('commandesRecues', JSON.stringify(commandesRecues));
+        receptionsNonTraitees.push(nouvelleReception);
+        localStorage.setItem('receptionsNonTraitees', JSON.stringify(receptionsNonTraitees));
         
-        produitsActuels = [];
-        afficherProduits();
-        document.getElementById('commandeRef').value = '';
-        document.getElementById('fournisseur').value = '';
-        document.getElementById('dateReception').value = new Date().toISOString().split('T')[0];
+        alert(`✅ La référence "${ref}" a été ajoutée aux réceptions non traitées.\n\nVous pouvez maintenant la traiter.`);
         
-        afficherCommandesRecues();
-        alert(`✅ Commande ${reference} terminée. Fichier Excel généré: ${nomFichier}`);
+        creerFicheReception(ref, true);
     }
     
-    // ==================== LE RESTE DES FONCTIONS (ajouterProduit, scan, etc.) ====================
-    function afficherProduits() {
-        const container = document.getElementById('produitsRecusList');
+    // ==================== ÉTAPE 2 : CRÉATION FICHE DYNAMIQUE ====================
+    function creerFicheReception(ref, isNew = false) {
+        referenceCourante = ref;
         
-        if (produitsActuels.length === 0) {
-            container.innerHTML = '<p style="color: #999; text-align: center;">Aucun produit ajouté</p>';
+        if (factureCourante && !isNew) {
+            const headers = factureCourante.contenu.en_tete;
+            const lignes = factureCourante.contenu.lignes;
+            
+            const refIndex = headers.indexOf('référence');
+            const qteIndex = headers.indexOf('quantité');
+            const nomIndex = headers.indexOf('produit');
+            
+            produitsBase = [];
+            for (const ligne of lignes) {
+                if (ligne[refIndex]) {
+                    produitsBase.push({
+                        reference: ligne[refIndex],
+                        nom: ligne[nomIndex],
+                        qteCommandee: parseInt(ligne[qteIndex]),
+                        qteRecue: 0,
+                        check: false,
+                        etatMal: false,
+                        qteMal: 0,
+                        descriptionMal: '',
+                        etat: "Bon"
+                    });
+                }
+            }
+            
+            document.getElementById('ficheClient').value = factureCourante.informations || "Client";
+        } else {
+            produitsBase = [];
+            document.getElementById('ficheClient').value = "Client à définir";
+        }
+        
+        produitsSupp = [];
+        
+        document.getElementById('step1Card').style.display = 'none';
+        document.getElementById('step2Card').style.display = 'block';
+        
+        document.getElementById('ficheReference').textContent = ref;
+        document.getElementById('ficheDate').textContent = new Date().toLocaleDateString();
+        
+        afficherProduitsCommandes();
+        afficherProduitsSupp();
+    }
+    
+    // ==================== AFFICHAGE PRODUITS COMMANDÉS ====================
+    function afficherProduitsCommandes() {
+        const container = document.getElementById('produitsCommandesList');
+        
+        if (produitsBase.length === 0) {
+            container.innerHTML = '<p style="text-align:center; padding:20px; color:#999;">Aucun produit commandé (facture non trouvée)</p>';
             return;
         }
         
-        container.innerHTML = produitsActuels.map((p, index) => {
-            const etatClass = {
-                'Neuf': '🆕',
-                'Très bon': '✨',
-                'Bon': '👍',
-                'Correct': '🟡',
-                'À contrôler': '🔍',
-                'Défectueux': '⚠️',
-                'Reconditionné': '🔄'
-            };
-            return `
-                <div class="produit-item">
-                    <div class="produit-info">
-                        <div class="produit-reference"><strong>${p.reference}</strong> - ${p.nom}</div>
-                        <div class="produit-description" style="font-size: 0.75rem; color: #666; margin-top: 3px;">📝 ${p.description || 'Aucune description'}</div>
-                        <div class="produit-etat" style="font-size: 0.7rem; margin-top: 2px;">${etatClass[p.etat] || '📦'} État: ${p.etat || 'Non spécifié'}</div>
-                        <div class="produit-quantite" style="font-size: 0.8rem; margin-top: 3px;">📊 Quantité: ${p.quantite} ${p.prix ? `| 💰 Prix: ${p.prix.toFixed(2)} €` : ''}</div>
+        container.innerHTML = produitsBase.map((p, i) => `
+            <div class="produit-item ${p.check ? 'validated' : ''}" style="border:1px solid #ddd; padding:15px; margin:10px 0; border-radius:10px; background:${p.check ? '#e8f5e9' : '#fff'};">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <strong style="font-size:1rem;">${p.reference}</strong><br>
+                        <span style="color:#666;">${p.nom}</span><br>
+                        <small style="color:#4361ee;">📦 Commandé: ${p.qteCommandee}</small>
                     </div>
-                    <div class="produit-actions">
-                        <button class="remove-btn" onclick="retirerProduit(${index})">🗑️</button>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                        <input type="checkbox" onchange="toggleProduitRecu(${i}, this.checked)" ${p.check ? 'checked' : ''} style="width:20px;height:20px;">
+                        <span style="font-weight:bold;">✅ Produit reçu</span>
+                    </label>
+                </div>
+                
+                <div id="details-produit-${i}" style="display: ${p.check ? 'block' : 'none'}; margin-top:15px; padding-top:10px; border-top:1px solid #eee;">
+                    <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:10px;">
+                        <div>
+                            <label style="display:block; font-size:0.8rem; color:#666;">Quantité reçue</label>
+                            <input type="number" value="${p.qteRecue}" min="0" max="${p.qteCommandee}" 
+                                   onchange="updateQteRecue(${i}, this.value)" style="width:100px; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                            <small>/ ${p.qteCommandee}</small>
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.8rem; color:#666;">État général</label>
+                            <select onchange="updateEtatGeneral(${i}, this.value)" style="padding:8px; border:1px solid #ddd; border-radius:6px;">
+                                <option value="Bon" ${p.etat === 'Bon' ? 'selected' : ''}>👍 Bon</option>
+                                <option value="Très bon" ${p.etat === 'Très bon' ? 'selected' : ''}>✨ Très bon</option>
+                                <option value="Correct" ${p.etat === 'Correct' ? 'selected' : ''}>🟡 Correct</option>
+                                <option value="À contrôler" ${p.etat === 'À contrôler' ? 'selected' : ''}>🔍 À contrôler</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="background:#fff3e0; padding:10px; border-radius:8px; margin-top:10px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" onchange="toggleEtatMal(${i}, this.checked)" ${p.etatMal ? 'checked' : ''}>
+                            <span>⚠️ Des produits sont en mauvais état (cassés, défectueux)</span>
+                        </label>
+                        
+                        <div id="details-mal-${i}" style="display: ${p.etatMal ? 'block' : 'none'}; margin-top:10px; margin-left:25px;">
+                            <div>
+                                <label>🔧 Quantité en mauvais état :</label>
+                                <input type="number" value="${p.qteMal}" min="0" max="${p.qteRecue}" 
+                                       onchange="updateQteMal(${i}, this.value)" style="width:100px; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                                <small>sur ${p.qteRecue} reçus</small>
+                            </div>
+                            <div style="margin-top:8px;">
+                                <label>📝 Description du problème :</label>
+                                <input type="text" placeholder="Ex: Écran fissuré, ne s'allume pas..." 
+                                       value="${p.descriptionMal || ''}" 
+                                       onchange="updateDescriptionMal(${i}, this.value)" 
+                                       style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
+                            </div>
+                        </div>
                     </div>
                 </div>
-            `;
-        }).join('');
+            </div>
+        `).join('');
     }
     
-    function retirerProduit(index) {
-        produitsActuels.splice(index, 1);
-        afficherProduits();
-    }
-    
-    function ajouterProduit(reference, nom, quantite, description = '', etat = 'Neuf', prix = 0) {
-        if (!reference) {
-            alert("Veuillez entrer une référence");
-            return;
-        }
-        if (isNaN(quantite) || quantite <= 0) {
-            alert("Veuillez entrer une quantité valide");
-            return;
-        }
-        
-        const existing = produitsActuels.find(p => p.reference === reference);
-        if (existing) {
-            existing.quantite += quantite;
-            if (description) existing.description = description;
-            if (etat) existing.etat = etat;
-            if (prix) existing.prix = prix;
+    // ==================== FONCTIONS PRODUITS COMMANDÉS ====================
+    function toggleProduitRecu(index, checked) {
+        produitsBase[index].check = checked;
+        if (checked) {
+            produitsBase[index].qteRecue = produitsBase[index].qteCommandee;
         } else {
-            produitsActuels.push({
-                reference: reference,
-                nom: nom || `Produit ${reference}`,
-                quantite: quantite,
-                description: description || '',
-                etat: etat || 'Neuf',
-                prix: prix || 0
-            });
+            produitsBase[index].qteRecue = 0;
+            produitsBase[index].etatMal = false;
+            produitsBase[index].qteMal = 0;
+            produitsBase[index].descriptionMal = '';
         }
-        afficherProduits();
+        afficherProduitsCommandes();
     }
     
-    function ajouterParScan() {
-        const reference = document.getElementById('scanCode').value.trim();
-        const quantite = parseInt(document.getElementById('scanQuantite').value);
+    function updateQteRecue(index, value) {
+        const qte = parseInt(value) || 0;
+        produitsBase[index].qteRecue = Math.min(qte, produitsBase[index].qteCommandee);
+        if (produitsBase[index].qteMal > produitsBase[index].qteRecue) {
+            produitsBase[index].qteMal = produitsBase[index].qteRecue;
+        }
+        afficherProduitsCommandes();
+    }
+    
+    function updateEtatGeneral(index, value) {
+        produitsBase[index].etat = value;
+    }
+    
+    function toggleEtatMal(index, checked) {
+        produitsBase[index].etatMal = checked;
+        if (!checked) {
+            produitsBase[index].qteMal = 0;
+            produitsBase[index].descriptionMal = '';
+        }
+        afficherProduitsCommandes();
+    }
+    
+    function updateQteMal(index, value) {
+        const qte = parseInt(value) || 0;
+        produitsBase[index].qteMal = Math.min(qte, produitsBase[index].qteRecue);
+    }
+    
+    function updateDescriptionMal(index, value) {
+        produitsBase[index].descriptionMal = value;
+    }
+    
+    // ==================== PRODUITS SUPPLÉMENTAIRES ====================
+    function ajouterProduitSupplementaire() {
+        produitsSupp.push({
+            id: Date.now(),
+            reference: '',
+            nom: '',
+            quantite: 1,
+            etat: 'Bon',
+            etatMal: false,
+            qteMal: 0,
+            descriptionMal: ''
+        });
+        afficherProduitsSupp();
+    }
+    
+    function afficherProduitsSupp() {
+        const container = document.getElementById('produitsSuppList');
         
-        if (!reference) {
-            alert("Veuillez scanner un code-barres ou entrer une référence");
+        if (produitsSupp.length === 0) {
+            container.innerHTML = '<p style="color:#999; text-align:center; padding:20px;">Aucun produit supplémentaire</p>';
             return;
         }
         
-        const nom = prompt("Nom du produit:", `Produit ${reference}`);
-        const description = prompt("Description:", "");
-        const etat = prompt("État du produit (Neuf/Très bon/Bon/Correct/À contrôler/Défectueux/Reconditionné):", "Neuf");
-        const prix = parseFloat(prompt("Prix unitaire (€):", "0")) || 0;
-        
-        ajouterProduit(reference, nom || `Produit ${reference}`, quantite, description || '', etat || 'Neuf', prix);
-        document.getElementById('scanCode').value = '';
-        document.getElementById('scanQuantite').value = '1';
-        document.getElementById('scanCode').focus();
-    }
-    
-    function ajouterManuel() {
-        const reference = document.getElementById('manuelReference').value.trim();
-        const nom = document.getElementById('manuelNom').value.trim();
-        const description = document.getElementById('manuelDescription').value.trim();
-        const etat = document.getElementById('manuelEtat').value;
-        const prix = parseFloat(document.getElementById('manuelPrix').value);
-        const quantite = parseInt(document.getElementById('manuelQuantite').value);
-        
-        if (!reference) {
-            alert("Veuillez entrer une référence");
-            return;
-        }
-        
-        if (!nom) {
-            alert("Veuillez entrer un nom de produit");
-            return;
-        }
-        
-        ajouterProduit(reference, nom, quantite, description, etat, prix);
-        
-        document.getElementById('manuelReference').value = '';
-        document.getElementById('manuelNom').value = '';
-        document.getElementById('manuelDescription').value = '';
-        document.getElementById('manuelPrix').value = '0';
-        document.getElementById('manuelQuantite').value = '1';
-        document.getElementById('manuelReference').focus();
-    }
-    
-    function simulerScan() {
-        const modal = document.getElementById('modalScan');
-        document.getElementById('scanResult').value = '';
-        document.getElementById('scanModalQuantite').value = '1';
-        modal.style.display = 'flex';
-        
-        setTimeout(() => {
-            const fakeCode = `REF-${Math.floor(Math.random() * 1000)}`;
-            document.getElementById('scanResult').value = fakeCode;
-        }, 2000);
-    }
-    
-    function validerScan() {
-        const code = document.getElementById('scanResult').value.trim();
-        const quantite = parseInt(document.getElementById('scanModalQuantite').value);
-        
-        if (code) {
-            const nom = prompt("Nom du produit:", `Produit ${code}`);
-            const description = prompt("Description:", "");
-            const etat = prompt("État du produit:", "Neuf");
-            const prix = parseFloat(prompt("Prix unitaire (€):", "0")) || 0;
-            ajouterProduit(code, nom || `Produit ${code}`, quantite, description || '', etat || 'Neuf', prix);
-            fermerModalScan();
-        } else {
-            alert("Aucun code scanné");
-        }
-    }
-    
-    function fermerModalScan() {
-        document.getElementById('modalScan').style.display = 'none';
-    }
-    
-    function handleScanKeyPress(event) {
-        if (event.key === 'Enter') {
-            ajouterParScan();
-        }
-    }
-    
-    function annulerCommande() {
-        if (produitsActuels.length > 0 && confirm("Annuler cette commande ? Les produits saisis seront perdus.")) {
-            produitsActuels = [];
-            afficherProduits();
-            document.getElementById('commandeRef').value = '';
-            document.getElementById('fournisseur').value = '';
-        }
-    }
-    
-    // ==================== EXTRACTEUR EXCEL ====================
-    function extraireEtValiderExcel(file) {
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+        container.innerHTML = produitsSupp.map((p, i) => `
+            <div style="border:1px solid #ff9800; padding:15px; margin:10px 0; border-radius:10px; background:#fff8e1;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <strong style="color:#ff9800;">📦 Produit supplémentaire</strong>
+                    <button onclick="supprimerProduitSupp(${i})" style="background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">🗑️ Supprimer</button>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                    <input type="text" placeholder="Référence *" value="${p.reference}" 
+                           onchange="updateProduitSupp(${i}, 'reference', this.value)" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                    <input type="text" placeholder="Nom du produit *" value="${p.nom}" 
+                           onchange="updateProduitSupp(${i}, 'nom', this.value)" style="flex:2; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                    <input type="number" placeholder="Quantité" value="${p.quantite}" 
+                           onchange="updateProduitSupp(${i}, 'quantite', parseInt(this.value) || 0)" style="width:100px; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                    <select onchange="updateProduitSupp(${i}, 'etat', this.value)" style="padding:8px; border:1px solid #ddd; border-radius:6px;">
+                        <option value="Bon" ${p.etat === 'Bon' ? 'selected' : ''}>Bon</option>
+                        <option value="Très bon" ${p.etat === 'Très bon' ? 'selected' : ''}>Très bon</option>
+                        <option value="Correct" ${p.etat === 'Correct' ? 'selected' : ''}>Correct</option>
+                        <option value="À contrôler" ${p.etat === 'À contrôler' ? 'selected' : ''}>À contrôler</option>
+                    </select>
+                </div>
                 
-                if (!jsonData || jsonData.length < 2) {
-                    alert("Le fichier Excel est vide ou ne contient pas assez de données");
-                    return;
-                }
-                
-                const headers = jsonData[0].map(h => String(h).toLowerCase().trim());
-                const dataRows = jsonData.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== null && cell !== ''));
-                
-                const colonnesManquantes = [];
-                const colonnesTrouvees = [];
-                
-                const trouveReference = headers.some(h => h.includes('reference') || h.includes('ref') || h === 'code');
-                const trouveQuantite = headers.some(h => h.includes('quantite') || h.includes('qté') || h.includes('qty'));
-                
-                if (!trouveReference) colonnesManquantes.push('Référence');
-                if (!trouveQuantite) colonnesManquantes.push('Quantité');
-                
-                for (const col of headers) {
-                    colonnesTrouvees.push(col);
-                }
-                
-                const modal = document.getElementById('modalImportExcel');
-                const previewDiv = document.getElementById('importPreview');
-                const actionsDiv = document.getElementById('importActions');
-                const missingColsDiv = document.getElementById('missingColumns');
-                const foundColsDiv = document.getElementById('foundColumns');
-                const dataPreviewDiv = document.getElementById('dataPreview');
-                
-                if (colonnesManquantes.length > 0) {
-                    missingColsDiv.innerHTML = `❌ Colonnes obligatoires manquantes : ${colonnesManquantes.join(', ')}<br>Le fichier ne peut pas être importé.`;
-                    foundColsDiv.innerHTML = `✅ Colonnes trouvées : ${colonnesTrouvees.join(', ')}`;
-                    dataPreviewDiv.innerHTML = '<p style="color: #f44336;">Import impossible - colonnes obligatoires manquantes</p>';
-                    document.getElementById('confirmImportBtn').disabled = true;
-                } else {
-                    missingColsDiv.innerHTML = `✅ Toutes les colonnes obligatoires sont présentes`;
-                    foundColsDiv.innerHTML = `📋 Colonnes trouvées : ${colonnesTrouvees.join(', ')}`;
+                <div style="background:#fff3e0; padding:10px; border-radius:8px; margin-top:10px;">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                        <input type="checkbox" onchange="toggleProduitSuppMal(${i}, this.checked)" ${p.etatMal ? 'checked' : ''}>
+                        <span>⚠️ Produits en mauvais état</span>
+                    </label>
                     
-                    let previewHtml = '<table style="border-collapse: collapse; width: 100%; font-size: 0.7rem;">';
-                    previewHtml += '<thead><tr style="background: #f0f0f0;">';
-                    headers.forEach(h => {
-                        previewHtml += `<th style="border: 1px solid #ddd; padding: 5px;">${h}</th>`;
-                    });
-                    previewHtml += '</tr></thead><tbody>';
-                    
-                    for (let i = 0; i < Math.min(5, dataRows.length); i++) {
-                        previewHtml += '<tr>';
-                        for (let j = 0; j < headers.length; j++) {
-                            previewHtml += `<td style="border: 1px solid #ddd; padding: 5px;">${dataRows[i][j] || '-'}</td>`;
-                        }
-                        previewHtml += '</tr>';
-                    }
-                    previewHtml += '</tbody></table>';
-                    dataPreviewDiv.innerHTML = previewHtml;
-                    document.getElementById('confirmImportBtn').disabled = false;
+                    <div id="supp-mal-${i}" style="display: ${p.etatMal ? 'block' : 'none'}; margin-top:10px; margin-left:25px;">
+                        <div>
+                            <label>🔧 Quantité en mauvais état :</label>
+                            <input type="number" value="${p.qteMal}" min="0" max="${p.quantite}" 
+                                   onchange="updateProduitSuppMalQte(${i}, this.value)" style="width:100px; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                        </div>
+                        <div style="margin-top:8px;">
+                            <label>📝 Description :</label>
+                            <input type="text" placeholder="Décrivez le problème..." value="${p.descriptionMal || ''}" 
+                                   onchange="updateProduitSuppDesc(${i}, this.value)" 
+                                   style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function updateProduitSupp(index, field, value) {
+        produitsSupp[index][field] = value;
+    }
+    
+    function supprimerProduitSupp(index) {
+        produitsSupp.splice(index, 1);
+        afficherProduitsSupp();
+    }
+    
+    function toggleProduitSuppMal(index, checked) {
+        produitsSupp[index].etatMal = checked;
+        if (!checked) {
+            produitsSupp[index].qteMal = 0;
+            produitsSupp[index].descriptionMal = '';
+        }
+        afficherProduitsSupp();
+    }
+    
+    function updateProduitSuppMalQte(index, value) {
+        produitsSupp[index].qteMal = Math.min(parseInt(value) || 0, produitsSupp[index].quantite);
+    }
+    
+    function updateProduitSuppDesc(index, value) {
+        produitsSupp[index].descriptionMal = value;
+    }
+    
+    // ==================== VALIDATION ET GÉNÉRATION EXCEL ====================
+    function validerReception() {
+        const client = document.getElementById('ficheClient').value;
+        const produitsRecus = [];
+        let hasAnomalies = false;
+        
+        for (const p of produitsBase) {
+            if (p.check && p.qteRecue > 0) {
+                let etatFinal = p.etat;
+                if (p.etatMal && p.qteMal > 0) {
+                    hasAnomalies = true;
+                    etatFinal = `⚠️ DÉFECTUEUX: ${p.qteMal}/${p.qteRecue} - ${p.descriptionMal || 'sans description'}`;
                 }
+                produitsRecus.push({
+                    reference: p.reference,
+                    nom: p.nom,
+                    quantite: p.qteRecue,
+                    quantiteCommandee: p.qteCommandee,
+                    etat: etatFinal,
+                    type: "commande"
+                });
+            } else if (p.check === false && p.qteCommandee > 0) {
+                hasAnomalies = true;
+            }
+        }
+        
+        for (const p of produitsSupp) {
+            if (p.reference && p.nom && p.quantite > 0) {
+                let etatFinal = p.etat;
+                if (p.etatMal && p.qteMal > 0) {
+                    hasAnomalies = true;
+                    etatFinal = `⚠️ DÉFECTUEUX: ${p.qteMal}/${p.quantite} - ${p.descriptionMal || 'sans description'}`;
+                }
+                produitsRecus.push({
+                    reference: p.reference,
+                    nom: p.nom,
+                    quantite: p.quantite,
+                    quantiteCommandee: 0,
+                    etat: etatFinal,
+                    type: "supplement"
+                });
+            }
+        }
+        
+        if (produitsRecus.length === 0) {
+            alert("Veuillez valider au moins un produit reçu");
+            return;
+        }
+        
+        // Générer le fichier Excel
+        const donnees = [
+            ["Type", "Référence", "Produit", "Quantité reçue", "Quantité commandée", "État"],
+            ...produitsRecus.map(p => [
+                p.type === "commande" ? "Commandé" : "Supplémentaire",
+                p.reference, p.nom, p.quantite, p.quantiteCommandee || "-", p.etat
+            ])
+        ];
+        
+        const ws = XLSX.utils.aoa_to_sheet(donnees);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Réception");
+        
+        const nomFichier = `reception_${referenceCourante}_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`;
+        
+        // ==== ENVOI AU SERVEUR ====
+        const wbout = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        
+        const formData = new FormData();
+        formData.append('fichier', blob, nomFichier);
+        formData.append('reference', referenceCourante);
+        formData.append('client', client);
+        
+        const token = localStorage.getItem('token');
+        
+        fetch('/api/upload/reception', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(serverResult => {
+            if (serverResult.status === 'success') {
+                console.log('✅ Fichier sauvegardé sur le serveur:', serverResult.path);
                 
-                excelDataTemp = {
-                    headers: headers,
-                    rows: dataRows,
-                    fileName: file.name
+                // Sauvegarder dans localStorage
+                const nouvelleCommande = {
+                    id: Date.now(),
+                    nom: nomFichier,
+                    reference: referenceCourante,
+                    client: client,
+                    dateReception: new Date().toISOString().split('T')[0],
+                    produits: produitsRecus,
+                    dateAjout: new Date().toISOString(),
+                    ajoutePar: currentUser.username || "Employé",
+                    statut: hasAnomalies ? "anomalie" : "valide",
+                    chemin_serveur: serverResult.path,
+                    nom_fichier_serveur: serverResult.filename
                 };
                 
-                previewDiv.style.display = 'none';
-                actionsDiv.style.display = 'block';
-                modal.style.display = 'flex';
+                commandesRecues.unshift(nouvelleCommande);
+                localStorage.setItem('commandesRecues', JSON.stringify(commandesRecues));
                 
-            } catch (error) {
-                console.error(error);
-                alert("Erreur lors de la lecture du fichier Excel. Vérifiez le format.");
+                // Télécharger aussi localement
+                XLSX.writeFile(wb, nomFichier);
+                
+                let message = `✅ RÉCEPTION VALIDÉE !\n\n`;
+                message += `🏷️ Référence: ${referenceCourante}\n`;
+                message += `👤 Client: ${client}\n`;
+                message += `📦 Produits reçus: ${produitsRecus.length}\n`;
+                message += `📁 Fichier: ${nomFichier}\n`;
+                message += `💾 Sauvegardé sur le serveur\n`;
+                message += `📊 Statut: ${hasAnomalies ? '⚠️ Anomalies détectées' : '✅ Tout est conforme'}`;
+                
+                alert(message);
+                
+                reinitialiser();
+                afficherListeReceptions();
+            } else {
+                alert(`❌ Erreur serveur: ${serverResult.message}`);
             }
-        };
-        reader.readAsArrayBuffer(file);
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert("❌ Erreur lors de la sauvegarde sur le serveur. Vérifiez que le serveur est démarré.");
+        });
     }
     
-    function confirmerImport() {
-        if (!excelDataTemp) return;
-        
-        const referenceCommande = document.getElementById('commandeRef').value.trim();
-        if (!referenceCommande) {
-            alert("Veuillez d'abord saisir la référence de la commande avant d'importer les produits");
-            fermerModalImport();
-            document.getElementById('commandeRef').focus();
-            return;
-        }
-        
-        const headers = excelDataTemp.headers;
-        const rows = excelDataTemp.rows;
-        
-        let refIndex = -1;
-        let qteIndex = -1;
-        let nomIndex = -1;
-        let descIndex = -1;
-        let etatIndex = -1;
-        let prixIndex = -1;
-        
-        for (let i = 0; i < headers.length; i++) {
-            const h = headers[i].toLowerCase();
-            if (h.includes('reference') || h.includes('ref') || h === 'code') refIndex = i;
-            if (h.includes('quantite') || h.includes('qté') || h.includes('qty')) qteIndex = i;
-            if (h.includes('nom') || h.includes('produit') || h.includes('designation')) nomIndex = i;
-            if (h.includes('description') || h.includes('desc')) descIndex = i;
-            if (h.includes('etat') || h.includes('état') || h.includes('condition')) etatIndex = i;
-            if (h.includes('prix') || h.includes('price') || h.includes('pu')) prixIndex = i;
-        }
-        
-        let produitsImportes = 0;
-        
-        for (const row of rows) {
-            if (!row[refIndex]) continue;
-            
-            const reference = String(row[refIndex]).trim();
-            const quantite = parseInt(row[qteIndex]) || 1;
-            const nom = nomIndex !== -1 && row[nomIndex] ? String(row[nomIndex]) : `Produit ${reference}`;
-            const description = descIndex !== -1 && row[descIndex] ? String(row[descIndex]) : '';
-            const etat = etatIndex !== -1 && row[etatIndex] ? String(row[etatIndex]) : 'Neuf';
-            const prix = prixIndex !== -1 && row[prixIndex] ? parseFloat(row[prixIndex]) : 0;
-            
-            ajouterProduit(reference, nom, quantite, description, etat, prix);
-            produitsImportes++;
-        }
-        
-        alert(`✅ ${produitsImportes} produits importés avec succès pour la commande ${referenceCommande}`);
-        fermerModalImport();
-        excelDataTemp = null;
+    function reinitialiser() {
+        document.getElementById('step1Card').style.display = 'block';
+        document.getElementById('step2Card').style.display = 'none';
+        document.getElementById('referenceReception').value = '';
+        document.getElementById('referenceNotFound').style.display = 'none';
+        produitsBase = [];
+        produitsSupp = [];
+        factureCourante = null;
+        afficherListeReceptions();
     }
     
-    function ouvrirModalImportExcel() {
-        document.getElementById('importExcel').click();
-    }
-    
-    function fermerModalImport() {
-        document.getElementById('modalImportExcel').style.display = 'none';
-        excelDataTemp = null;
-    }
-    
-    function uploadFichierReception(file) {
-        extraireEtValiderExcel(file);
-    }
-    
-    function dragoverReelle(event) {
-        event.preventDefault();
-        document.querySelector('.dropzone-reelle').classList.add('drag-over');
-    }
-    
-    function dragleaveReelle(event) {
-        event.preventDefault();
-        document.querySelector('.dropzone-reelle').classList.remove('drag-over');
-    }
-    
-    function dropReelle(event) {
-        event.preventDefault();
-        document.querySelector('.dropzone-reelle').classList.remove('drag-over');
-        const file = event.dataTransfer.files[0];
-        if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
-            extraireEtValiderExcel(file);
-        } else {
-            alert("Veuillez déposer un fichier Excel (.xlsx ou .xls)");
+    function annulerReception() {
+        if (confirm("⚠️ Annuler cette réception ? Toutes les données seront perdues.")) {
+            reinitialiser();
         }
     }
     
-    function rafraichirListe() {
-        afficherCommandesRecues();
-    }
+    // Initialisation
+    afficherListeReceptions();
     
-    function initReceptionReelle() {
-        afficherCommandesRecues();
-    }
+    // Exposer les fonctions globalement
+    window.verifierReference = verifierReference;
+    window.ajouterReceptionNonTraitee = ajouterReceptionNonTraitee;
+    window.ajouterProduitSupplementaire = ajouterProduitSupplementaire;
+    window.validerReception = validerReception;
+    window.annulerReception = annulerReception;
+    window.rafraichirListeReceptions = rafraichirListeReceptions;
+    window.voirDetailReception = voirDetailReception;
+    window.telechargerFichierReception = telechargerFichierReception;
     
-    // Exposer les fonctions
-    window.ajouterParScan = ajouterParScan;
-    window.ajouterManuel = ajouterManuel;
-    window.simulerScan = simulerScan;
-    window.validerScan = validerScan;
-    window.fermerModalScan = fermerModalScan;
-    window.handleScanKeyPress = handleScanKeyPress;
-    window.retirerProduit = retirerProduit;
-    window.annulerCommande = annulerCommande;
-    window.terminerCommande = terminerCommande;
-    window.extraireEtValiderExcel = extraireEtValiderExcel;
-    window.confirmerImport = confirmerImport;
-    window.ouvrirModalImportExcel = ouvrirModalImportExcel;
-    window.fermerModalImport = fermerModalImport;
-    window.visualiserFichier = visualiserFichier;
-    window.telechargerDepuisModal = telechargerDepuisModal;
-    window.fermerModalVisualisation = fermerModalVisualisation;
-    window.supprimerCommande = supprimerCommande;
-    window.rafraichirListe = rafraichirListe;
-    window.uploadFichierReception = uploadFichierReception;
-    window.dragoverReelle = dragoverReelle;
-    window.dragleaveReelle = dragleaveReelle;
-    window.dropReelle = dropReelle;
-    
-    initReceptionReelle();
+    // Fonctions produits
+    window.toggleProduitRecu = toggleProduitRecu;
+    window.updateQteRecue = updateQteRecue;
+    window.updateEtatGeneral = updateEtatGeneral;
+    window.toggleEtatMal = toggleEtatMal;
+    window.updateQteMal = updateQteMal;
+    window.updateDescriptionMal = updateDescriptionMal;
+    window.updateProduitSupp = updateProduitSupp;
+    window.supprimerProduitSupp = supprimerProduitSupp;
+    window.toggleProduitSuppMal = toggleProduitSuppMal;
+    window.updateProduitSuppMalQte = updateProduitSuppMalQte;
+    window.updateProduitSuppDesc = updateProduitSuppDesc;
 </script>

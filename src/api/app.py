@@ -13,8 +13,9 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, send_file
 from flask_cors import CORS
+import shutil
 
 # Ajouter le chemin
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -25,13 +26,26 @@ app = Flask(__name__,
 app.secret_key = secrets.token_hex(32)
 CORS(app)
 
-# ==================== CONFIGURATION ====================
+# ==================== CONFIGURATION DOSSIERS UPLOAD ====================
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 DB_PATH = os.path.join(BASE_DIR, 'data/database/autostockcheck.db')
 MODEL_PATH = os.path.join(BASE_DIR, "models_saved/best_model_params.pkl")
 SCALER_PATH = os.path.join(BASE_DIR, "models_saved/scaler.pkl")
 FEATURES_PATH = os.path.join(BASE_DIR, "models_saved/features.pkl")
+
+# Dossiers pour les fichiers uploadés
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'data', 'uploads')
+FACTURES_FOLDER = os.path.join(UPLOAD_FOLDER, 'factures')
+RECEPTIONS_FOLDER = os.path.join(UPLOAD_FOLDER, 'receptions')
+
+# Créer les dossiers s'ils n'existent pas
+os.makedirs(FACTURES_FOLDER, exist_ok=True)
+os.makedirs(RECEPTIONS_FOLDER, exist_ok=True)
+
+print(f"📁 Dossier uploads: {UPLOAD_FOLDER}")
+print(f"📁 Dossier factures: {FACTURES_FOLDER}")
+print(f"📁 Dossier réceptions: {RECEPTIONS_FOLDER}")
 
 # Stockage des tokens (à remplacer par Redis en production)
 tokens = {}
@@ -51,6 +65,29 @@ def hash_password(password):
 def generate_token():
     """Génère un token d'authentification"""
     return secrets.token_urlsafe(32)
+
+def get_upload_path(category, reference):
+    """Génère le chemin de sauvegarde pour un fichier"""
+    now = datetime.now()
+    year = now.strftime('%Y')
+    month = now.strftime('%m')
+    
+    if category == 'facture':
+        base_folder = FACTURES_FOLDER
+        prefix = 'facture'
+    else:
+        base_folder = RECEPTIONS_FOLDER
+        prefix = 'reception'
+    
+    year_folder = os.path.join(base_folder, year)
+    month_folder = os.path.join(year_folder, month)
+    os.makedirs(month_folder, exist_ok=True)
+    
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
+    filename = f"{prefix}_{reference}_{timestamp}.xlsx"
+    filepath = os.path.join(month_folder, filename)
+    
+    return filepath, filename
 
 # ==================== DÉCORATEUR AUTHENTIFICATION ====================
 
@@ -181,6 +218,196 @@ def dashboard_page():
 @app.route('/static/<path:path>')
 def serve_static(path):
     return send_from_directory(app.static_folder, path)
+
+# ==================== ROUTES API UPLOAD FICHIERS ====================
+
+@app.route('/api/upload/facture', methods=['POST'])
+@require_auth
+def upload_facture():
+    """Sauvegarde une facture sur le serveur"""
+    try:
+        if 'fichier' not in request.files:
+            return jsonify({'status': 'error', 'message': 'Aucun fichier'}), 400
+        
+        fichier = request.files['fichier']
+        reference = request.form.get('reference', 'unknown')
+        
+        # Générer le chemin de sauvegarde
+        filepath, filename = get_upload_path('facture', reference)
+        
+        # Sauvegarder le fichier
+        fichier.save(filepath)
+        
+        # Enregistrer dans la base de données
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO fichiers_upload (user_id, type, reference, nom_fichier, chemin, taille, date_upload)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            request.user_id,
+            'facture',
+            reference,
+            filename,
+            filepath,
+            os.path.getsize(filepath),
+            datetime.now().isoformat()
+        ))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Facture sauvegardée avec succès',
+            'path': filepath,
+            'filename': filename
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/upload/reception', methods=['POST'])
+@require_auth
+def upload_reception():
+    """Sauvegarde une réception générée sur le serveur"""
+    try:
+        if 'fichier' not in request.files:
+            return jsonify({'status': 'error', 'message': 'Aucun fichier'}), 400
+        
+        fichier = request.files['fichier']
+        reference = request.form.get('reference', 'unknown')
+        client = request.form.get('client', '')
+        
+        # Générer le chemin de sauvegarde
+        filepath, filename = get_upload_path('reception', reference)
+        
+        # Sauvegarder le fichier
+        fichier.save(filepath)
+        
+        # Enregistrer dans la base de données
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO fichiers_upload (user_id, type, reference, nom_fichier, chemin, taille, date_upload, client)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            request.user_id,
+            'reception',
+            reference,
+            filename,
+            filepath,
+            os.path.getsize(filepath),
+            datetime.now().isoformat(),
+            client
+        ))
+        
+        # Mettre à jour la commande reçue avec le chemin du fichier
+        cursor.execute('''
+            UPDATE commandes_recues 
+            SET chemin_fichier = ?, nom_fichier = ?
+            WHERE reference = ? AND user_id = ?
+        ''', (filepath, filename, reference, request.user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Réception sauvegardée avec succès',
+            'path': filepath,
+            'filename': filename
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/list/factures', methods=['GET'])
+@require_auth
+def list_factures_upload():
+    """Liste toutes les factures sauvegardées"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM fichiers_upload 
+            WHERE user_id = ? AND type = 'facture'
+            ORDER BY date_upload DESC
+        ''', (request.user_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        
+        fichiers = []
+        for row in rows:
+            fichiers.append({
+                'id': row['id'],
+                'nom': row['nom_fichier'],
+                'reference': row['reference'],
+                'chemin': row['chemin'],
+                'taille': row['taille'],
+                'date': row['date_upload']
+            })
+        
+        return jsonify({'status': 'success', 'fichiers': fichiers})
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/list/receptions', methods=['GET'])
+@require_auth
+def list_receptions_upload():
+    """Liste toutes les réceptions sauvegardées"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM fichiers_upload 
+            WHERE user_id = ? AND type = 'reception'
+            ORDER BY date_upload DESC
+        ''', (request.user_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        
+        fichiers = []
+        for row in rows:
+            fichiers.append({
+                'id': row['id'],
+                'nom': row['nom_fichier'],
+                'reference': row['reference'],
+                'client': row['client'],
+                'chemin': row['chemin'],
+                'taille': row['taille'],
+                'date': row['date_upload']
+            })
+        
+        return jsonify({'status': 'success', 'fichiers': fichiers})
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/download/<int:fichier_id>', methods=['GET'])
+@require_auth
+def download_fichier(fichier_id):
+    """Télécharge un fichier sauvegardé"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT chemin, nom_fichier FROM fichiers_upload 
+            WHERE id = ? AND user_id = ?
+        ''', (fichier_id, request.user_id))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({'status': 'error', 'message': 'Fichier non trouvé'}), 404
+        
+        if not os.path.exists(row['chemin']):
+            return jsonify({'status': 'error', 'message': 'Fichier introuvable sur le serveur'}), 404
+        
+        return send_file(row['chemin'], as_attachment=True, download_name=row['nom_fichier'])
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # ==================== ROUTES API AUTHENTIFICATION ====================
 
@@ -668,7 +895,6 @@ def dashboard_section(section):
     if section not in allowed_sections.get(request.user_role, []):
         return "<div class='dashboard-card'><p>⛔ Accès non autorisé</p></div>", 403
     
-    # Fichiers de template disponibles
     templates = {
         'dashboard': 'dashboard/sections/dashboard.html',
         'reception': 'dashboard/sections/reception.html',
@@ -826,6 +1052,8 @@ def api_commandes_recues():
                 'fournisseur': row['fournisseur'],
                 'date_reception': row['date_reception'],
                 'produits': json.loads(row['produits']) if row['produits'] else [],
+                'chemin_fichier': row['chemin_fichier'],
+                'nom_fichier': row['nom_fichier'],
                 'date_ajout': row['date_ajout'],
                 'ajoute_par': row['ajoute_par']
             })
@@ -836,8 +1064,8 @@ def api_commandes_recues():
         data = request.get_json()
         
         cursor.execute('''
-            INSERT INTO commandes_recues (user_id, nom, reference, fournisseur, date_reception, produits, date_ajout, ajoute_par)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO commandes_recues (user_id, nom, reference, fournisseur, date_reception, produits, chemin_fichier, nom_fichier, date_ajout, ajoute_par)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             request.user_id,
             data.get('nom', ''),
@@ -845,6 +1073,8 @@ def api_commandes_recues():
             data.get('fournisseur', ''),
             data.get('date_reception', ''),
             json.dumps(data.get('produits', [])),
+            data.get('chemin_fichier', ''),
+            data.get('nom_fichier', ''),
             datetime.now().isoformat(),
             data.get('ajoute_par', '')
         ))
@@ -928,10 +1158,42 @@ if __name__ == '__main__':
         from src.database.init_db import init_database, create_default_admin
         init_database()
         create_default_admin()
+        
+        # Ajouter la table fichiers_upload si elle n'existe pas
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS fichiers_upload (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                reference TEXT NOT NULL,
+                nom_fichier TEXT NOT NULL,
+                chemin TEXT NOT NULL,
+                taille INTEGER DEFAULT 0,
+                client TEXT,
+                date_upload TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
+        
+        # Ajouter les colonnes chemin_fichier et nom_fichier à commandes_recues si elles n'existent pas
+        cursor.execute("PRAGMA table_info(commandes_recues)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'chemin_fichier' not in columns:
+            cursor.execute("ALTER TABLE commandes_recues ADD COLUMN chemin_fichier TEXT")
+        if 'nom_fichier' not in columns:
+            cursor.execute("ALTER TABLE commandes_recues ADD COLUMN nom_fichier TEXT")
+        
+        conn.commit()
+        conn.close()
+        
     except Exception as e:
         print(f"⚠️ Erreur initialisation: {e}")
     
-    print("\n🌐 Serveur démarré sur http://localhost:5000")
+    print("\n" + "=" * 60)
+    print("🌐 Serveur démarré sur http://localhost:5000")
+    print("=" * 60)
     print("   Pages:")
     print("   - Accueil: http://localhost:5000/")
     print("   - Modèles: http://localhost:5000/models")
@@ -939,6 +1201,9 @@ if __name__ == '__main__':
     print("   - Inscription: http://localhost:5000/register")
     print("   - Connexion: http://localhost:5000/login")
     print("   - Dashboard: http://localhost:5000/dashboard (après connexion)")
+    print("\n   📁 Dossiers de stockage:")
+    print(f"   - Factures: {FACTURES_FOLDER}")
+    print(f"   - Réceptions: {RECEPTIONS_FOLDER}")
     print("=" * 60 + "\n")
     
     app.run(debug=True, host='0.0.0.0', port=5000)

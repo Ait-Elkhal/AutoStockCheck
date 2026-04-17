@@ -1,10 +1,13 @@
-/* ==================== RÉCEPTION RÉELLE ==================== */
+/* ==================== RÉCEPTION RÉELLE - STYLES PFE ==================== */
+
+/* Container principal */
 .reception-reelle-container {
     background: white;
     border-radius: 15px;
     padding: 20px;
 }
 
+/* Header */
 .reception-header {
     display: flex;
     justify-content: space-between;
@@ -19,18 +22,179 @@
     color: #4361ee;
 }
 
-/* Carte d'activation */
-.activation-card {
-    background: #f8f9fa;
-    border-radius: 15px;
-    padding: 20px;
+/* ==================== STEP CARD (NOUVEAU WORKFLOW) ==================== */
+.step-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
     margin-bottom: 25px;
-    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid rgba(67, 97, 238, 0.1);
 }
 
-.activation-card h3 {
-    margin: 0 0 15px 0;
+.step-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #4361ee, #6c5ce7);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.step-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+/* Info bar */
+.info-bar {
+    background: #e3f2fd;
+    padding: 12px 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* Aperçu facture */
+.facture-preview {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 15px 0;
+    border-left: 4px solid #4caf50;
+}
+
+.facture-preview h4 {
+    margin: 0 0 10px 0;
     color: #4361ee;
+}
+
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.preview-table th,
+.preview-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.preview-table th {
+    background: #f0f0f0;
+    font-weight: 600;
+}
+
+/* ==================== PRODUITS LIST ==================== */
+.produits-list {
+    margin-top: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 15px;
+    background: #fafbfd;
+}
+
+.produit-item {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s;
+}
+
+.produit-item.validated {
+    border-left: 4px solid #4caf50;
+    background: linear-gradient(90deg, #f0f9f0 0%, #f8f9fa 100%);
+}
+
+.produit-item.hors-facture {
+    background: #fff8e1;
+    border-left: 4px solid #ff9800;
+}
+
+.produit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.produit-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+
+.produit-ref {
+    font-size: 0.9rem;
+    background: #4361ee;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.produit-nom {
+    color: #555;
+    font-weight: 500;
+}
+
+.produit-qte-attendue {
+    color: #666;
+    font-size: 0.8rem;
+    background: #e8ecf2;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.produit-check {
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.checkbox-label input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Détails produit */
+.produit-details {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
 }
 
 .form-row {
@@ -40,15 +204,310 @@
     margin-bottom: 15px;
 }
 
-/* Zone de scan */
-.scanner-section {
-    background: white;
-    border-radius: 12px;
-    padding: 15px;
-    margin-top: 15px;
-    border: 1px solid #e0e0e0;
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
+.form-group label {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #555;
+}
+
+.form-group small {
+    font-size: 0.7rem;
+    color: #999;
+}
+
+.form-control {
+    padding: 10px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #4361ee;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+/* Section défectueux */
+.defectueux-section {
+    margin-top: 15px;
+    padding: 12px;
+    background: #fff3e0;
+    border-radius: 10px;
+}
+
+.defectueux-details {
+    margin-top: 10px;
+    padding-left: 20px;
+}
+
+/* Section produits hors facture */
+.add-product-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 2px dashed #ccc;
+}
+
+.add-product-section h4 {
+    margin: 0 0 15px 0;
+    color: #ff9800;
+}
+
+/* ==================== BOUTONS ==================== */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4361ee, #6c5ce7);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    color: white;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    color: white;
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
+}
+
+/* Actions de fin de commande */
+.commande-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 25px;
+}
+
+/* ==================== ZONE DE DÉPÔT ==================== */
+.dropzone-reelle {
+    border: 2px dashed #4361ee;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 20px;
+}
+
+.dropzone-reelle:hover {
+    background: #e3f2fd;
+    border-color: #1e88e5;
+}
+
+.dropzone-reelle.drag-over {
+    background: #e3f2fd;
+    border-color: #0d47a1;
+}
+
+.dropzone-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.dropzone-text {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.dropzone-hint {
+    font-size: 0.7rem;
+    color: #999;
+    margin-top: 5px;
+}
+
+/* ==================== TABLEAU DES COMMANDES ==================== */
+.commandes-table-container {
+    overflow-x: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    margin-top: 20px;
+}
+
+.commandes-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.commandes-table th {
+    background: linear-gradient(135deg, #1a2a3a, #2d3a4a);
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.commandes-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+
+.commandes-table tr:hover {
+    background: #f8f9fa;
+}
+
+.excel-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #1e7145, #107c41);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.7rem;
+}
+
+/* ==================== MODALES ==================== */
+.modal-scan {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-scan-content {
+    background: white;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-commande-header {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-commande-header h3 {
+    margin: 0;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.modal-body-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.modal-footer-buttons {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding-top: 15px;
+    margin-top: 15px;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Scan preview */
+.scan-preview {
+    width: 100%;
+    height: 250px;
+    background: #2b2d42;
+    border-radius: 10px;
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-direction: column;
+}
+
+.scan-animation {
+    width: 100%;
+    height: 2px;
+    background: #4caf50;
+    animation: scanLine 2s infinite;
+}
+
+@keyframes scanLine {
+    0% { transform: translateY(-125px); }
+    100% { transform: translateY(125px); }
+}
+
+/* Scanner input group */
 .scanner-input-group {
     display: flex;
     gap: 10px;
@@ -91,193 +550,111 @@
     text-align: center;
 }
 
-/* Liste des produits */
-.produits-list {
-    margin-top: 20px;
-    max-height: 300px;
-    overflow-y: auto;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 10px;
-}
-
-.produit-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    border-left: 4px solid #4caf50;
-}
-
-.produit-info {
-    flex: 1;
-}
-
-.produit-reference {
-    font-weight: bold;
-    color: #333;
-}
-
-.produit-quantite {
-    color: #666;
-    font-size: 0.8rem;
-}
-
-.produit-actions {
-    display: flex;
-    gap: 8px;
-}
-
+/* Remove button */
 .remove-btn {
     background: #dc3545;
     color: white;
     border: none;
-    padding: 5px 10px;
-    border-radius: 5px;
+    padding: 5px 12px;
+    border-radius: 20px;
     cursor: pointer;
-}
-
-/* Actions de fin de commande */
-.commande-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #e0e0e0;
-}
-
-.btn-success {
-    background: #4caf50;
-    color: white;
-}
-
-.btn-success:hover {
-    background: #45a049;
-}
-
-/* Zone de dépôt */
-.dropzone-reelle {
-    border: 2px dashed #4361ee;
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    background: #f8f9fa;
-    cursor: pointer;
-    transition: all 0.3s;
-    margin-bottom: 20px;
-}
-
-.dropzone-reelle:hover {
-    background: #e3f2fd;
-}
-
-/* Tableau des commandes */
-.commandes-table-container {
-    overflow-x: auto;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    margin-top: 20px;
-}
-
-.commandes-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-}
-
-.commandes-table th {
-    background: #f8f9fa;
-    padding: 12px;
-    text-align: left;
-    font-weight: 600;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.commandes-table td {
-    padding: 12px;
-    border-bottom: 1px solid #f0f0f0;
-    vertical-align: middle;
-}
-
-.commandes-table tr:hover {
-    background: #f8f9fa;
-}
-
-.excel-icon {
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, #1e7145 0%, #107c41 100%);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
     font-size: 0.7rem;
+    transition: all 0.3s;
 }
 
-/* Modal scan */
-.modal-scan {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 2000;
-    display: none;
-    align-items: center;
-    justify-content: center;
+.remove-btn:hover {
+    background: #c82333;
+    transform: scale(1.05);
 }
 
-.modal-scan-content {
-    background: white;
-    border-radius: 15px;
-    max-width: 500px;
-    width: 90%;
-    padding: 25px;
-    text-align: center;
-}
-
-.scan-preview {
-    width: 100%;
-    height: 250px;
-    background: #2b2d42;
-    border-radius: 10px;
-    margin: 15px 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    flex-direction: column;
-}
-
-.scan-animation {
-    width: 100%;
-    height: 2px;
-    background: #4caf50;
-    animation: scanLine 2s infinite;
-}
-
-@keyframes scanLine {
-    0% { transform: translateY(-125px); }
-    100% { transform: translateY(125px); }
-}
-
-@media (max-width: 768px) {
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 900px) {
+    .reception-reelle-container {
+        padding: 15px;
+    }
+    
     .form-row {
         grid-template-columns: 1fr;
+    }
+    
+    .produit-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .action-buttons,
+    .commande-actions {
+        flex-direction: column;
+    }
+    
+    .action-buttons button,
+    .commande-actions button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    .modal-scan-content {
+        max-width: 95%;
+        max-height: 85vh;
+        padding: 15px;
     }
     
     .scanner-input-group {
         flex-direction: column;
     }
     
-    .commande-actions {
+    .modal-footer-buttons {
         flex-direction: column;
     }
+    
+    .modal-footer-buttons button {
+        width: 100%;
+    }
+    
+    .info-bar {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+/* ==================== SCROLLBAR ==================== */
+.produits-list::-webkit-scrollbar,
+.modal-body-scroll::-webkit-scrollbar,
+.preview-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.produits-list::-webkit-scrollbar-track,
+.modal-body-scroll::-webkit-scrollbar-track,
+.preview-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.produits-list::-webkit-scrollbar-thumb,
+.modal-body-scroll::-webkit-scrollbar-thumb,
+.preview-content::-webkit-scrollbar-thumb {
+    background: #4361ee;
+    border-radius: 10px;
+}
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.produit-item {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.step-card {
+    animation: fadeInUp 0.4s ease-out;
 }
