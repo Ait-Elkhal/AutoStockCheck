@@ -1,0 +1,173 @@
+<link rel="stylesheet" href="/static/css/gestion-factures.css">
+
+<div class="factures-container">
+    <div class="factures-header">
+        <h2>📄 Factures clients reçues</h2>
+        <button class="btn btn-secondary" onclick="initFactures()">🔄 Rafraîchir</button>
+    </div>
+
+    <div class="filters-bar">
+        <select id="clientFilter" class="filter-select" onchange="filterFactures()">
+            <option value="all">📊 Tous les clients</option>
+        </select>
+        <select id="statutFilter" class="filter-select" onchange="filterFactures()">
+            <option value="all">📊 Tous les statuts</option>
+            <option value="recue">📥 Reçue</option>
+            <option value="traitee">✅ Traitée</option>
+            <option value="erreur">❌ Erreur</option>
+        </select>
+        <input type="text" id="searchFacture" class="search-input" placeholder="🔍 Rechercher par référence..." onkeyup="filterFactures()">
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card"><div class="stat-value" id="totalFactures">0</div><div class="stat-label">Total factures</div></div>
+        <div class="stat-card"><div class="stat-value" id="totalProduits">0</div><div class="stat-label">Produits extraits</div></div>
+        <div class="stat-card"><div class="stat-value" id="totalClientsFactures">0</div><div class="stat-label">Clients actifs</div></div>
+    </div>
+
+    <div class="factures-list" id="facturesList"><div style="text-align:center; padding:40px;">Chargement...</div></div>
+</div>
+
+<div id="factureModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header"><h3>📄 Détail de la facture</h3><button class="close-btn" onclick="closeFactureModal()">✕</button></div>
+        <div class="modal-body" id="factureDetailContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeFactureModal()">Fermer</button>
+            <button class="btn btn-primary" id="downloadFactureBtn" onclick="downloadCurrentFacture()">📎 Télécharger</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allFactures = [];
+    let clients = [];
+    let currentFactureId = null;
+    let currentFacturePath = null;
+
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m)); }
+    function formatDate(dateString) { if (!dateString) return '-'; const d = new Date(dateString); return d.toLocaleDateString() + ' ' + d.toLocaleTimeString().slice(0,5); }
+    function getInitials(nom, prenom) { return ((prenom?.[0] || '') + (nom?.[0] || '')).toUpperCase() || '📄'; }
+
+    async function loadClients() {
+        try {
+            const response = await fetch('/api/clients', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await response.json();
+            if (data.status === 'success') {
+                clients = data.clients;
+                const select = document.getElementById('clientFilter');
+                if (select) {
+                    select.innerHTML = '<option value="all">📊 Tous les clients</option>';
+                    clients.forEach(c => { const option = document.createElement('option'); option.value = c.id; option.textContent = `${c.nom} ${c.prenom || ''} - ${c.email}`; select.appendChild(option); });
+                }
+            }
+        } catch (error) { console.error('Erreur:', error); }
+    }
+
+    async function loadFactures() {
+        const container = document.getElementById('facturesList');
+        if (container) container.innerHTML = '<div style="text-align:center; padding:40px;">🔄 Chargement des factures...</div>';
+        
+        try {
+            let allFacturesData = [];
+            let totalProduits = 0;
+            for (const client of clients) {
+                const response = await fetch(`/api/clients/${client.id}/factures`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    data.factures.forEach(facture => {
+                        totalProduits += facture.produits.length;
+                        allFacturesData.push({ ...facture, client_id: client.id, client_nom: client.nom, client_prenom: client.prenom, client_email: client.email });
+                    });
+                }
+            }
+            allFactures = allFacturesData.sort((a, b) => new Date(b.date) - new Date(a.date));
+            document.getElementById('totalFactures').textContent = allFactures.length;
+            document.getElementById('totalProduits').textContent = totalProduits;
+            document.getElementById('totalClientsFactures').textContent = [...new Set(allFactures.map(f => f.client_id))].length;
+            filterFactures();
+        } catch (error) {
+            console.error('Erreur:', error);
+            if (container) container.innerHTML = '<div style="text-align:center; padding:40px; color:#f44336;">❌ Erreur de chargement</div>';
+        }
+    }
+
+    function displayFactures(factures) {
+        const container = document.getElementById('facturesList');
+        if (factures.length === 0) { container.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">📭 Aucune facture reçue</div>'; return; }
+        
+        container.innerHTML = factures.map(facture => `
+            <div class="facture-card">
+                <div class="facture-header">
+                    <div class="facture-client"><div class="facture-avatar">${getInitials(facture.client_nom, facture.client_prenom)}</div>
+                    <div class="facture-client-info"><div class="facture-client-name">${escapeHtml(facture.client_nom)} ${escapeHtml(facture.client_prenom || '')}</div>
+                    <div class="facture-client-email">${escapeHtml(facture.client_email)}</div></div></div>
+                    <div class="facture-reference">🏷️ ${escapeHtml(facture.reference)}</div>
+                    <div class="facture-date">📅 ${formatDate(facture.date)}</div>
+                </div>
+                <div class="facture-produits"><table class="produits-table"><thead><tr><th>Référence</th><th>Produit</th><th>Quantité</th></thead><tbody>
+                    ${facture.produits.slice(0, 5).map(p => `<tr><td>${escapeHtml(p.reference)}</td><td>${escapeHtml(p.nom)}</td><td>${p.quantite}</td></tr>`).join('')}
+                    ${facture.produits.length > 5 ? `<tr><td colspan="3" style="text-align:center;">... et ${facture.produits.length - 5} produits supplémentaires</td></tr>` : ''}
+                </tbody></table></div>
+                <div class="facture-actions">
+                    <span class="status-badge status-${facture.statut}">${facture.statut === 'recue' ? '📥 Reçue' : '✅ Traitée'}</span>
+                    <button class="btn-icon btn-view" onclick="showFactureDetail(${facture.id})" title="Voir détails">👁️ Voir</button>
+                    <button class="btn-icon btn-download" onclick="downloadFacture(${facture.id}, '${escapeHtml(facture.reference)}')" title="Télécharger">📎 Télécharger</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function filterFactures() {
+        const clientId = document.getElementById('clientFilter').value;
+        const statut = document.getElementById('statutFilter').value;
+        const search = document.getElementById('searchFacture').value.toLowerCase();
+        let filtered = allFactures.filter(facture => {
+            const matchClient = clientId === 'all' || facture.client_id == clientId;
+            const matchStatut = statut === 'all' || facture.statut === statut;
+            const matchSearch = facture.reference.toLowerCase().includes(search);
+            return matchClient && matchStatut && matchSearch;
+        });
+        displayFactures(filtered);
+    }
+
+    async function showFactureDetail(factureId) {
+        currentFactureId = factureId;
+        const facture = allFactures.find(f => f.id === factureId);
+        if (!facture) return;
+        currentFacturePath = facture.chemin;
+        document.getElementById('factureDetailContent').innerHTML = `
+            <div style="margin-bottom:20px;"><h3>Facture ${escapeHtml(facture.reference)}</h3><p><strong>Client:</strong> ${escapeHtml(facture.client_nom)} ${escapeHtml(facture.client_prenom || '')}</p>
+            <p><strong>Email:</strong> ${escapeHtml(facture.client_email)}</p><p><strong>Date réception:</strong> ${formatDate(facture.date)}</p>
+            <p><strong>Statut:</strong> <span class="status-badge status-${facture.statut}">${facture.statut === 'recue' ? '📥 Reçue' : '✅ Traitée'}</span></p></div>
+            <hr><h4>📦 Produits (${facture.produits.length})</h4>
+            <table class="produits-table"><thead><tr><th>Référence</th><th>Produit</th><th>Quantité</th></thead><tbody>
+            ${facture.produits.map(p => `<tr><td>${escapeHtml(p.reference)}</td><td>${escapeHtml(p.nom)}</td><td>${p.quantite}</td></tr>`).join('')}
+            </tbody></table>`;
+        document.getElementById('factureModal').style.display = 'flex';
+    }
+
+    function closeFactureModal() { document.getElementById('factureModal').style.display = 'none'; currentFactureId = null; }
+
+    async function downloadFacture(factureId, reference) {
+        try {
+            const response = await fetch(`/api/factures/${factureId}/download`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `facture_${reference}.xlsx`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); window.URL.revokeObjectURL(url);
+        } catch (error) { alert('Erreur lors du téléchargement'); }
+    }
+
+    function downloadCurrentFacture() { if (currentFactureId) { const facture = allFactures.find(f => f.id === currentFactureId); if (facture) downloadFacture(currentFactureId, facture.reference); } }
+
+    async function initFactures() { await loadClients(); await loadFactures(); }
+    initFactures();
+
+    window.initFactures = initFactures;
+    window.filterFactures = filterFactures;
+    window.showFactureDetail = showFactureDetail;
+    window.closeFactureModal = closeFactureModal;
+    window.downloadFacture = downloadFacture;
+    window.downloadCurrentFacture = downloadCurrentFacture;
+</script>

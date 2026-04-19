@@ -10,10 +10,13 @@
         <div class="step-content">
             <div class="form-group">
                 <label>Référence de la commande / Facture</label>
-                <input type="text" id="referenceReception" class="form-control" placeholder="Ex: REC-001, CMD-001" autocomplete="off">
-                <small>Scannez ou saisissez la référence de la réception</small>
+                <select id="referenceReception" class="form-control" onchange="verifierReference()">
+                    <option value="">-- Sélectionner une référence --</option>
+                </select>
+                <small>Sélectionnez la référence de la facture à traiter</small>
             </div>
             <button class="btn btn-primary" onclick="verifierReference()">🔍 Vérifier la référence</button>
+            <button class="btn btn-secondary" onclick="chargerReferences()">🔄 Charger les références</button>
             
             <div id="referenceNotFound" style="display: none; margin-top: 15px;">
                 <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 8px;">
@@ -32,7 +35,6 @@
             <h3>📋 Fiche de réception</h3>
         </div>
         <div class="step-content">
-            <!-- En-tête de la fiche -->
             <div class="fiche-header">
                 <div class="info-row">
                     <span class="info-label">🏷️ Référence :</span>
@@ -52,18 +54,15 @@
                 </div>
             </div>
 
-            <!-- Produits de la facture -->
             <h4>📋 Produits commandés</h4>
-            <div id="produitsCommandesList" class="produits-list"></div>
+            <div id="produitsCommandesList" class="produits-list"><div class="loading">⏳ Chargement...</div></div>
 
-            <!-- Produits supplémentaires -->
             <div class="add-product-section">
                 <h4>➕ Produits supplémentaires (non commandés)</h4>
                 <button class="btn btn-secondary" onclick="ajouterProduitSupplementaire()">➕ Ajouter un produit</button>
                 <div id="produitsSuppList" class="produits-list" style="margin-top: 15px;"></div>
             </div>
 
-            <!-- Actions finales -->
             <div class="action-buttons">
                 <button class="btn btn-success" onclick="validerReception()">✅ Valider la réception</button>
                 <button class="btn btn-danger" onclick="annulerReception()">🗑️ Annuler</button>
@@ -71,17 +70,16 @@
         </div>
     </div>
 
-    <!-- Étape 7 : Liste des réceptions réelles -->
+    <!-- Liste des réceptions réelles -->
     <div class="historique-section" style="margin-top: 30px;">
         <div class="section-header">
             <h3>📦 Réceptions réelles enregistrées</h3>
-            <button class="btn btn-primary" onclick="rafraichirListeReceptions()">🔄 Rafraîchir</button>
+            <button class="btn btn-primary" onclick="chargerReceptions()">🔄 Rafraîchir</button>
         </div>
         <div class="commandes-table-container">
             <table class="commandes-table">
-                <thead>
-                    <tr><th>Référence</th><th>Client</th><th>Date</th><th>Produits</th><th>Statut</th><th>Actions</th></thead>
-                <tbody id="receptionsList"></tbody>
+                <thead><tr><th>Référence</th><th>Client</th><th>Date</th><th>Produits</th><th>Statut</th><th>Actions</th></tr></thead>
+                <tbody id="receptionsList"><tr><td colspan="6">⏳ Chargement...</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -90,559 +88,271 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script>
-    // ==================== DONNÉES ====================
-    let factures = JSON.parse(localStorage.getItem('facturesRecues') || '[]');
-    let receptionsNonTraitees = JSON.parse(localStorage.getItem('receptionsNonTraitees') || '[]');
-    let commandesRecues = JSON.parse(localStorage.getItem('commandesRecues') || '[]');
-    
-    let factureCourante = null;
-    let produitsBase = [];
-    let produitsSupp = [];
-    let referenceCourante = '';
-    let currentUser = JSON.parse(localStorage.getItem('user') || '{"username": "Employé"}');
+    (function() {
+        // ==================== DONNÉES LOCALES ====================
+        let facturesList = [];
+        let factureCourante = null;
+        let produitsBase = [];
+        let produitsSupp = [];
+        let referenceCourante = '';
+        let currentUser = JSON.parse(localStorage.getItem('user') || '{"username": "Employé"}');
+        let commandesRecues = [];
 
-    // ==================== AFFICHER LISTE DES RÉCEPTIONS ====================
-    function afficherListeReceptions() {
-        const tbody = document.getElementById('receptionsList');
-        
-        if (commandesRecues.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px;">📭 Aucune réception enregistrée</td></tr>';
-            return;
-        }
-        
-        tbody.innerHTML = commandesRecues.map(cmd => `
-            <tr>
-                <td><strong>${cmd.reference}</strong></td>
-                <td>${cmd.client || '-'}</td>
-                <td>${new Date(cmd.dateReception).toLocaleDateString()}</td>
-                <td>${cmd.produits?.length || 0} produits</td>
-                <td><span class="status-badge ${cmd.statut === 'valide' ? 'status-success' : 'status-warning'}">${cmd.statut === 'valide' ? '✅ Validé' : '⚠️ Anomalies'}</span></td>
-                <td>
-                    <button class="action-btn view" onclick="voirDetailReception(${cmd.id})" title="Voir détails">👁️</button>
-                    <button class="action-btn download" onclick="telechargerFichierReception(${cmd.id})" title="Télécharger Excel">📎</button>
-                </td>
-            </tr>
-        `).join('');
-    }
-    
-    function voirDetailReception(id) {
-        const reception = commandesRecues.find(c => c.id === id);
-        if (!reception) return;
-        
-        let message = `📋 DÉTAIL DE LA RÉCEPTION\n\n`;
-        message += `🏷️ Référence: ${reception.reference}\n`;
-        message += `👤 Client: ${reception.client || 'Non spécifié'}\n`;
-        message += `📅 Date: ${new Date(reception.dateReception).toLocaleDateString()}\n`;
-        message += `📊 Statut: ${reception.statut}\n`;
-        message += `━`.repeat(40) + `\n`;
-        message += `📦 PRODUITS REÇUS:\n\n`;
-        
-        reception.produits.forEach(p => {
-            message += `📌 ${p.reference}: ${p.quantite} x ${p.nom}\n`;
-            message += `   État: ${p.etat}\n`;
-            if (p.type === "supplement") message += `   (Hors facture)\n`;
-            message += `\n`;
-        });
-        
-        alert(message);
-    }
-    
-    function telechargerFichierReception(id) {
-        const reception = commandesRecues.find(c => c.id === id);
-        if (!reception) return;
-        
-        const donnees = [
-            ["Type", "Référence", "Produit", "Quantité reçue", "Quantité commandée", "État"],
-            ...reception.produits.map(p => [
-                p.type === "commande" ? "Commandé" : "Supplémentaire",
-                p.reference, p.nom, p.quantite, p.quantiteCommandee || "-", p.etat
-            ])
-        ];
-        
-        const ws = XLSX.utils.aoa_to_sheet(donnees);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Réception");
-        XLSX.writeFile(wb, reception.nom || `reception_${reception.reference}.xlsx`);
-    }
-    
-    function rafraichirListeReceptions() {
-        commandesRecues = JSON.parse(localStorage.getItem('commandesRecues') || '[]');
-        afficherListeReceptions();
-    }
+        // ==================== CHARGER LES RÉFÉRENCES ====================
+        window.chargerReferences = async function() {
+            console.log("🔄 Chargement des références...");
+            const select = document.getElementById('referenceReception');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">⏳ Chargement...</option>';
+            
+            try {
+                const response = await fetch('/api/factures-recues', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    facturesList = data.factures;
+                    const facturesEnAttente = facturesList.filter(f => f.statut === 'en-attente' && f.reference_reception);
+                    
+                    select.innerHTML = '<option value="">-- Sélectionner une référence --</option>';
+                    
+                    if (facturesEnAttente.length === 0) {
+                        select.innerHTML = '<option value="">-- Aucune facture en attente --</option>';
+                    } else {
+                        facturesEnAttente.forEach(f => {
+                            const option = document.createElement('option');
+                            option.value = f.reference_reception;
+                            option.textContent = `${f.reference_reception} - ${f.nom}`;
+                            select.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                select.innerHTML = '<option value="">❌ Erreur</option>';
+            }
+        };
 
-    // ==================== ÉTAPE 1 : VÉRIFICATION RÉFÉRENCE ====================
-    function verifierReference() {
-        const ref = document.getElementById('referenceReception').value.trim();
-        const notFoundDiv = document.getElementById('referenceNotFound');
-        
-        if (!ref) {
-            alert("Veuillez saisir une référence");
-            return;
-        }
-        
-        factureCourante = factures.find(f => f.reference_reception === ref);
-        
-        if (factureCourante) {
-            notFoundDiv.style.display = 'none';
-            creerFicheReception(ref);
-        } else {
-            notFoundDiv.style.display = 'block';
-        }
-    }
-    
-    function ajouterReceptionNonTraitee() {
-        const ref = document.getElementById('referenceReception').value.trim();
-        
-        if (!ref) return;
-        
-        const existe = receptionsNonTraitees.some(r => r.reference === ref);
-        if (existe) {
-            alert(`⚠️ La référence "${ref}" est déjà dans la liste des réceptions non traitées.`);
-            return;
-        }
-        
-        const nouvelleReception = {
-            id: Date.now(),
-            reference: ref,
-            client: "Client à définir",
-            dateCreation: new Date().toISOString(),
-            statut: "en_attente",
-            produits: []
+        // ==================== CHARGER LES RÉCEPTIONS ====================
+        window.chargerReceptions = async function() {
+            const tbody = document.getElementById('receptionsList');
+            tbody.innerHTML = '<tr><td colspan="6">⏳ Chargement...</td></tr>';
+            
+            try {
+                const response = await fetch('/api/commandes-recues', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    commandesRecues = data.commandes || [];
+                    
+                    if (commandesRecues.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6">📭 Aucune réception</td></tr>';
+                        return;
+                    }
+                    
+                    tbody.innerHTML = commandesRecues.map(cmd => `
+                        <tr>
+                            <td><strong>${escapeHtml(cmd.reference)}</strong></td>
+                            <td>${escapeHtml(cmd.client) || '-'}</td>
+                            <td>${cmd.dateReception ? new Date(cmd.dateReception).toLocaleDateString() : '-'}</td>
+                            <td>${cmd.produits?.length || 0} produits</td>
+                            <td>${cmd.statut === 'valide' ? '✅ Validé' : '⚠️ Anomalies'}</td>
+                            <td><button onclick="voirDetailReception(${cmd.id})">👁️</button></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                tbody.innerHTML = '<tr><td colspan="6">❌ Erreur</td></tr>';
+            }
         };
         
-        receptionsNonTraitees.push(nouvelleReception);
-        localStorage.setItem('receptionsNonTraitees', JSON.stringify(receptionsNonTraitees));
-        
-        alert(`✅ La référence "${ref}" a été ajoutée aux réceptions non traitées.\n\nVous pouvez maintenant la traiter.`);
-        
-        creerFicheReception(ref, true);
-    }
-    
-    // ==================== ÉTAPE 2 : CRÉATION FICHE DYNAMIQUE ====================
-    function creerFicheReception(ref, isNew = false) {
-        referenceCourante = ref;
-        
-        if (factureCourante && !isNew) {
-            const headers = factureCourante.contenu.en_tete;
-            const lignes = factureCourante.contenu.lignes;
+        window.voirDetailReception = function(id) {
+            const reception = commandesRecues.find(c => c.id === id);
+            if (!reception) return;
             
-            const refIndex = headers.indexOf('référence');
-            const qteIndex = headers.indexOf('quantité');
-            const nomIndex = headers.indexOf('produit');
+            let message = `📋 DÉTAIL\n\n🏷️ Référence: ${reception.reference}\n👤 Client: ${reception.client || '-'}\n📦 Produits: ${reception.produits?.length || 0}\n\n`;
+            reception.produits?.forEach(p => {
+                message += `📌 ${p.reference}: ${p.quantite} x ${p.nom} (${p.etat})\n`;
+            });
+            alert(message);
+        };
+
+        // ==================== VÉRIFICATION RÉFÉRENCE ====================
+        window.verifierReference = function() {
+            const select = document.getElementById('referenceReception');
+            const ref = select.value;
+            const notFoundDiv = document.getElementById('referenceNotFound');
             
-            produitsBase = [];
-            for (const ligne of lignes) {
-                if (ligne[refIndex]) {
-                    produitsBase.push({
-                        reference: ligne[refIndex],
-                        nom: ligne[nomIndex],
-                        qteCommandee: parseInt(ligne[qteIndex]),
-                        qteRecue: 0,
-                        check: false,
-                        etatMal: false,
-                        qteMal: 0,
-                        descriptionMal: '',
-                        etat: "Bon"
-                    });
-                }
+            if (!ref || ref === '-- Sélectionner une référence --') {
+                alert("Veuillez sélectionner une référence");
+                return;
             }
             
-            document.getElementById('ficheClient').value = factureCourante.informations || "Client";
-        } else {
-            produitsBase = [];
-            document.getElementById('ficheClient').value = "Client à définir";
-        }
-        
-        produitsSupp = [];
-        
-        document.getElementById('step1Card').style.display = 'none';
-        document.getElementById('step2Card').style.display = 'block';
-        
-        document.getElementById('ficheReference').textContent = ref;
-        document.getElementById('ficheDate').textContent = new Date().toLocaleDateString();
-        
-        afficherProduitsCommandes();
-        afficherProduitsSupp();
-    }
-    
-    // ==================== AFFICHAGE PRODUITS COMMANDÉS ====================
-    function afficherProduitsCommandes() {
-        const container = document.getElementById('produitsCommandesList');
-        
-        if (produitsBase.length === 0) {
-            container.innerHTML = '<p style="text-align:center; padding:20px; color:#999;">Aucun produit commandé (facture non trouvée)</p>';
-            return;
-        }
-        
-        container.innerHTML = produitsBase.map((p, i) => `
-            <div class="produit-item ${p.check ? 'validated' : ''}" style="border:1px solid #ddd; padding:15px; margin:10px 0; border-radius:10px; background:${p.check ? '#e8f5e9' : '#fff'};">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                    <div>
-                        <strong style="font-size:1rem;">${p.reference}</strong><br>
-                        <span style="color:#666;">${p.nom}</span><br>
-                        <small style="color:#4361ee;">📦 Commandé: ${p.qteCommandee}</small>
-                    </div>
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" onchange="toggleProduitRecu(${i}, this.checked)" ${p.check ? 'checked' : ''} style="width:20px;height:20px;">
-                        <span style="font-weight:bold;">✅ Produit reçu</span>
-                    </label>
-                </div>
-                
-                <div id="details-produit-${i}" style="display: ${p.check ? 'block' : 'none'}; margin-top:15px; padding-top:10px; border-top:1px solid #eee;">
-                    <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:10px;">
-                        <div>
-                            <label style="display:block; font-size:0.8rem; color:#666;">Quantité reçue</label>
-                            <input type="number" value="${p.qteRecue}" min="0" max="${p.qteCommandee}" 
-                                   onchange="updateQteRecue(${i}, this.value)" style="width:100px; padding:8px; border:1px solid #ddd; border-radius:6px;">
-                            <small>/ ${p.qteCommandee}</small>
-                        </div>
-                        <div>
-                            <label style="display:block; font-size:0.8rem; color:#666;">État général</label>
-                            <select onchange="updateEtatGeneral(${i}, this.value)" style="padding:8px; border:1px solid #ddd; border-radius:6px;">
-                                <option value="Bon" ${p.etat === 'Bon' ? 'selected' : ''}>👍 Bon</option>
-                                <option value="Très bon" ${p.etat === 'Très bon' ? 'selected' : ''}>✨ Très bon</option>
-                                <option value="Correct" ${p.etat === 'Correct' ? 'selected' : ''}>🟡 Correct</option>
-                                <option value="À contrôler" ${p.etat === 'À contrôler' ? 'selected' : ''}>🔍 À contrôler</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div style="background:#fff3e0; padding:10px; border-radius:8px; margin-top:10px;">
-                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                            <input type="checkbox" onchange="toggleEtatMal(${i}, this.checked)" ${p.etatMal ? 'checked' : ''}>
-                            <span>⚠️ Des produits sont en mauvais état (cassés, défectueux)</span>
-                        </label>
-                        
-                        <div id="details-mal-${i}" style="display: ${p.etatMal ? 'block' : 'none'}; margin-top:10px; margin-left:25px;">
-                            <div>
-                                <label>🔧 Quantité en mauvais état :</label>
-                                <input type="number" value="${p.qteMal}" min="0" max="${p.qteRecue}" 
-                                       onchange="updateQteMal(${i}, this.value)" style="width:100px; padding:8px; border:1px solid #ddd; border-radius:6px;">
-                                <small>sur ${p.qteRecue} reçus</small>
-                            </div>
-                            <div style="margin-top:8px;">
-                                <label>📝 Description du problème :</label>
-                                <input type="text" placeholder="Ex: Écran fissuré, ne s'allume pas..." 
-                                       value="${p.descriptionMal || ''}" 
-                                       onchange="updateDescriptionMal(${i}, this.value)" 
-                                       style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    // ==================== FONCTIONS PRODUITS COMMANDÉS ====================
-    function toggleProduitRecu(index, checked) {
-        produitsBase[index].check = checked;
-        if (checked) {
-            produitsBase[index].qteRecue = produitsBase[index].qteCommandee;
-        } else {
-            produitsBase[index].qteRecue = 0;
-            produitsBase[index].etatMal = false;
-            produitsBase[index].qteMal = 0;
-            produitsBase[index].descriptionMal = '';
-        }
-        afficherProduitsCommandes();
-    }
-    
-    function updateQteRecue(index, value) {
-        const qte = parseInt(value) || 0;
-        produitsBase[index].qteRecue = Math.min(qte, produitsBase[index].qteCommandee);
-        if (produitsBase[index].qteMal > produitsBase[index].qteRecue) {
-            produitsBase[index].qteMal = produitsBase[index].qteRecue;
-        }
-        afficherProduitsCommandes();
-    }
-    
-    function updateEtatGeneral(index, value) {
-        produitsBase[index].etat = value;
-    }
-    
-    function toggleEtatMal(index, checked) {
-        produitsBase[index].etatMal = checked;
-        if (!checked) {
-            produitsBase[index].qteMal = 0;
-            produitsBase[index].descriptionMal = '';
-        }
-        afficherProduitsCommandes();
-    }
-    
-    function updateQteMal(index, value) {
-        const qte = parseInt(value) || 0;
-        produitsBase[index].qteMal = Math.min(qte, produitsBase[index].qteRecue);
-    }
-    
-    function updateDescriptionMal(index, value) {
-        produitsBase[index].descriptionMal = value;
-    }
-    
-    // ==================== PRODUITS SUPPLÉMENTAIRES ====================
-    function ajouterProduitSupplementaire() {
-        produitsSupp.push({
-            id: Date.now(),
-            reference: '',
-            nom: '',
-            quantite: 1,
-            etat: 'Bon',
-            etatMal: false,
-            qteMal: 0,
-            descriptionMal: ''
-        });
-        afficherProduitsSupp();
-    }
-    
-    function afficherProduitsSupp() {
-        const container = document.getElementById('produitsSuppList');
-        
-        if (produitsSupp.length === 0) {
-            container.innerHTML = '<p style="color:#999; text-align:center; padding:20px;">Aucun produit supplémentaire</p>';
-            return;
-        }
-        
-        container.innerHTML = produitsSupp.map((p, i) => `
-            <div style="border:1px solid #ff9800; padding:15px; margin:10px 0; border-radius:10px; background:#fff8e1;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <strong style="color:#ff9800;">📦 Produit supplémentaire</strong>
-                    <button onclick="supprimerProduitSupp(${i})" style="background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">🗑️ Supprimer</button>
-                </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-                    <input type="text" placeholder="Référence *" value="${p.reference}" 
-                           onchange="updateProduitSupp(${i}, 'reference', this.value)" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:6px;">
-                    <input type="text" placeholder="Nom du produit *" value="${p.nom}" 
-                           onchange="updateProduitSupp(${i}, 'nom', this.value)" style="flex:2; padding:8px; border:1px solid #ddd; border-radius:6px;">
-                    <input type="number" placeholder="Quantité" value="${p.quantite}" 
-                           onchange="updateProduitSupp(${i}, 'quantite', parseInt(this.value) || 0)" style="width:100px; padding:8px; border:1px solid #ddd; border-radius:6px;">
-                    <select onchange="updateProduitSupp(${i}, 'etat', this.value)" style="padding:8px; border:1px solid #ddd; border-radius:6px;">
-                        <option value="Bon" ${p.etat === 'Bon' ? 'selected' : ''}>Bon</option>
-                        <option value="Très bon" ${p.etat === 'Très bon' ? 'selected' : ''}>Très bon</option>
-                        <option value="Correct" ${p.etat === 'Correct' ? 'selected' : ''}>Correct</option>
-                        <option value="À contrôler" ${p.etat === 'À contrôler' ? 'selected' : ''}>À contrôler</option>
-                    </select>
-                </div>
-                
-                <div style="background:#fff3e0; padding:10px; border-radius:8px; margin-top:10px;">
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" onchange="toggleProduitSuppMal(${i}, this.checked)" ${p.etatMal ? 'checked' : ''}>
-                        <span>⚠️ Produits en mauvais état</span>
-                    </label>
-                    
-                    <div id="supp-mal-${i}" style="display: ${p.etatMal ? 'block' : 'none'}; margin-top:10px; margin-left:25px;">
-                        <div>
-                            <label>🔧 Quantité en mauvais état :</label>
-                            <input type="number" value="${p.qteMal}" min="0" max="${p.quantite}" 
-                                   onchange="updateProduitSuppMalQte(${i}, this.value)" style="width:100px; padding:8px; border:1px solid #ddd; border-radius:6px;">
-                        </div>
-                        <div style="margin-top:8px;">
-                            <label>📝 Description :</label>
-                            <input type="text" placeholder="Décrivez le problème..." value="${p.descriptionMal || ''}" 
-                                   onchange="updateProduitSuppDesc(${i}, this.value)" 
-                                   style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    function updateProduitSupp(index, field, value) {
-        produitsSupp[index][field] = value;
-    }
-    
-    function supprimerProduitSupp(index) {
-        produitsSupp.splice(index, 1);
-        afficherProduitsSupp();
-    }
-    
-    function toggleProduitSuppMal(index, checked) {
-        produitsSupp[index].etatMal = checked;
-        if (!checked) {
-            produitsSupp[index].qteMal = 0;
-            produitsSupp[index].descriptionMal = '';
-        }
-        afficherProduitsSupp();
-    }
-    
-    function updateProduitSuppMalQte(index, value) {
-        produitsSupp[index].qteMal = Math.min(parseInt(value) || 0, produitsSupp[index].quantite);
-    }
-    
-    function updateProduitSuppDesc(index, value) {
-        produitsSupp[index].descriptionMal = value;
-    }
-    
-    // ==================== VALIDATION ET GÉNÉRATION EXCEL ====================
-    function validerReception() {
-        const client = document.getElementById('ficheClient').value;
-        const produitsRecus = [];
-        let hasAnomalies = false;
-        
-        for (const p of produitsBase) {
-            if (p.check && p.qteRecue > 0) {
-                let etatFinal = p.etat;
-                if (p.etatMal && p.qteMal > 0) {
-                    hasAnomalies = true;
-                    etatFinal = `⚠️ DÉFECTUEUX: ${p.qteMal}/${p.qteRecue} - ${p.descriptionMal || 'sans description'}`;
-                }
-                produitsRecus.push({
-                    reference: p.reference,
-                    nom: p.nom,
-                    quantite: p.qteRecue,
-                    quantiteCommandee: p.qteCommandee,
-                    etat: etatFinal,
-                    type: "commande"
-                });
-            } else if (p.check === false && p.qteCommandee > 0) {
-                hasAnomalies = true;
-            }
-        }
-        
-        for (const p of produitsSupp) {
-            if (p.reference && p.nom && p.quantite > 0) {
-                let etatFinal = p.etat;
-                if (p.etatMal && p.qteMal > 0) {
-                    hasAnomalies = true;
-                    etatFinal = `⚠️ DÉFECTUEUX: ${p.qteMal}/${p.quantite} - ${p.descriptionMal || 'sans description'}`;
-                }
-                produitsRecus.push({
-                    reference: p.reference,
-                    nom: p.nom,
-                    quantite: p.quantite,
-                    quantiteCommandee: 0,
-                    etat: etatFinal,
-                    type: "supplement"
-                });
-            }
-        }
-        
-        if (produitsRecus.length === 0) {
-            alert("Veuillez valider au moins un produit reçu");
-            return;
-        }
-        
-        // Générer le fichier Excel
-        const donnees = [
-            ["Type", "Référence", "Produit", "Quantité reçue", "Quantité commandée", "État"],
-            ...produitsRecus.map(p => [
-                p.type === "commande" ? "Commandé" : "Supplémentaire",
-                p.reference, p.nom, p.quantite, p.quantiteCommandee || "-", p.etat
-            ])
-        ];
-        
-        const ws = XLSX.utils.aoa_to_sheet(donnees);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Réception");
-        
-        const nomFichier = `reception_${referenceCourante}_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`;
-        
-        // ==== ENVOI AU SERVEUR ====
-        const wbout = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
-        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        
-        const formData = new FormData();
-        formData.append('fichier', blob, nomFichier);
-        formData.append('reference', referenceCourante);
-        formData.append('client', client);
-        
-        const token = localStorage.getItem('token');
-        
-        fetch('/api/upload/reception', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(serverResult => {
-            if (serverResult.status === 'success') {
-                console.log('✅ Fichier sauvegardé sur le serveur:', serverResult.path);
-                
-                // Sauvegarder dans localStorage
-                const nouvelleCommande = {
-                    id: Date.now(),
-                    nom: nomFichier,
-                    reference: referenceCourante,
-                    client: client,
-                    dateReception: new Date().toISOString().split('T')[0],
-                    produits: produitsRecus,
-                    dateAjout: new Date().toISOString(),
-                    ajoutePar: currentUser.username || "Employé",
-                    statut: hasAnomalies ? "anomalie" : "valide",
-                    chemin_serveur: serverResult.path,
-                    nom_fichier_serveur: serverResult.filename
-                };
-                
-                commandesRecues.unshift(nouvelleCommande);
-                localStorage.setItem('commandesRecues', JSON.stringify(commandesRecues));
-                
-                // Télécharger aussi localement
-                XLSX.writeFile(wb, nomFichier);
-                
-                let message = `✅ RÉCEPTION VALIDÉE !\n\n`;
-                message += `🏷️ Référence: ${referenceCourante}\n`;
-                message += `👤 Client: ${client}\n`;
-                message += `📦 Produits reçus: ${produitsRecus.length}\n`;
-                message += `📁 Fichier: ${nomFichier}\n`;
-                message += `💾 Sauvegardé sur le serveur\n`;
-                message += `📊 Statut: ${hasAnomalies ? '⚠️ Anomalies détectées' : '✅ Tout est conforme'}`;
-                
-                alert(message);
-                
-                reinitialiser();
-                afficherListeReceptions();
+            factureCourante = facturesList.find(f => f.reference_reception === ref);
+            
+            if (factureCourante) {
+                notFoundDiv.style.display = 'none';
+                creerFicheReception(ref);
             } else {
-                alert(`❌ Erreur serveur: ${serverResult.message}`);
+                notFoundDiv.style.display = 'block';
             }
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            alert("❌ Erreur lors de la sauvegarde sur le serveur. Vérifiez que le serveur est démarré.");
-        });
-    }
-    
-    function reinitialiser() {
-        document.getElementById('step1Card').style.display = 'block';
-        document.getElementById('step2Card').style.display = 'none';
-        document.getElementById('referenceReception').value = '';
-        document.getElementById('referenceNotFound').style.display = 'none';
-        produitsBase = [];
-        produitsSupp = [];
-        factureCourante = null;
-        afficherListeReceptions();
-    }
-    
-    function annulerReception() {
-        if (confirm("⚠️ Annuler cette réception ? Toutes les données seront perdues.")) {
-            reinitialiser();
+        };
+        
+        window.ajouterReceptionNonTraitee = async function() {
+            const ref = document.getElementById('referenceReception').value;
+            if (!ref) return;
+            
+            try {
+                await fetch('/api/receptions-non-traitees', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ reference: ref })
+                });
+                alert(`✅ "${ref}" ajoutée`);
+                creerFicheReception(ref, true);
+            } catch(e) { alert("❌ Erreur"); }
+        };
+        
+        function creerFicheReception(ref, isNew = false) {
+            referenceCourante = ref;
+            
+            if (factureCourante && !isNew && factureCourante.contenu) {
+                const headers = factureCourante.contenu.en_tete || [];
+                const lignes = factureCourante.contenu.lignes || [];
+                const refIdx = headers.findIndex(h => h === 'référence' || h === 'ref');
+                const qteIdx = headers.findIndex(h => h === 'quantité' || h === 'qty');
+                const nomIdx = headers.findIndex(h => h === 'produit' || h === 'nom');
+                
+                produitsBase = [];
+                for (const ligne of lignes) {
+                    if (refIdx !== -1 && ligne[refIdx]) {
+                        produitsBase.push({
+                            reference: ligne[refIdx],
+                            nom: nomIdx !== -1 ? ligne[nomIdx] : `Produit ${ligne[refIdx]}`,
+                            qteCommandee: qteIdx !== -1 ? (parseInt(ligne[qteIdx]) || 0) : 0,
+                            qteRecue: 0, check: false, etatMal: false, qteMal: 0, descriptionMal: '', etat: "Bon"
+                        });
+                    }
+                }
+                document.getElementById('ficheClient').value = factureCourante.informations || "Client";
+            } else {
+                produitsBase = [];
+                document.getElementById('ficheClient').value = "Client à définir";
+            }
+            
+            produitsSupp = [];
+            document.getElementById('step1Card').style.display = 'none';
+            document.getElementById('step2Card').style.display = 'block';
+            document.getElementById('ficheReference').textContent = ref;
+            document.getElementById('ficheDate').textContent = new Date().toLocaleDateString();
+            afficherProduitsCommandes();
+            afficherProduitsSupp();
         }
-    }
-    
-    // Initialisation
-    afficherListeReceptions();
-    
-    // Exposer les fonctions globalement
-    window.verifierReference = verifierReference;
-    window.ajouterReceptionNonTraitee = ajouterReceptionNonTraitee;
-    window.ajouterProduitSupplementaire = ajouterProduitSupplementaire;
-    window.validerReception = validerReception;
-    window.annulerReception = annulerReception;
-    window.rafraichirListeReceptions = rafraichirListeReceptions;
-    window.voirDetailReception = voirDetailReception;
-    window.telechargerFichierReception = telechargerFichierReception;
-    
-    // Fonctions produits
-    window.toggleProduitRecu = toggleProduitRecu;
-    window.updateQteRecue = updateQteRecue;
-    window.updateEtatGeneral = updateEtatGeneral;
-    window.toggleEtatMal = toggleEtatMal;
-    window.updateQteMal = updateQteMal;
-    window.updateDescriptionMal = updateDescriptionMal;
-    window.updateProduitSupp = updateProduitSupp;
-    window.supprimerProduitSupp = supprimerProduitSupp;
-    window.toggleProduitSuppMal = toggleProduitSuppMal;
-    window.updateProduitSuppMalQte = updateProduitSuppMalQte;
-    window.updateProduitSuppDesc = updateProduitSuppDesc;
+        
+        function afficherProduitsCommandes() {
+            const container = document.getElementById('produitsCommandesList');
+            if (produitsBase.length === 0) { container.innerHTML = '<p>Aucun produit</p>'; return; }
+            
+            container.innerHTML = produitsBase.map((p, i) => `
+                <div style="border:1px solid #ddd; padding:15px; margin:10px 0;">
+                    <div style="display:flex; justify-content:space-between;">
+                        <div><strong>${escapeHtml(p.reference)}</strong><br>${escapeHtml(p.nom)}<br><small>Commandé: ${p.qteCommandee}</small></div>
+                        <label><input type="checkbox" onchange="toggleProduitRecu(${i}, this.checked)" ${p.check ? 'checked' : ''}> ✅ Reçu</label>
+                    </div>
+                    <div id="details-${i}" style="display:${p.check?'block':'none'}; margin-top:10px;">
+                        <div><label>Qté reçue</label><input type="number" value="${p.qteRecue}" min="0" max="${p.qteCommandee}" onchange="updateQteRecue(${i}, this.value)"></div>
+                        <div><label>État</label><select onchange="updateEtatGeneral(${i}, this.value)"><option ${p.etat==='Bon'?'selected':''}>Bon</option><option ${p.etat==='Très bon'?'selected':''}>Très bon</option></select></div>
+                        <div><label><input type="checkbox" onchange="toggleEtatMal(${i}, this.checked)" ${p.etatMal?'checked':''}> ⚠️ Défectueux</label>
+                        <div id="mal-${i}" style="display:${p.etatMal?'block':'none'}; margin-left:20px;">
+                            <div><label>Qté mal</label><input type="number" value="${p.qteMal}" min="0" max="${p.qteRecue}" onchange="updateQteMal(${i}, this.value)"></div>
+                            <div><label>Description</label><input type="text" value="${p.descriptionMal}" onchange="updateDescriptionMal(${i}, this.value)"></div>
+                        </div></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function afficherProduitsSupp() {
+            const container = document.getElementById('produitsSuppList');
+            if (produitsSupp.length === 0) { container.innerHTML = '<p>Aucun supplément</p>'; return; }
+            container.innerHTML = produitsSupp.map((p, i) => `
+                <div style="border:1px solid #ff9800; padding:10px; margin:10px 0;">
+                    <div><strong>📦 Hors facture</strong><button onclick="supprimerProduitSupp(${i})">🗑️</button></div>
+                    <div><input placeholder="Réf" value="${p.reference}" onchange="updateProduitSupp(${i},'reference',this.value)">
+                    <input placeholder="Nom" value="${p.nom}" onchange="updateProduitSupp(${i},'nom',this.value)">
+                    <input placeholder="Qté" value="${p.quantite}" onchange="updateProduitSupp(${i},'quantite',parseInt(this.value)||0)"></div>
+                </div>
+            `).join('');
+        }
+        
+        window.toggleProduitRecu = function(i, checked) { produitsBase[i].check = checked; produitsBase[i].qteRecue = checked ? produitsBase[i].qteCommandee : 0; if(!checked) produitsBase[i].etatMal=false; afficherProduitsCommandes(); };
+        window.updateQteRecue = function(i, val) { produitsBase[i].qteRecue = Math.min(parseInt(val)||0, produitsBase[i].qteCommandee); afficherProduitsCommandes(); };
+        window.updateEtatGeneral = function(i, val) { produitsBase[i].etat = val; };
+        window.toggleEtatMal = function(i, checked) { produitsBase[i].etatMal = checked; if(!checked) produitsBase[i].qteMal=0; afficherProduitsCommandes(); };
+        window.updateQteMal = function(i, val) { produitsBase[i].qteMal = Math.min(parseInt(val)||0, produitsBase[i].qteRecue); };
+        window.updateDescriptionMal = function(i, val) { produitsBase[i].descriptionMal = val; };
+        window.ajouterProduitSupplementaire = function() { produitsSupp.push({ id:Date.now(), reference:'', nom:'', quantite:1 }); afficherProduitsSupp(); };
+        window.updateProduitSupp = function(i, f, v) { produitsSupp[i][f] = v; };
+        window.supprimerProduitSupp = function(i) { produitsSupp.splice(i,1); afficherProduitsSupp(); };
+        
+        window.validerReception = async function() {
+            const client = document.getElementById('ficheClient').value;
+            const produitsRecus = [];
+            for (const p of produitsBase) {
+                if (p.check && p.qteRecue>0) {
+                    let etat = p.etat;
+                    if (p.etatMal && p.qteMal>0) etat = `⚠️ DÉFECTUEUX: ${p.qteMal}/${p.qteRecue} - ${p.descriptionMal||''}`;
+                    produitsRecus.push({ reference:p.reference, nom:p.nom, quantite:p.qteRecue, quantiteCommandee:p.qteCommandee, etat, type:"commande" });
+                }
+            }
+            for (const p of produitsSupp) {
+                if (p.reference && p.nom && p.quantite>0) produitsRecus.push({ reference:p.reference, nom:p.nom, quantite:p.quantite, quantiteCommandee:0, etat:p.etat||'Bon', type:"supplement" });
+            }
+            if (!produitsRecus.length) return alert("Aucun produit");
+            
+            const donnees = [["Type","Référence","Produit","Qté reçue","Qté commandée","État"]];
+            produitsRecus.forEach(p => donnees.push([p.type==="commande"?"Commandé":"Supplémentaire", p.reference, p.nom, p.quantite, p.quantiteCommandee||"-", p.etat]));
+            const ws = XLSX.utils.aoa_to_sheet(donnees);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Réception");
+            const nomFichier = `reception_${referenceCourante}_${Date.now()}.xlsx`;
+            XLSX.writeFile(wb, nomFichier);
+            
+            try {
+                const res = await fetch('/api/commandes-recues', {
+                    method: 'POST', headers: { 'Content-Type':'application/json','Authorization':`Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ nom:nomFichier, reference:referenceCourante, client, dateReception:new Date().toISOString().split('T')[0], produits:produitsRecus, statut:"valide" })
+                });
+                const result = await res.json();
+                if (result.status === 'success') {
+                    alert(`✅ Réception validée !\n📄 ${referenceCourante}\n📦 ${produitsRecus.length} produits`);
+                    reinitialiser();
+                    window.chargerReceptions();
+                    window.dispatchEvent(new Event("receptionsUpdated"));
+                } else alert(`❌ Erreur: ${result.message}`);
+            } catch(e) { alert("❌ Erreur"); }
+        };
+        
+        function reinitialiser() {
+            document.getElementById('step1Card').style.display = 'block';
+            document.getElementById('step2Card').style.display = 'none';
+            document.getElementById('referenceNotFound').style.display = 'none';
+            produitsBase = []; produitsSupp = [];
+            window.chargerReferences();
+            window.chargerReceptions();
+        }
+        
+        window.annulerReception = function() { if(confirm("Annuler ?")) reinitialiser(); };
+        
+        function escapeHtml(s) { if(!s) return ''; return s.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]||m)); }
+        
+        // Initialisation
+        window.chargerReferences();
+        window.chargerReceptions();
+    })();
 </script>

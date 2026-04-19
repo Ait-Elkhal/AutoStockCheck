@@ -1,0 +1,185 @@
+<link rel="stylesheet" href="/static/css/gestion-emails.css">
+
+<div class="emails-container">
+    <div class="emails-header">
+        <h2>📧 Emails reçus des clients</h2>
+        <button class="btn btn-secondary" onclick="initEmails()">🔄 Rafraîchir</button>
+    </div>
+
+    <div class="filters-bar">
+        <select id="clientFilter" class="filter-select" onchange="filterEmails()">
+            <option value="all">📊 Tous les clients</option>
+        </select>
+        <select id="statusFilter" class="filter-select" onchange="filterEmails()">
+            <option value="all">📊 Tous les statuts</option>
+            <option value="recu">📥 Reçu</option>
+            <option value="traite">✅ Traité</option>
+            <option value="erreur">❌ Erreur</option>
+        </select>
+        <input type="text" id="searchEmail" class="search-input" placeholder="🔍 Rechercher par référence, sujet..." onkeyup="filterEmails()">
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card"><div class="stat-value" id="totalEmails">0</div><div class="stat-label">Total emails</div></div>
+        <div class="stat-card"><div class="stat-value" id="totalClientsEmails">0</div><div class="stat-label">Clients actifs</div></div>
+        <div class="stat-card"><div class="stat-value" id="totalReferences">0</div><div class="stat-label">Références extraites</div></div>
+    </div>
+
+    <div class="emails-list" id="emailsList"><div style="text-align:center; padding:40px;">Chargement...</div></div>
+    <div class="pagination" id="pagination"></div>
+</div>
+
+<div id="emailModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header" style="background: linear-gradient(135deg, #2196f3, #1976d2);">
+            <h3>📧 Détail de l'email</h3>
+            <button class="close-btn" onclick="closeEmailModal()">✕</button>
+        </div>
+        <div class="modal-body" id="emailDetailContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeEmailModal()">Fermer</button>
+            <button class="btn btn-primary" onclick="marquerTraite()">✅ Marquer comme traité</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allEmails = [];
+    let currentPage = 1;
+    let itemsPerPage = 10;
+    let currentEmailId = null;
+    let currentClientId = null;
+    let clients = [];
+
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m)); }
+    function formatDate(dateString) { if (!dateString) return '-'; const d = new Date(dateString); return d.toLocaleDateString() + ' ' + d.toLocaleTimeString().slice(0,5); }
+    function getInitials(nom, prenom) { return ((prenom?.[0] || '') + (nom?.[0] || '')).toUpperCase() || '👤'; }
+
+    async function loadClients() {
+        try {
+            const response = await fetch('/api/clients', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await response.json();
+            if (data.status === 'success') {
+                clients = data.clients;
+                const select = document.getElementById('clientFilter');
+                if (select) {
+                    select.innerHTML = '<option value="all">📊 Tous les clients</option>';
+                    clients.forEach(c => { const option = document.createElement('option'); option.value = c.id; option.textContent = `${c.nom} ${c.prenom || ''} - ${c.email}`; select.appendChild(option); });
+                }
+            }
+        } catch (error) { console.error('Erreur chargement clients:', error); }
+    }
+
+    async function loadEmails() {
+        const container = document.getElementById('emailsList');
+        if (container) container.innerHTML = '<div style="text-align:center; padding:40px;">🔄 Chargement des emails...</div>';
+        
+        try {
+            let allEmailsData = [];
+            for (const client of clients) {
+                const response = await fetch(`/api/clients/${client.id}/emails`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    data.emails.forEach(email => { allEmailsData.push({ ...email, client_id: client.id, client_nom: client.nom, client_prenom: client.prenom, client_email: client.email }); });
+                }
+            }
+            allEmails = allEmailsData.sort((a, b) => new Date(b.date) - new Date(a.date));
+            updateStats();
+            filterEmails();
+        } catch (error) {
+            console.error('Erreur:', error);
+            if (container) container.innerHTML = '<div style="text-align:center; padding:40px; color:#f44336;">❌ Erreur de chargement</div>';
+        }
+    }
+
+    function updateStats() {
+        document.getElementById('totalEmails').textContent = allEmails.length;
+        document.getElementById('totalClientsEmails').textContent = [...new Set(allEmails.map(e => e.client_id))].length;
+        document.getElementById('totalReferences').textContent = allEmails.filter(e => e.reference).length;
+    }
+
+    function displayEmails(emails) {
+        const container = document.getElementById('emailsList');
+        if (emails.length === 0) { container.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">📭 Aucun email reçu</div>'; return; }
+        
+        const start = (currentPage - 1) * itemsPerPage;
+        const paginatedEmails = emails.slice(start, start + itemsPerPage);
+        
+        container.innerHTML = paginatedEmails.map(email => `
+            <div class="email-card ${email.statut}" onclick="showEmailDetail(${email.id}, ${email.client_id})">
+                <div class="email-header">
+                    <div class="email-client"><div class="email-client-avatar">${getInitials(email.client_nom, email.client_prenom)}</div>
+                    <div class="email-client-info"><div class="email-client-name">${escapeHtml(email.client_nom)} ${escapeHtml(email.client_prenom || '')}</div>
+                    <div class="email-client-email">${escapeHtml(email.client_email)}</div></div></div>
+                    <div class="email-date">${formatDate(email.date)}</div>
+                </div>
+                <div class="email-subject">📝 <span>${escapeHtml(email.sujet)}</span></div>
+                ${email.reference ? `<div class="email-reference">🏷️ Réf: ${escapeHtml(email.reference)}</div>` : ''}
+                <div class="email-preview">${escapeHtml(email.contenu ? email.contenu.substring(0, 150) : '...')}${email.contenu?.length > 150 ? '...' : ''}</div>
+                <div style="margin-top:10px;"><span class="status-badge status-${email.statut}">${email.statut === 'recu' ? '📥 Reçu' : '✅ Traité'}</span></div>
+            </div>
+        `).join('');
+        updatePagination(emails.length);
+    }
+
+    function updatePagination(total) {
+        const totalPages = Math.ceil(total / itemsPerPage);
+        const paginationDiv = document.getElementById('pagination');
+        if (totalPages <= 1) { paginationDiv.innerHTML = ''; return; }
+        let html = '';
+        if (currentPage > 1) html += `<button onclick="changePage(${currentPage - 1})">◀ Précédent</button>`;
+        for (let i = 1; i <= Math.min(totalPages, 5); i++) html += `<button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+        if (currentPage < totalPages) html += `<button onclick="changePage(${currentPage + 1})">Suivant ▶</button>`;
+        paginationDiv.innerHTML = html;
+    }
+
+    function changePage(page) { currentPage = page; filterEmails(); }
+    function filterEmails() {
+        const clientId = document.getElementById('clientFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        const search = document.getElementById('searchEmail').value.toLowerCase();
+        let filtered = allEmails.filter(email => {
+            const matchClient = clientId === 'all' || email.client_id == clientId;
+            const matchStatus = status === 'all' || email.statut === status;
+            const matchSearch = (email.sujet || '').toLowerCase().includes(search) || (email.reference || '').toLowerCase().includes(search);
+            return matchClient && matchStatus && matchSearch;
+        });
+        currentPage = 1;
+        displayEmails(filtered);
+    }
+
+    async function showEmailDetail(emailId, clientId) {
+        currentEmailId = emailId;
+        currentClientId = clientId;
+        try {
+            const response = await fetch(`/api/clients/${clientId}/emails`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await response.json();
+            if (data.status === 'success') {
+                const email = data.emails.find(e => e.id === emailId);
+                if (email) {
+                    document.getElementById('emailDetailContent').innerHTML = `
+                        <div class="email-detail-subject">📝 ${escapeHtml(email.sujet)}</div>
+                        <div class="email-detail-meta"><div><strong>De :</strong> ${escapeHtml(email.client_email)}</div>
+                        <div><strong>Date :</strong> ${formatDate(email.date)}</div>
+                        ${email.reference ? `<div><strong>Référence :</strong> <span style="background:#e8ecf2; padding:2px 8px; border-radius:12px;">${escapeHtml(email.reference)}</span></div>` : ''}
+                        <div><strong>Statut :</strong> <span class="status-badge status-${email.statut}">${email.statut === 'recu' ? '📥 Reçu' : '✅ Traité'}</span></div></div>
+                        <div class="email-detail-body">${escapeHtml(email.contenu || 'Aucun contenu')}</div>`;
+                    document.getElementById('emailModal').style.display = 'flex';
+                }
+            }
+        } catch (error) { alert('Erreur chargement détail'); }
+    }
+
+    function closeEmailModal() { document.getElementById('emailModal').style.display = 'none'; currentEmailId = null; }
+    function marquerTraite() { alert('Fonctionnalité à implémenter'); closeEmailModal(); initEmails(); }
+
+    async function initEmails() { await loadClients(); await loadEmails(); }
+    initEmails();
+
+    window.initEmails = initEmails;
+    window.filterEmails = filterEmails;
+    window.changePage = changePage;
+    window.showEmailDetail = showEmailDetail;
+    window.closeEmailModal = closeEmailModal;
+    window.marquerTraite = marquerTraite;
+</script>

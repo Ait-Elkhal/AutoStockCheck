@@ -51,7 +51,190 @@
         </main>
     </div>
 
+    <!-- Toast Notifications -->
+    <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+
+    <style>
+        /* Toast notifications */
+        .toast-notification {
+            background: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            animation: slideIn 0.3s ease;
+            border-left: 4px solid;
+        }
+        .toast-notification.success { border-left-color: #4caf50; }
+        .toast-notification.error { border-left-color: #f44336; }
+        .toast-notification.warning { border-left-color: #ff9800; }
+        .toast-notification.info { border-left-color: #2196f3; }
+        .toast-icon { font-size: 1.2rem; }
+        .toast-content { flex: 1; }
+        .toast-title { font-weight: bold; margin-bottom: 3px; }
+        .toast-message { font-size: 0.8rem; color: #666; }
+        .toast-close { cursor: pointer; color: #999; padding: 0 5px; }
+        .toast-close:hover { color: #333; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+
     <script>
+        // ==================== SERVICE GLOBAL DE DONNÉES ====================
+        const AppData = {
+            // État
+            factures: [],
+            commandesRecues: [],
+            clients: [],
+            isLoading: false,
+            
+            // Callbacks
+            listeners: {
+                factures: [],
+                commandes: [],
+                clients: []
+            },
+            
+            // Initialisation
+            async init() {
+                console.log("🔄 Initialisation du service global...");
+                this.isLoading = true;
+                await Promise.all([
+                    this.loadFactures(),
+                    this.loadCommandes(),
+                    this.loadClients()
+                ]);
+                this.isLoading = false;
+                console.log("✅ Service global initialisé");
+            },
+            
+            // Chargement des factures
+            async loadFactures() {
+                try {
+                    const res = await fetch('/api/factures-recues', {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        this.factures = data.factures;
+                        this.notify('factures', this.factures);
+                        console.log(`📥 ${this.factures.length} factures chargées`);
+                    }
+                } catch(e) { console.error("Erreur chargement factures:", e); }
+            },
+            
+            // Chargement des commandes/réceptions
+            async loadCommandes() {
+                try {
+                    const res = await fetch('/api/commandes-recues', {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        this.commandesRecues = data.commandes || [];
+                        this.notify('commandes', this.commandesRecues);
+                        console.log(`📦 ${this.commandesRecues.length} réceptions chargées`);
+                    }
+                } catch(e) { console.error("Erreur chargement réceptions:", e); }
+            },
+            
+            // Chargement des clients
+            async loadClients() {
+                try {
+                    const res = await fetch('/api/clients', {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        this.clients = data.clients;
+                        this.notify('clients', this.clients);
+                        console.log(`👥 ${this.clients.length} clients chargés`);
+                    }
+                } catch(e) { console.error("Erreur chargement clients:", e); }
+            },
+            
+            // Abonnement aux mises à jour
+            subscribe(type, callback) {
+                if (!this.listeners[type]) return;
+                this.listeners[type].push(callback);
+                // Appeler immédiatement avec les données existantes
+                if (type === 'factures' && this.factures.length) callback(this.factures);
+                if (type === 'commandes' && this.commandesRecues.length) callback(this.commandesRecues);
+                if (type === 'clients' && this.clients.length) callback(this.clients);
+            },
+            
+            // Notification des changements
+            notify(type, data) {
+                if (this.listeners[type]) {
+                    this.listeners[type].forEach(cb => cb(data));
+                }
+            },
+            
+            // Rafraîchir tout
+            async refreshAll() {
+                console.log("🔄 Rafraîchissement global...");
+                await Promise.all([
+                    this.loadFactures(),
+                    this.loadCommandes(),
+                    this.loadClients()
+                ]);
+                window.dispatchEvent(new CustomEvent("dataRefreshed", { detail: { factures: this.factures, commandes: this.commandesRecues } }));
+            },
+            
+            // Ajouter une facture et notifier
+            async addFacture(factureData) {
+                await this.loadFactures();
+                return true;
+            },
+            
+            // Ajouter une réception et notifier
+            async addReception(receptionData) {
+                await this.loadCommandes();
+                return true;
+            }
+        };
+
+        // ==================== TOAST NOTIFICATIONS ====================
+        function showToast(title, message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `toast-notification ${type}`;
+            
+            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || 'ℹ️'}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${escapeHtml(title)}</div>
+                    <div class="toast-message">${escapeHtml(message)}</div>
+                </div>
+                <div class="toast-close" onclick="this.parentElement.remove()">✕</div>
+            `;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentElement) toast.remove();
+            }, 5000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
         // ==================== CONFIGURATION DES MENUS PAR RÔLE ====================
         const roleMenus = {
             admin: [
@@ -64,7 +247,8 @@
                 { icon: "🏭", label: "Gestion du stock", section: "stock", roles: ["admin", "stock"] },
                 { icon: "🚚", label: "Livraison", section: "livraison", roles: ["admin", "stock"] },
                 { icon: "📅", label: "Agenda livraisons", section: "date-livraison", roles: ["admin", "stock", "user"] },
-                { icon: "👥", label: "Gestion des accès", section: "gestion-utilisateurs", roles: ["admin"] },
+                { icon: "👥", label: "Gestion clients", section: "gestion-clients-unifie", roles: ["admin"] },
+                { icon: "👑", label: "Admin Dashboard", section: "admin-dashboard", roles: ["admin"] },
                 { icon: "📊", label: "Statistiques", section: "stats", roles: ["admin"] }
             ],
             stock: [
@@ -185,7 +369,14 @@
                 const scripts = contentDiv.querySelectorAll('script');
                 scripts.forEach(script => {
                     try {
-                        eval(script.textContent);
+                        const newScript = document.createElement('script');
+                        if (script.src) {
+                            newScript.src = script.src;
+                        } else {
+                            newScript.textContent = script.textContent;
+                        }
+                        document.body.appendChild(newScript);
+                        script.remove();
                     } catch(e) {
                         console.error('Erreur script:', e);
                     }
@@ -195,6 +386,37 @@
                 console.error('Erreur:', err);
                 contentDiv.innerHTML = `<div class="dashboard-card"><p>❌ Erreur de chargement: ${err.message}</p></div>`;
             });
+        }
+
+        // ==================== VÉRIFICATION NOTIFICATIONS ====================
+        async function checkNotifications() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            
+            try {
+                const response = await fetch('/api/notifications', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.status === 401) {
+                    console.log('Session expirée');
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const unread = data.notifications.filter(n => !n.read);
+                    unread.forEach(n => {
+                        showToast(n.title, n.message, n.type);
+                        fetch(`/api/notifications/${n.id}/read`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        }).catch(e => console.error(e));
+                    });
+                }
+            } catch(e) {
+                console.error('Erreur notifications:', e);
+            }
         }
 
         // ==================== INITIALISATION ====================
@@ -214,6 +436,9 @@
             };
             document.getElementById('userRole').textContent = roleLabels[currentUserRole] || '👤 Utilisateur';
             
+            // Initialiser le service global de données
+            await AppData.init();
+            
             // Charger le menu
             chargerMenu();
             
@@ -225,6 +450,14 @@
             
             // Charger la section par défaut (dashboard)
             chargerSection('dashboard', document.querySelector('.sidebar-item'));
+            
+            // Vérifier les notifications toutes les 30 secondes
+            setInterval(checkNotifications, 30000);
+            
+            // Écouter les événements de rafraîchissement global
+            window.addEventListener('dataRefreshed', (event) => {
+                console.log("📢 Données globales rafraîchies");
+            });
         });
 
         // Menu mobile
@@ -256,6 +489,10 @@
         });
         
         navbar.classList.add('show');
+        
+        // Exposer AppData globalement
+        window.AppData = AppData;
     </script>
+    
 </body>
 </html>

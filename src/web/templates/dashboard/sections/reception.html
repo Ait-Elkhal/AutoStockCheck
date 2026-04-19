@@ -10,9 +10,8 @@
             </div>
         </div>
 
-        <!-- Filtres -->
         <div class="reception-filters">
-            <input type="text" id="searchFacture" class="search-input" placeholder="🔍 Rechercher par nom, référence, client..." onkeyup="filtrerFactures()">
+            <input type="text" id="searchFacture" class="search-input" placeholder="🔍 Rechercher par nom, référence..." onkeyup="filtrerFactures()">
             <select id="filterStatus" class="filter-select" onchange="filtrerFactures()">
                 <option value="all">📊 Tous les statuts</option>
                 <option value="en-attente">🟡 En attente</option>
@@ -24,737 +23,422 @@
             </select>
         </div>
 
-        <!-- Tableau des factures -->
         <div class="factures-table-container">
             <table class="factures-table">
                 <thead>
                     <tr>
                         <th style="width: 23%">Nom du fichier</th>
-                        <th style="width: 18%">Référence réception</th>
+                        <th style="width: 18%">Référence</th>
                         <th style="width: 18%">Date d'ajout</th>
                         <th style="width: 12%">Responsable</th>
                         <th style="width: 10%">Statut</th>
                         <th style="width: 19%">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="facturesList"></tbody>
+                <tbody id="facturesList">
+                    <tr>
+                        <td colspan="6" style="text-align:center;">⏳ Chargement...<\/td>
+                    </tr>
+                </tbody>
             </table>
         </div>
 
         <div id="emptyState" class="empty-state" style="display: none;">
             <div class="empty-state-icon">📭</div>
             <p>Aucune facture reçue</p>
-            <p style="font-size: 0.8rem;">Cliquez sur "Ajouter facture" pour commencer</p>
         </div>
     </div>
 </div>
 
-<!-- Page de visualisation détaillée -->
 <div id="factureView" class="facture-view-container" style="display: none;">
     <div class="view-header">
-        <h2>
-            <span class="excel-icon" style="width: 40px; height: 40px; font-size: 0.9rem;">XLSX</span>
-            <span id="viewFileName"></span>
-        </h2>
-        <button class="back-btn" onclick="retourListe()">
-            ← Retour à la liste
-        </button>
+        <h2><span class="excel-icon">XLSX</span><span id="viewFileName"></span></h2>
+        <button class="back-btn" onclick="retourListe()">← Retour</button>
     </div>
-
     <div class="facture-info-bar">
-        <div class="info-item"><span class="info-label">📅 Date d'ajout:</span><span class="info-value" id="viewDate"></span></div>
+        <div class="info-item"><span class="info-label">📅 Date:</span><span class="info-value" id="viewDate"></span></div>
         <div class="info-item"><span class="info-label">👤 Ajouté par:</span><span class="info-value" id="viewUser"></span></div>
         <div class="info-item"><span class="info-label">📊 Statut:</span><span class="info-value" id="viewStatus"></span></div>
-        <div class="info-item"><span class="info-label">🏷️ Référence réception:</span><span class="info-value" id="viewRefReception"></span></div>
-        <div class="info-item"><span class="info-label">💾 Chemin serveur:</span><span class="info-value" id="viewCheminServeur" style="font-size: 0.7rem;"></span></div>
+        <div class="info-item"><span class="info-label">🏷️ Référence:</span><span class="info-value" id="viewRefReception"></span></div>
     </div>
-
     <div class="table-search-bar">
-        <input type="text" id="tableSearchInput" class="table-search-input" placeholder="🔍 Rechercher dans le tableau..." onkeyup="filtrerTableau()">
+        <input type="text" id="tableSearchInput" placeholder="🔍 Rechercher..." onkeyup="filtrerTableau()">
         <span id="tableResultCount"></span>
     </div>
-
     <div class="extracted-table-container">
-        <table class="extracted-table" id="extractedTable">
+        <table class="extracted-table">
             <thead id="tableHeader"></thead>
             <tbody id="tableBody"></tbody>
         </table>
     </div>
-
-    <div class="error-section" id="errorSection">
+    <div class="error-section">
         <h4>⚠️ Signaler une erreur</h4>
-        <textarea id="errorComment" class="error-comment" rows="3" placeholder="Décrivez l'erreur constatée..."></textarea>
+        <textarea id="errorComment" rows="3" placeholder="Décrivez l'erreur..."></textarea>
         <div class="error-actions">
-            <button class="btn btn-error" onclick="signalerErreur()">🚩 Signaler l'erreur</button>
-            <button class="btn btn-primary" onclick="marquerTraite()">✅ Marquer comme traité</button>
+            <button class="btn btn-error" onclick="signalerErreur()">🚩 Signaler</button>
+            <button class="btn btn-primary" onclick="marquerTraite()">✅ Marquer traité</button>
         </div>
     </div>
 </div>
 
-<!-- Modal Ajouter Facture -->
 <div id="modalAjoutFacture" class="modal-upload" style="display: none;">
     <div class="modal-upload-content">
         <div class="modal-upload-header">
             <h3>📤 Ajouter une facture</h3>
             <button class="btn-close" onclick="fermerModalAjoutFacture()">✕</button>
         </div>
-        
         <div class="modal-body-scroll">
-            <!-- Zone de dépôt de fichiers -->
-            <div class="dropzone-upload" id="dropzoneUpload" 
-                 onclick="document.getElementById('factureFileInput').click()" 
-                 ondragover="dragoverUpload(event)" 
-                 ondragleave="dragleaveUpload(event)" 
-                 ondrop="dropUpload(event)">
+            <div class="dropzone-upload" id="dropzoneUpload" onclick="document.getElementById('factureFileInput').click()" 
+                 ondragover="dragoverUpload(event)" ondragleave="dragleaveUpload(event)" ondrop="dropUpload(event)">
                 <div class="dropzone-icon">📁📄</div>
-                <div class="dropzone-text">Déposez votre fichier Excel ici ou cliquez pour sélectionner</div>
-                <div class="dropzone-hint">Formats acceptés: .xlsx, .xls</div>
+                <div class="dropzone-text">Déposez votre fichier Excel ici</div>
                 <input type="file" id="factureFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(this.files[0])">
             </div>
-            
-            <!-- Informations du fichier sélectionné -->
-            <div id="fileInfo" style="display: none; margin: 15px 0; padding: 10px; background: #e8f5e9; border-radius: 8px;">
-                <strong>📄 Fichier sélectionné :</strong> <span id="selectedFileName"></span>
-            </div>
-            
-            <!-- Référence de réception -->
+            <div id="fileInfo" style="display: none;"><strong>📄 Fichier :</strong> <span id="selectedFileName"></span></div>
             <div class="form-group">
-                <label>🏷️ Référence de réception *</label>
+                <label>🏷️ Référence *</label>
                 <input type="text" id="refReception" class="form-control" placeholder="REC-001" required>
-                <small>Référence unique pour cette facture</small>
             </div>
-            
-            <!-- Informations supplémentaires -->
             <div class="form-group">
-                <label>📝 Informations supplémentaires (optionnel)</label>
-                <input type="text" id="infoSupplementaire" class="form-control" placeholder="Client, fournisseur, etc.">
+                <label>📝 Informations</label>
+                <input type="text" id="infoSupplementaire" class="form-control" placeholder="Client, fournisseur...">
             </div>
-            
-            <!-- Aperçu du fichier -->
-            <div id="previewExtraction" style="display: none; margin-top: 15px;">
-                <h4>📊 Aperçu du fichier</h4>
-                <div id="previewContent" style="max-height: 150px; overflow-y: auto; font-size: 0.7rem;"></div>
-            </div>
+            <div id="previewExtraction" style="display: none;"><h4>📊 Aperçu</h4><div id="previewContent"></div></div>
         </div>
-        
-        <!-- Boutons en bas -->
         <div class="modal-footer-buttons">
             <button class="btn" onclick="fermerModalAjoutFacture()">Annuler</button>
-            <button class="btn btn-primary" id="btnValiderFacture" onclick="validerEtEnregistrerFacture()" disabled>✅ Valider et enregistrer</button>
+            <button class="btn btn-primary" id="btnValiderFacture" onclick="validerEtEnregistrerFacture()" disabled>✅ Valider</button>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-<style>
-    .dropzone-upload {
-        border: 2px dashed #4361ee;
-        border-radius: 12px;
-        padding: 25px;
-        text-align: center;
-        background: #f8f9fa;
-        cursor: pointer;
-        transition: all 0.3s;
-        margin-bottom: 15px;
-    }
-    .dropzone-upload:hover {
-        background: #e3f2fd;
-        border-color: #1e88e5;
-    }
-    .dropzone-upload.drag-over {
-        background: #e3f2fd;
-        border-color: #0d47a1;
-    }
-    .dropzone-icon {
-        font-size: 2rem;
-        margin-bottom: 8px;
-    }
-    .dropzone-text {
-        font-size: 0.9rem;
-        color: #666;
-    }
-    .dropzone-hint {
-        font-size: 0.7rem;
-        color: #999;
-        margin-top: 5px;
-    }
-    .action-btn.download {
-        background: #17a2b8;
-        color: white;
-    }
-    .action-btn.download:hover {
-        background: #138496;
-    }
-    .status-badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 0.7rem;
-        font-weight: bold;
-    }
-    .status-en-attente { background: #ffc107; color: #333; }
-    .status-traite { background: #4caf50; color: white; }
-    .status-erreur { background: #f44336; color: white; }
-</style>
-
 <script>
-    // ==================== DONNÉES ====================
-    let factures = JSON.parse(localStorage.getItem('facturesRecues') || '[]');
-    let currentUser = JSON.parse(localStorage.getItem('user') || '{"username": "Utilisateur"}');
+(function() {
+    // ==================== DONNÉES LOCALES ====================
+    let facturesList = [];
     let currentViewFacture = null;
     let fichierTemp = null;
     let donneesExcelTemp = null;
-    
-    // ==================== SYNONYMES DES COLONNES ====================
-    const synonymesReference = [
-        'reference', 'ref', 'référence', 'réf', 'code', 'article', 'produit_ref', 
-        'product_ref', 'id', 'sku', 'code_article', 'reference_article'
-    ];
-    
-    const synonymesQuantite = [
-        'quantite', 'qté', 'qty', 'quantity', 'quantité', 'nb', 'nombre', 
-        'qte', 'quant', 'amount', 'volume', 'qtt', 'quantite_facture'
-    ];
-    
-    const synonymesNom = [
-        'nom', 'name', 'produit', 'product', 'designation', 'description_courte', 
-        'libelle', 'intitule', 'article'
-    ];
-    
-    const synonymesPrix = [
-        'prix', 'price', 'pu', 'prix_unitaire', 'unit_price', 'cout', 'cost', 
-        'valeur', 'montant', 'prix_ht', 'prix_ttc'
-    ];
-    
+
+    const synonymesReference = ['reference','ref','référence','code'];
+    const synonymesQuantite = ['quantite','qty','quantity','qté'];
+    const synonymesNom = ['nom','produit','product','designation'];
+    const synonymesPrix = ['prix','price','pu','unit_price'];
+
     function trouverColonne(headers, synonymes) {
-        for (let i = 0; i < headers.length; i++) {
+        for(let i=0; i<headers.length; i++){
             const h = headers[i].toLowerCase().trim();
-            for (const syn of synonymes) {
-                if (h === syn || h.includes(syn) || syn.includes(h)) {
-                    return i;
-                }
+            for(const syn of synonymes){
+                if(h === syn || h.includes(syn) || syn.includes(h)) return i;
             }
         }
         return -1;
     }
-    
-    // ==================== AFFICHAGE ====================
+
+    // ==================== CHARGEMENT DES FACTURES ====================
+    window.chargerFactures = async function() {
+        const tbody = document.getElementById('facturesList');
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">⏳ Chargement...<\/td><\/tr>';
+        try {
+            const res = await fetch('/api/factures-recues', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            const data = await res.json();
+            if(data.status === 'success'){
+                facturesList = data.factures;
+                afficherFactures();
+            } else {
+                tbody.innerHTML = '<td><td colspan="6" style="text-align:center; color:#f44336;">❌ Erreur chargement<\/td><\/tr>';
+            }
+        } catch(e){ 
+            console.error(e); 
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#f44336;">❌ Erreur de connexion<\/td><\/tr>';
+        }
+    };
+
     function afficherFactures() {
         const tbody = document.getElementById('facturesList');
-        const searchTerm = document.getElementById('searchFacture').value.toLowerCase();
-        const statusFilter = document.getElementById('filterStatus').value;
-        const responsableFilter = document.getElementById('filterResponsable').value;
+        const search = document.getElementById('searchFacture').value.toLowerCase();
+        const status = document.getElementById('filterStatus').value;
+        const resp = document.getElementById('filterResponsable').value;
         
-        let filteredFactures = factures.filter(f => {
-            const matchSearch = f.nom.toLowerCase().includes(searchTerm) || 
-                               (f.reference_reception && f.reference_reception.toLowerCase().includes(searchTerm)) ||
-                               (f.informations && f.informations.toLowerCase().includes(searchTerm));
-            const matchStatus = statusFilter === 'all' || f.statut === statusFilter;
-            const matchResponsable = responsableFilter === 'all' || f.ajoutePar === responsableFilter;
-            return matchSearch && matchStatus && matchResponsable;
+        let filtered = facturesList.filter(f => {
+            return (search==='' || (f.nom && f.nom.toLowerCase().includes(search)) || (f.reference_reception && f.reference_reception.toLowerCase().includes(search))) &&
+                   (status==='all' || f.statut === status) &&
+                   (resp==='all' || f.ajoute_par === resp);
         });
         
-        const emptyState = document.getElementById('emptyState');
+        const empty = document.getElementById('emptyState');
         const tableContainer = document.querySelector('.factures-table-container');
         
-        if (filteredFactures.length === 0) {
-            tbody.innerHTML = '';
-            emptyState.style.display = 'block';
+        if(filtered.length === 0){
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">📭 Aucune facture<\/td><\/tr>';
+            empty.style.display = 'block';
             tableContainer.style.display = 'none';
             return;
         }
-        
-        emptyState.style.display = 'none';
+        empty.style.display = 'none';
         tableContainer.style.display = 'block';
         
-        tbody.innerHTML = filteredFactures.map(f => `
-            <tr onclick="ouvrirFacture(${f.id})" style="cursor: pointer;">
-                <td>
-                    <div class="file-name">
-                        <div class="excel-icon">XLSX</div>
-                        <span class="file-title">${f.nom}</span>
-                    </div>
-                    ${f.informations ? `<div style="font-size: 0.7rem; color: #666; margin-top: 4px;">${f.informations}</div>` : ''}
-                    ${f.chemin_serveur ? `<div style="font-size: 0.6rem; color: #999; margin-top: 2px;">💾 ${f.chemin_serveur}</div>` : ''}
-                </td>
-                <td><strong>${f.reference_reception || '-'}</strong></td>
-                <td>${new Date(f.dateAjout).toLocaleString()}</td>
-                <td>${f.ajoutePar || '-'}</td>
-                <td><span class="status-badge status-${f.statut === 'en-attente' ? 'en-attente' : f.statut === 'traite' ? 'traite' : 'erreur'}">${f.statut === 'en-attente' ? '🟡 En attente' : f.statut === 'traite' ? '🟢 Traité' : '🔴 Erreur'}</span></td>
-                <td>
-                    <div class="action-buttons" onclick="event.stopPropagation()">
-                        <button class="action-btn view" onclick="ouvrirFacture(${f.id})" title="Voir détails">👁️ Voir</button>
-                        <button class="action-btn download" onclick="telechargerFacture(${f.id})" title="Télécharger">⬇️ Télécharger</button>
-                        <button class="action-btn delete" onclick="supprimerFacture(${f.id})" title="Supprimer">🗑️</button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = filtered.map(f => {
+            const statusClass = f.statut === 'en-attente' ? 'en-attente' : f.statut === 'traite' ? 'traite' : 'erreur';
+            const statusText = f.statut === 'en-attente' ? '🟡 En attente' : f.statut === 'traite' ? '🟢 Traité' : '🔴 Erreur';
+            const dateStr = f.date_ajout ? new Date(f.date_ajout).toLocaleString() : '-';
+            return `
+                <tr onclick="ouvrirFacture(${f.id})" style="cursor:pointer;">
+                    <td>
+                        <div class="file-name">
+                            <div class="excel-icon">XLSX</div>
+                            <span class="file-title">${escapeHtml(f.nom || '-')}</span>
+                        </div>
+                        ${f.informations ? `<div style="font-size:0.7rem; color:#666;">${escapeHtml(f.informations)}</div>` : ''}
+                    <\/td>
+                    <td><strong>${escapeHtml(f.reference_reception || '-')}</strong><\/td>
+                    <td>${dateStr}<\/td>
+                    <td>${escapeHtml(f.ajoute_par) || '-'}<\/td>
+                    <td><span class="status-badge status-${statusClass}">${statusText}</span><\/td>
+                    <td>
+                        <div class="action-buttons" onclick="event.stopPropagation()">
+                            <button class="action-btn view" onclick="ouvrirFacture(${f.id})">👁️ Voir</button>
+                            <button class="action-btn delete" onclick="supprimerFacture(${f.id})">🗑️</button>
+                        </div>
+                    <\/td>
+                比
+            `;
+        }).join('');
         
-        const responsables = [...new Set(factures.map(f => f.ajoutePar).filter(r => r))];
+        const responsables = [...new Set(facturesList.map(f=>f.ajoute_par).filter(r=>r))];
         const select = document.getElementById('filterResponsable');
-        select.innerHTML = '<option value="all">👥 Tous les responsables</option>';
-        responsables.forEach(r => {
-            const option = document.createElement('option');
-            option.value = r;
-            option.textContent = r;
-            select.appendChild(option);
-        });
+        select.innerHTML = '<option value="all">👥 Tous</option>';
+        responsables.forEach(r => { select.innerHTML += `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`; });
     }
-    
-    // ==================== TÉLÉCHARGEMENT ====================
-    function telechargerFacture(id) {
-        const facture = factures.find(f => f.id === id);
-        if (!facture || !facture.contenu) return;
-        
-        const donnees = [facture.contenu.en_tete, ...facture.contenu.lignes];
-        const ws = XLSX.utils.aoa_to_sheet(donnees);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Facture");
-        XLSX.writeFile(wb, facture.nom);
-        
-        if (window.enregistrerAction) {
-            window.enregistrerAction('telechargement', `Téléchargement de la facture ${facture.nom}`, null, currentUser.username);
-        }
-    }
-    
-    // ==================== DRAG & DROP UPLOAD ====================
-    function dragoverUpload(event) {
-        event.preventDefault();
-        document.getElementById('dropzoneUpload').classList.add('drag-over');
-    }
-    
-    function dragleaveUpload(event) {
-        event.preventDefault();
-        document.getElementById('dropzoneUpload').classList.remove('drag-over');
-    }
-    
-    function dropUpload(event) {
-        event.preventDefault();
-        document.getElementById('dropzoneUpload').classList.remove('drag-over');
-        const file = event.dataTransfer.files[0];
-        if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
-            handleFileSelect(file);
-        } else {
-            alert("Veuillez déposer un fichier Excel (.xlsx ou .xls)");
-        }
-    }
-    
-    function handleFileSelect(file) {
-        if (!file) return;
 
+    function escapeHtml(str){ 
+        if(!str) return ''; 
+        return str.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]||m)); 
+    }
+
+    // ==================== OUVERTURE FACTURE ====================
+    window.ouvrirFacture = async function(id){
+        try{
+            let facture = facturesList.find(f => f.id == id);
+            if (facture) {
+                currentViewFacture = facture;
+                document.getElementById('receptionMain').style.display = 'none';
+                document.getElementById('factureView').style.display = 'block';
+                document.getElementById('viewFileName').textContent = facture.nom || '-';
+                document.getElementById('viewDate').textContent = facture.date_ajout ? new Date(facture.date_ajout).toLocaleString() : '-';
+                document.getElementById('viewUser').textContent = facture.ajoute_par || '-';
+                document.getElementById('viewRefReception').textContent = facture.reference_reception || '-';
+                const statusText = facture.statut === 'en-attente' ? '🟡 En attente' : facture.statut === 'traite' ? '🟢 Traité' : '🔴 Erreur';
+                document.getElementById('viewStatus').innerHTML = `<span class="status-badge status-${facture.statut}">${statusText}</span>`;
+                afficherTableauExtrait(facture.contenu);
+                document.getElementById('errorComment').value = '';
+            }
+        } catch(e){ alert('Erreur chargement'); }
+    };
+
+    function afficherTableauExtrait(contenu){
+        const thead = document.getElementById('tableHeader');
+        const tbody = document.getElementById('tableBody');
+        if(!contenu || !contenu.lignes || !contenu.lignes.length){
+            thead.innerHTML = '';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Aucune donnée disponible<\/td><\/tr>';
+            document.getElementById('tableResultCount').textContent = '';
+            return;
+        }
+        const headers = contenu.en_tete || [];
+        thead.innerHTML = '<tr>' + headers.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</table>';
+        let html = '';
+        contenu.lignes.forEach(ligne => {
+            html += '<tr>' + ligne.map(cell => `<td>${escapeHtml(String(cell)) || '-'}</td>`).join('') + '</tr>';
+        });
+        tbody.innerHTML = html;
+        document.getElementById('tableResultCount').textContent = `${contenu.lignes.length} lignes`;
+        window.currentTableData = contenu.lignes;
+    }
+
+    window.filtrerTableau = function(){
+        const search = document.getElementById('tableSearchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#tableBody tr');
+        let visible = 0;
+        rows.forEach(row => {
+            if(row.textContent.toLowerCase().includes(search)){
+                row.style.display = '';
+                visible++;
+            } else row.style.display = 'none';
+        });
+        document.getElementById('tableResultCount').textContent = `${visible} / ${window.currentTableData?.length || 0} lignes`;
+    };
+
+    window.signalerErreur = async function(){
+        const comment = document.getElementById('errorComment').value.trim();
+        if(!comment) return alert("Décrivez l'erreur");
+        if(confirm(`Signaler une erreur ?`)){
+            await fetch(`/api/factures-recues/${currentViewFacture.id}/erreur`, {
+                method: 'POST', 
+                headers: { 'Content-Type':'application/json','Authorization':`Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify({ commentaire: comment })
+            });
+            document.getElementById('viewStatus').innerHTML = '<span class="status-badge status-erreur">🔴 Erreur</span>';
+            alert("✅ Erreur signalée");
+            window.chargerFactures();
+        }
+    };
+
+    window.marquerTraite = async function(){
+        if(confirm(`Marquer comme traitée ?`)){
+            await fetch(`/api/factures-recues/${currentViewFacture.id}/traite`, {
+                method: 'POST', 
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            document.getElementById('viewStatus').innerHTML = '<span class="status-badge status-traite">🟢 Traité</span>';
+            alert("✅ Marquée traitée");
+            window.chargerFactures();
+        }
+    };
+
+    window.retourListe = function(){
+        document.getElementById('receptionMain').style.display = 'block';
+        document.getElementById('factureView').style.display = 'none';
+        window.chargerFactures();
+    };
+
+    window.supprimerFacture = async function(id){
+        if(confirm("Supprimer cette facture ?")){
+            await fetch(`/api/factures-recues/${id}`, { 
+                method: 'DELETE', 
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } 
+            });
+            window.chargerFactures();
+            alert("✅ Facture supprimée");
+        }
+    };
+
+    window.filtrerFactures = function(){ afficherFactures(); };
+    window.rafraichirListe = function(){ window.chargerFactures(); };
+
+    // ==================== DRAG & DROP ====================
+    window.dragoverUpload = function(e){ e.preventDefault(); document.getElementById('dropzoneUpload').classList.add('drag-over'); };
+    window.dragleaveUpload = function(e){ e.preventDefault(); document.getElementById('dropzoneUpload').classList.remove('drag-over'); };
+    window.dropUpload = function(e){
+        e.preventDefault();
+        document.getElementById('dropzoneUpload').classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if(file && (file.name.endsWith('.xlsx')||file.name.endsWith('.xls'))) handleFileSelect(file);
+        else alert("Format Excel requis");
+    };
+
+    function handleFileSelect(file){
+        if(!file) return;
         fichierTemp = file;
         document.getElementById('selectedFileName').textContent = file.name;
         document.getElementById('fileInfo').style.display = 'block';
-
         const reader = new FileReader();
-
-        reader.onload = function(e) {
-            try {
+        reader.onload = function(e){
+            try{
                 const workbook = XLSX.read(e.target.result, { type: 'array' });
-
-                if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-                    throw new Error("Aucune feuille trouvée");
-                }
-
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, {
-                    header: 1,
-                    defval: "",
-                    blankrows: false
-                });
-
-                console.log("DATA:", jsonData);
-
-                if (!jsonData || jsonData.length === 0) {
-                    throw new Error("Fichier vide");
-                }
-
-                let headers = null;
-                let startIndex = 0;
-
-                for (let i = 0; i < jsonData.length; i++) {
-                    const row = jsonData[i];
-                    if (row && row.some(cell => cell !== "")) {
-                        headers = row.map(h => String(h).toLowerCase().trim());
-                        startIndex = i + 1;
-                        break;
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: false });
+                if(!json || !json.length) throw new Error("Fichier vide");
+                let headers = null, start = 0;
+                for(let i=0; i<json.length; i++){
+                    if(json[i] && json[i].some(c=>c!=="")){ 
+                        headers = json[i].map(h=>String(h).toLowerCase().trim()); 
+                        start = i+1; 
+                        break; 
                     }
                 }
-
-                if (!headers) {
-                    throw new Error("Impossible de détecter les colonnes");
+                if(!headers) throw new Error("Pas d'en-tête");
+                const rows = json.slice(start).filter(r=>r.some(c=>c!==""));
+                const refIdx = trouverColonne(headers, synonymesReference);
+                const qteIdx = trouverColonne(headers, synonymesQuantite);
+                const nomIdx = trouverColonne(headers, synonymesNom);
+                const prixIdx = trouverColonne(headers, synonymesPrix);
+                let score = (refIdx!==-1?1:0)+(qteIdx!==-1?1:0)+(nomIdx!==-1?1:0)+(prixIdx!==-1?1:0);
+                if(score<2) throw new Error("Colonnes insuffisantes");
+                let preview = `<div><strong>✅ Fichier reconnu (score ${score}/4)</strong></div><table border="1" style="font-size:0.7rem; border-collapse:collapse;">`;
+                preview += '<thead><tr>'+headers.map((h,i)=>{ 
+                    let b=''; 
+                    if(i===refIdx) b=' (Réf)'; 
+                    if(i===qteIdx) b=' (Qté)'; 
+                    if(i===nomIdx) b=' (Nom)'; 
+                    if(i===prixIdx) b=' (Prix)'; 
+                    return `<th style="border:1px solid #ddd; padding:5px;">${h}${b}</th>`; 
+                }).join('')+'</thead><tbody>';
+                for(let i=0;i<Math.min(5,rows.length);i++){
+                    preview += '<td>'+rows[i].map(c=>`<td style="border:1px solid #ddd; padding:5px;">${c||'-'}</td>`).join('')+'<\/tr>';
                 }
-
-                const dataRows = jsonData.slice(startIndex).filter(row =>
-                    row.some(cell => cell !== "")
-                );
-
-                if (dataRows.length === 0) {
-                    throw new Error("Aucune donnée trouvée");
-                }
-
-                const refIndex = trouverColonne(headers, synonymesReference);
-                const qteIndex = trouverColonne(headers, synonymesQuantite);
-                const nomIndex = trouverColonne(headers, synonymesNom);
-                const prixIndex = trouverColonne(headers, synonymesPrix);
-
-                let score = 0;
-                if (refIndex !== -1) score++;
-                if (qteIndex !== -1) score++;
-                if (nomIndex !== -1) score++;
-                if (prixIndex !== -1) score++;
-
-                if (score < 2) {
-                    document.getElementById('previewContent').innerHTML = `
-                        <div style="color: #f44336; padding: 10px; background: #ffebee; border-radius: 8px;">
-                            <strong>❌ Fichier non reconnu comme une facture</strong><br>
-                            Colonnes détectées insuffisantes.<br><br>
-                            👉 Une facture doit contenir au moins :
-                            <ul>
-                                <li>Référence</li>
-                                <li>Quantité</li>
-                                <li>Nom produit</li>
-                                <li>Prix</li>
-                            </ul>
-                        </div>
-                    `;
-                    document.getElementById('btnValiderFacture').disabled = true;
-                    document.getElementById('previewExtraction').style.display = 'block';
-                    return;
-                }
-
-                let previewHtml = `
-                    <div style="margin-bottom: 10px;">
-                        <strong>✅ Fichier reconnu comme facture</strong><br>
-                        Score: ${score}/4 colonnes détectées
-                    </div>
-                `;
-
-                previewHtml += '<table style="border-collapse: collapse; width: 100%; font-size: 0.7rem; border: 1px solid #ddd;">';
-                previewHtml += '<thead><tr style="background: #f0f0f0;">';
-
-                headers.forEach((h, idx) => {
-                    let badge = '';
-                    if (idx === refIndex) badge = ' (Réf)';
-                    else if (idx === qteIndex) badge = ' (Qté)';
-                    else if (idx === nomIndex) badge = ' (Nom)';
-                    else if (idx === prixIndex) badge = ' (Prix)';
-                    previewHtml += `<th style="border: 1px solid #ddd; padding: 5px;">${h}${badge}</th>`;
-                });
-
-                previewHtml += '</tr></thead><tbody>';
-
-                for (let i = 0; i < Math.min(5, dataRows.length); i++) {
-                    previewHtml += '<tr>';
-                    for (let j = 0; j < headers.length; j++) {
-                        previewHtml += `<td style="border: 1px solid #ddd; padding: 5px;">${dataRows[i][j] || '-'}</td>`;
-                    }
-                    previewHtml += '</tr>';
-                }
-
-                previewHtml += '</tbody></table>';
-
-                document.getElementById('previewContent').innerHTML = previewHtml;
+                if(rows.length>5) preview += `<tr><td colspan="${headers.length}" style="text-align:center;">... et ${rows.length-5} lignes supplémentaires<\/td><\/tr>`;
+                preview += '</tbody></table>';
+                document.getElementById('previewContent').innerHTML = preview;
                 document.getElementById('previewExtraction').style.display = 'block';
                 document.getElementById('btnValiderFacture').disabled = false;
-
-                donneesExcelTemp = {
-                    headers: headers,
-                    rows: dataRows,
-                    indices: {
-                        ref: refIndex,
-                        qte: qteIndex,
-                        nom: nomIndex,
-                        prix: prixIndex
-                    }
-                };
-
-            } catch (error) {
-                console.error("ERREUR DETAILLEE:", error);
-
-                document.getElementById('previewContent').innerHTML = `
-                    <div style="color: #f44336; padding: 10px; background: #ffebee; border-radius: 8px;">
-                        ❌ Erreur lors de la lecture du fichier<br>
-                        <small>${error.message}</small>
-                    </div>
-                `;
-
+                donneesExcelTemp = { headers, rows, indices: { ref: refIdx, qte: qteIdx, nom: nomIdx, prix: prixIdx } };
+            } catch(err){
+                document.getElementById('previewContent').innerHTML = `<div style="color:red">❌ ${err.message}</div>`;
                 document.getElementById('previewExtraction').style.display = 'block';
                 document.getElementById('btnValiderFacture').disabled = true;
             }
         };
-
         reader.readAsArrayBuffer(file);
     }
-    
-    // ==================== MODAL ====================
-    function ouvrirModalAjoutFacture() {
+
+    window.ouvrirModalAjoutFacture = function(){
         document.getElementById('modalAjoutFacture').style.display = 'flex';
         document.getElementById('refReception').value = '';
         document.getElementById('infoSupplementaire').value = '';
-        document.getElementById('factureFileInput').value = '';
         document.getElementById('fileInfo').style.display = 'none';
         document.getElementById('previewExtraction').style.display = 'none';
         document.getElementById('btnValiderFacture').disabled = true;
         fichierTemp = null;
         donneesExcelTemp = null;
-    }
+    };
     
-    function fermerModalAjoutFacture() {
-        document.getElementById('modalAjoutFacture').style.display = 'none';
-    }
-    
-    // ==================== VALIDATION ET ENREGISTREMENT AVEC SERVEUR ====================
-    function validerEtEnregistrerFacture() {
-        const referenceReception = document.getElementById('refReception').value.trim();
-        if (!referenceReception) {
-            alert("Veuillez saisir une référence de réception");
-            document.getElementById('refReception').focus();
-            return;
-        }
-        
-        if (!fichierTemp) {
-            alert("Veuillez sélectionner un fichier Excel");
-            return;
-        }
-        
-        if (!donneesExcelTemp) {
-            alert("Veuillez analyser le fichier Excel");
-            return;
-        }
-        
-        const referenceExistante = factures.some(f => f.reference_reception === referenceReception);
-        if (referenceExistante) {
-            alert(`❌ La référence ${referenceReception} existe déjà. La référence de réception doit être unique.`);
-            document.getElementById('refReception').focus();
-            return;
-        }
-        
+    window.fermerModalAjoutFacture = function(){ 
+        document.getElementById('modalAjoutFacture').style.display = 'none'; 
+    };
+
+    window.validerEtEnregistrerFacture = async function(){
+        const ref = document.getElementById('refReception').value.trim();
+        if(!ref) return alert("Référence requise");
+        if(!fichierTemp || !donneesExcelTemp) return alert("Fichier non analysé");
         const info = document.getElementById('infoSupplementaire').value;
-        const headers = donneesExcelTemp.headers;
-        const rows = donneesExcelTemp.rows;
-        
         const lignes = [];
-        for (const row of rows) {
-            if (!row[donneesExcelTemp.indices.ref]) continue;
+        for(const row of donneesExcelTemp.rows){
+            if(!row[donneesExcelTemp.indices.ref]) continue;
             const ligne = [];
-            for (let j = 0; j < headers.length; j++) {
-                ligne.push(row[j] !== undefined && row[j] !== null ? String(row[j]) : '');
-            }
+            for(let j=0; j<donneesExcelTemp.headers.length; j++) ligne.push(row[j] !== undefined ? String(row[j]) : '');
             lignes.push(ligne);
         }
-        
-        // ==== ÉTAPE 1 : Envoyer le fichier au serveur ====
         const formData = new FormData();
         formData.append('fichier', fichierTemp);
-        formData.append('reference', referenceReception);
+        formData.append('reference', ref);
+        formData.append('informations', info);
+        formData.append('contenu', JSON.stringify({ en_tete: donneesExcelTemp.headers, lignes: lignes }));
         
-        const token = localStorage.getItem('token');
-        
-        fetch('/api/upload/facture', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
+        const response = await fetch('/api/factures-recues', {
+            method: 'POST', 
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }, 
             body: formData
-        })
-        .then(response => response.json())
-        .then(serverResult => {
-            if (serverResult.status === 'success') {
-                console.log('✅ Fichier sauvegardé sur le serveur:', serverResult.path);
-                
-                // ==== ÉTAPE 2 : Sauvegarder dans localStorage ====
-                const nouvelleFacture = {
-                    id: Date.now(),
-                    nom: fichierTemp.name,
-                    reference_reception: referenceReception,
-                    informations: info || `Facture reçue le ${new Date().toLocaleString()}`,
-                    statut: "en-attente",
-                    dateAjout: new Date().toISOString(),
-                    ajoutePar: currentUser.username || "Utilisateur",
-                    contenu: {
-                        en_tete: headers,
-                        lignes: lignes
-                    },
-                    chemin_serveur: serverResult.path,
-                    nom_fichier_serveur: serverResult.filename
-                };
-                
-                factures.unshift(nouvelleFacture);
-                localStorage.setItem('facturesRecues', JSON.stringify(factures));
-                
-                if (window.enregistrerAction) {
-                    window.enregistrerAction('reception', `Facture ${fichierTemp.name} ajoutée avec référence ${referenceReception}`, null, currentUser.username);
-                }
-                
-                fermerModalAjoutFacture();
-                afficherFactures();
-                alert(`✅ Facture ajoutée avec succès !\n\n📄 Fichier: ${fichierTemp.name}\n🏷️ Référence: ${referenceReception}\n💾 Sauvegardée sur le serveur:\n${serverResult.path}`);
-            } else {
-                alert(`❌ Erreur serveur: ${serverResult.message}`);
-            }
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            alert("❌ Erreur lors de la sauvegarde sur le serveur. Vérifiez que le serveur est démarré.");
         });
-    }
-    
-    // ==================== OUVERTURE FACTURE ====================
-    function ouvrirFacture(id) {
-        const facture = factures.find(f => f.id === id);
-        if (!facture) return;
+        const result = await response.json();
         
-        currentViewFacture = facture;
-        
-        document.getElementById('receptionMain').style.display = 'none';
-        document.getElementById('factureView').style.display = 'block';
-        
-        document.getElementById('viewFileName').textContent = facture.nom;
-        document.getElementById('viewDate').textContent = new Date(facture.dateAjout).toLocaleString();
-        document.getElementById('viewUser').textContent = facture.ajoutePar || '-';
-        document.getElementById('viewRefReception').textContent = facture.reference_reception || '-';
-        document.getElementById('viewCheminServeur').textContent = facture.chemin_serveur || 'Non sauvegardée sur serveur';
-        
-        const statusText = facture.statut === 'en-attente' ? '🟡 En attente' : facture.statut === 'traite' ? '🟢 Traité' : '🔴 Erreur';
-        document.getElementById('viewStatus').innerHTML = `<span class="status-badge status-${facture.statut === 'en-attente' ? 'en-attente' : facture.statut === 'traite' ? 'traite' : 'erreur'}">${statusText}</span>`;
-        
-        afficherTableauExtrait(facture.contenu);
-        document.getElementById('errorComment').value = '';
-    }
-    
-    function afficherTableauExtrait(contenu) {
-        const thead = document.getElementById('tableHeader');
-        const tbody = document.getElementById('tableBody');
-        
-        if (!contenu || !contenu.lignes || contenu.lignes.length === 0) {
-            thead.innerHTML = '';
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Aucune donnée disponible</td></tr>';
-            document.getElementById('tableResultCount').textContent = '';
-            return;
+        if(result.status==='success'){
+            alert('✅ Facture ajoutée');
+            window.fermerModalAjoutFacture();
+            window.chargerFactures();
+            window.dispatchEvent(new Event("facturesUpdated"));
+        } else {
+            alert('❌ Erreur: '+result.message);
         }
-        
-        const headers = contenu.en_tete || [];
-        thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-        
-        let allRowsHtml = '';
-        contenu.lignes.forEach(ligne => {
-            allRowsHtml += '<tr>' + ligne.map(cell => `<td>${cell || '-'}</td>`).join('') + '</tr>';
-        });
-        tbody.innerHTML = allRowsHtml;
-        
-        document.getElementById('tableResultCount').textContent = `${contenu.lignes.length} lignes`;
-        
-        window.currentTableData = contenu.lignes;
-        window.currentHeaders = headers;
-    }
+    };
+
+    // ==================== INITIALISATION ====================
+    window.initReception = function(){ window.chargerFactures(); };
     
-    function filtrerTableau() {
-        const searchTerm = document.getElementById('tableSearchInput').value.toLowerCase();
-        const rows = document.querySelectorAll('#tableBody tr');
-        let visibleCount = 0;
-        
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            if (text.includes(searchTerm)) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        document.getElementById('tableResultCount').textContent = `${visibleCount} / ${window.currentTableData?.length || 0} lignes affichées`;
-    }
-    
-    function signalerErreur() {
-        const commentaire = document.getElementById('errorComment').value.trim();
-        if (!commentaire) {
-            alert("Veuillez décrire l'erreur constatée");
-            return;
-        }
-        
-        if (confirm(`Signaler une erreur pour la facture "${currentViewFacture.nom}" ?`)) {
-            currentViewFacture.statut = 'erreur';
-            currentViewFacture.commentaireErreur = commentaire;
-            currentViewFacture.dateErreur = new Date().toISOString();
-            
-            localStorage.setItem('facturesRecues', JSON.stringify(factures));
-            
-            if (window.enregistrerAction) {
-                window.enregistrerAction('erreur_facture', `Erreur signalée sur ${currentViewFacture.nom}: ${commentaire}`, null, currentUser.username);
-            }
-            
-            document.getElementById('viewStatus').innerHTML = `<span class="status-badge status-erreur">🔴 Erreur</span>`;
-            alert("✅ Erreur signalée.");
-            afficherFactures();
-        }
-    }
-    
-    function marquerTraite() {
-        if (confirm(`Marquer la facture "${currentViewFacture.nom}" comme traitée ?`)) {
-            currentViewFacture.statut = 'traite';
-            localStorage.setItem('facturesRecues', JSON.stringify(factures));
-            
-            if (window.enregistrerAction) {
-                window.enregistrerAction('traite_facture', `Facture ${currentViewFacture.nom} marquée comme traitée`, null, currentUser.username);
-            }
-            
-            document.getElementById('viewStatus').innerHTML = `<span class="status-badge status-traite">🟢 Traité</span>`;
-            alert("✅ Facture marquée comme traitée.");
-            afficherFactures();
-        }
-    }
-    
-    function retourListe() {
-        document.getElementById('receptionMain').style.display = 'block';
-        document.getElementById('factureView').style.display = 'none';
-        currentViewFacture = null;
-        afficherFactures();
-    }
-    
-    function supprimerFacture(id) {
-        if (confirm("Supprimer cette facture ?")) {
-            const facture = factures.find(f => f.id === id);
-            factures = factures.filter(f => f.id !== id);
-            localStorage.setItem('facturesRecues', JSON.stringify(factures));
-            
-            if (window.enregistrerAction) {
-                window.enregistrerAction('suppression', `Facture ${facture.nom} supprimée`, null, null);
-            }
-            
-            afficherFactures();
-            alert("✅ Facture supprimée");
-        }
-    }
-    
-    function filtrerFactures() { afficherFactures(); }
-    function rafraichirListe() { afficherFactures(); }
-    
-    function initReception() { 
-        afficherFactures(); 
-    }
-    
-    // Exposer les fonctions globalement
-    window.afficherFactures = afficherFactures;
-    window.filtrerFactures = filtrerFactures;
-    window.rafraichirListe = rafraichirListe;
-    window.ouvrirModalAjoutFacture = ouvrirModalAjoutFacture;
-    window.fermerModalAjoutFacture = fermerModalAjoutFacture;
-    window.validerEtEnregistrerFacture = validerEtEnregistrerFacture;
-    window.telechargerFacture = telechargerFacture;
-    window.supprimerFacture = supprimerFacture;
-    window.ouvrirFacture = ouvrirFacture;
-    window.retourListe = retourListe;
-    window.filtrerTableau = filtrerTableau;
-    window.signalerErreur = signalerErreur;
-    window.marquerTraite = marquerTraite;
-    window.dragoverUpload = dragoverUpload;
-    window.dragleaveUpload = dragleaveUpload;
-    window.dropUpload = dropUpload;
-    window.handleFileSelect = handleFileSelect;
-    
-    initReception();
+    window.initReception();
+})();
 </script>
