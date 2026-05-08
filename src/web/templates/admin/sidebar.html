@@ -1,0 +1,290 @@
+<!-- Sidebar Admin -->
+<aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-header">
+        <div class="logo-icon">👑</div>
+        <span class="logo-text">Admin Panel</span>
+        <button class="sidebar-collapse" id="sidebarCollapse" title="Réduire">◀</button>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-section-title">Supervision</div>
+            <a href="#" class="nav-item" data-page="dashboard" onclick="loadAdminSection('dashboard'); return false;">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Dashboard</span>
+            </a>
+            <a href="#" class="nav-item" data-page="stats" onclick="loadAdminSection('stats'); return false;">
+                <span class="nav-icon">📈</span>
+                <span class="nav-label">Statistiques</span>
+            </a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Gestion</div>
+            <a href="#" class="nav-item" data-page="users" onclick="loadAdminSection('users'); return false;">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">Utilisateurs</span>
+            </a>
+            <a href="#" class="nav-item" data-page="sessions" onclick="loadAdminSection('sessions'); return false;">
+                <span class="nav-icon">🖥️</span>
+                <span class="nav-label">Sessions actives</span>
+            </a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Audit</div>
+            <a href="#" class="nav-item" data-page="logs" onclick="loadAdminSection('logs'); return false;">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">Logs d'audit</span>
+            </a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Système</div>
+            <a href="#" class="nav-item" data-page="config" onclick="loadAdminSection('config'); return false;">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Configuration</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar" id="sidebarAvatar">👑</div>
+            <div class="user-details">
+                <div class="user-name" id="sidebarUsername">Admin</div>
+                <div class="user-role">Administrateur</div>
+            </div>
+        </div>
+        <a href="/dashboard" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">Dashboard</span>
+        </a>
+        <button class="logout-btn" id="sidebarLogoutBtn">
+            <span class="icon">🚪</span>
+            <span class="label">Déconnexion</span>
+        </button>
+    </div>
+</aside>
+
+<style>
+/* Styles spécifiques à la sidebar admin */
+.admin-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease, transform 0.3s ease;
+    z-index: 100;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+.admin-sidebar.collapsed {
+    width: 80px;
+}
+
+.admin-sidebar.collapsed .logo-text,
+.admin-sidebar.collapsed .nav-label,
+.admin-sidebar.collapsed .user-details,
+.admin-sidebar.collapsed .nav-section-title {
+    display: none;
+}
+
+.admin-sidebar.collapsed .sidebar-header {
+    justify-content: center;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.logo-icon {
+    font-size: 1.5rem;
+}
+
+.logo-text {
+    font-weight: 700;
+    font-size: 1rem;
+    flex: 1;
+    margin-left: 0.75rem;
+    color: white;
+}
+
+.sidebar-collapse {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 0.8rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 1rem 0.75rem;
+    overflow-y: auto;
+}
+
+.nav-section {
+    margin-bottom: 1.5rem;
+}
+
+.nav-section-title {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.4);
+    padding: 0.5rem 1rem;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
+    margin: 0.2rem 0;
+    border-radius: 10px;
+    color: rgba(255,255,255,0.7);
+    transition: all 0.2s;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.nav-item:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+
+.nav-item.active {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.nav-icon {
+    font-size: 1.1rem;
+    width: 1.5rem;
+    text-align: center;
+}
+
+.nav-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+    margin-bottom: 0.75rem;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: white;
+}
+
+.user-role {
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.5);
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.7);
+    transition: all 0.2s;
+}
+
+.logout-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #ff6b6b;
+}
+</style>
+
+<script>
+// Gestion du collapse
+const sidebar = document.getElementById('adminSidebar');
+const collapseBtn = document.getElementById('sidebarCollapse');
+const adminMain = document.querySelector('.admin-main');
+
+const savedState = localStorage.getItem('adminSidebarCollapsed');
+if (savedState === 'true') {
+    sidebar.classList.add('collapsed');
+    if (adminMain) adminMain.style.marginLeft = '80px';
+    if (collapseBtn) collapseBtn.innerHTML = '▶';
+}
+
+if (collapseBtn) {
+    collapseBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        localStorage.setItem('adminSidebarCollapsed', isCollapsed);
+        if (adminMain) {
+            adminMain.style.marginLeft = isCollapsed ? '80px' : '280px';
+        }
+        collapseBtn.innerHTML = isCollapsed ? '▶' : '◀';
+    });
+}
+
+// Déconnexion
+document.getElementById('sidebarLogoutBtn')?.addEventListener('click', async () => {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login';
+});
+
+// Charger infos utilisateur
+async function loadUserInfo() {
+    try {
+        const response = await fetch('/api/me');
+        const data = await response.json();
+        if (data.status === 'success') {
+            document.getElementById('sidebarUsername').textContent = data.user.username;
+            const initial = data.user.username.charAt(0).toUpperCase();
+            document.getElementById('sidebarAvatar').textContent = initial;
+        }
+    } catch(e) {}
+}
+loadUserInfo();
+</script>

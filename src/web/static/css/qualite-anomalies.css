@@ -1,0 +1,393 @@
+/* ==================== QUALITE ANOMALIES - STYLES ==================== */
+
+.qualite-container {
+    padding: 20px;
+}
+
+.qualite-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.qualite-header h2 {
+    margin: 0;
+    color: #ff9800;
+    font-size: 1.4rem;
+}
+
+.qualite-header h2::before {
+    content: "🔧 ";
+}
+
+/* Statistiques */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+    transition: transform 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ff9800;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Liste des anomalies */
+.anomalies-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Carte anomalie */
+.anomalie-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s;
+}
+
+.anomalie-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border-color: #ff9800;
+}
+
+.anomalie-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.anomalie-id {
+    font-weight: bold;
+    font-size: 1rem;
+    color: #333;
+}
+
+.anomalie-date {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.anomalie-details {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    padding: 10px 0;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    flex-wrap: wrap;
+}
+
+.anomalie-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Badges de statut */
+.status-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.status-attente {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-cours {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.status-corrige {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* Boutons */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255,152,0,0.3);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    color: white;
+    border-radius: 20px 20px 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* Tableau de correction */
+.correction-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.correction-table th,
+.correction-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.correction-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+}
+
+.correction-table tr:hover td {
+    background: #f8faff;
+}
+
+.correction-table input,
+.correction-table select {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    width: 100%;
+}
+
+.correction-table input:focus,
+.correction-table select:focus {
+    outline: none;
+    border-color: #ff9800;
+}
+
+/* Formulaire dans modal */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #333;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #ff9800;
+    box-shadow: 0 0 0 3px rgba(255,152,0,0.1);
+}
+
+/* Section informations */
+.info-section {
+    background: #f0f4ff;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.info-section h4 {
+    margin: 0 0 10px 0;
+    color: #4361ee;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.info-item {
+    display: flex;
+    gap: 10px;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #555;
+}
+
+.info-value {
+    color: #333;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .qualite-container {
+        padding: 15px;
+    }
+    
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    .anomalie-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .anomalie-details {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .correction-table {
+        font-size: 0.7rem;
+    }
+    
+    .correction-table th,
+    .correction-table td {
+        padding: 6px;
+    }
+    
+    .modal-content {
+        max-width: 95%;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Scrollbar personnalisée */
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: #ff9800;
+    border-radius: 10px;
+}

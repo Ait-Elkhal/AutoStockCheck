@@ -1,0 +1,51 @@
+<div class="section-header">
+    <h3>🏭 Visualisation du stock</h3>
+    <div class="search-box">
+        <input type="text" id="searchStock" class="search-input" placeholder="🔍 Référence, produit..." onkeyup="filterStock()">
+        <button class="btn btn-secondary" onclick="loadStock()">🔄 Rafraîchir</button>
+    </div>
+</div>
+
+<div class="stock-stats-mini">
+    <div class="stock-stat"><span class="stock-value" id="stockTotal">0</span><span class="stock-label">Produits</span></div>
+    <div class="stock-stat"><span class="stock-value" id="stockValeur">0€</span><span class="stock-label">Valeur totale</span></div>
+    <div class="stock-stat"><span class="stock-value" id="stockAlerte">0</span><span class="stock-label">Stock bas</span></div>
+</div>
+
+<div class="stock-table-container">
+    <table class="stock-table">
+        <thead><tr><th>Emplacement</th><th>Référence</th><th>Produit</th><th>Quantité</th><th>Seuil</th><th>Statut</th><th>Prix</th></tr></thead>
+        <tbody id="stockTableBody"><tr><td colspan="7" class="loading">Chargement...</td></tr></tbody>
+    </table>
+</div>
+
+<script>
+    let stockList = [];
+    
+    async function loadStock() {
+        stockList = JSON.parse(localStorage.getItem('stockData') || '[]');
+        displayStock();
+        const valeur = stockList.reduce((s,p) => s + (p.quantite * (p.prix || 0)), 0);
+        const alerte = stockList.filter(p => p.quantite > 0 && p.quantite <= p.stockMin).length;
+        document.getElementById('stockTotal').textContent = stockList.length;
+        document.getElementById('stockValeur').textContent = valeur.toLocaleString() + '€';
+        document.getElementById('stockAlerte').textContent = alerte;
+    }
+    
+    function displayStock() {
+        const tbody = document.getElementById('stockTableBody');
+        const search = document.getElementById('searchStock')?.value.toLowerCase() || '';
+        let filtered = stockList.filter(p => p.reference.toLowerCase().includes(search) || p.nom.toLowerCase().includes(search));
+        if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="7">📭 Aucun produit</td></tr>'; return; }
+        tbody.innerHTML = filtered.map(p => `<tr>
+            <td>${escapeHtml(p.emplacement)}</td><td>${escapeHtml(p.reference)}</td><td>${escapeHtml(p.nom)}</td>
+            <td style="color:${p.quantite === 0 ? '#f44336' : p.quantite <= p.stockMin ? '#ff9800' : '#4caf50'}">${p.quantite}</td>
+            <td>${p.stockMin}</td>
+            <td><span class="stock-badge ${p.quantite === 0 ? 'rupture' : p.quantite <= p.stockMin ? 'bas' : 'normal'}">${p.quantite === 0 ? '⚠️ Rupture' : p.quantite <= p.stockMin ? '🟡 Stock bas' : '🟢 Normal'}</span></td>
+            <td>${p.prix ? p.prix.toLocaleString() + '€' : '-'}</td>
+        </tr>`).join('');
+    }
+    
+    function filterStock() { displayStock(); }
+    loadStock();
+</script>

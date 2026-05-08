@@ -1,0 +1,355 @@
+{% extends "base/admin_base.html" %}
+
+{% block title %}{{ title }} - Administration{% endblock %}
+
+{% block content %}
+<div class="user-form-container">
+    <div class="form-header">
+        <a href="/admin?section=users" class="back-link">
+            ← Retour à la liste des utilisateurs
+        </a>
+        <h2>{{ title }}</h2>
+    </div>
+
+    <div class="form-card">
+        <form id="userForm" class="user-form">
+            <input type="hidden" id="editUserId" value="{{ user.id if user else '' }}">
+            
+            <div class="form-section">
+                <div class="section-title">📧 Informations de connexion</div>
+                
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="email" class="input" required 
+                           value="{{ user.email if user else '' }}" 
+                           placeholder="utilisateur@entreprise.com">
+                </div>
+                
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    <input type="password" id="password" class="input" 
+                           placeholder="Laisser vide pour génération auto">
+                    <small>Min 8 caractères, 1 majuscule, 1 chiffre</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Nom d'utilisateur</label>
+                    <div class="username-wrapper">
+                        <input type="text" id="username" class="input" 
+                               value="{{ user.username if user else '' }}"
+                               placeholder="Laissez vide pour génération auto">
+                        <button type="button" class="btn-generate" onclick="generateUsername()" title="Générer depuis email">🔄</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-title">👤 Informations personnelles</div>
+                
+                <div class="form-group">
+                    <label>Nom complet</label>
+                    <input type="text" id="fullname" class="input" 
+                           value="{{ user.fullname if user else '' }}"
+                           placeholder="Jean Dupont">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Sexe</label>
+                        <select id="sexe" class="input">
+                            <option value="">Non spécifié</option>
+                            <option value="M" {{ 'selected' if user and user.sexe == 'M' else '' }}>👨 Homme</option>
+                            <option value="F" {{ 'selected' if user and user.sexe == 'F' else '' }}>👩 Femme</option>
+                            <option value="autre" {{ 'selected' if user and user.sexe == 'autre' else '' }}>🌈 Autre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nationalité</label>
+                        <select id="nationalite" class="input">
+                            <option value="">Sélectionner</option>
+                            <option value="Marocaine" {{ 'selected' if user and user.nationalite == 'Marocaine' else '' }}>🇲🇦 Marocaine</option>
+                            <option value="Française" {{ 'selected' if user and user.nationalite == 'Française' else '' }}>🇫🇷 Française</option>
+                            <option value="Espagnole" {{ 'selected' if user and user.nationalite == 'Espagnole' else '' }}>🇪🇸 Espagnole</option>
+                            <option value="Italienne" {{ 'selected' if user and user.nationalite == 'Italienne' else '' }}>🇮🇹 Italienne</option>
+                            <option value="Autre" {{ 'selected' if user and user.nationalite == 'Autre' else '' }}>🌍 Autre</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date de naissance</label>
+                        <input type="date" id="birthdate" class="input" value="{{ user.birthdate if user else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="tel" id="telephone" class="input" value="{{ user.telephone if user else '' }}" placeholder="+212 6 12 34 56 78">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Adresse</label>
+                    <input type="text" id="adresse" class="input" value="{{ user.adresse if user else '' }}" placeholder="123 Avenue Mohammed V, Casablanca">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-title">🏢 Informations professionnelles</div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date d'entrée</label>
+                        <input type="date" id="hireDate" class="input" value="{{ user.hire_date if user else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Rôle *</label>
+                        <select id="role" class="input">
+                            <option value="user" {{ 'selected' if user and user.role == 'user' else '' }}>👤 Utilisateur</option>
+                            <option value="stock" {{ 'selected' if user and user.role == 'stock' else '' }}>🏭 Responsable stock</option>
+                            <option value="reception" {{ 'selected' if user and user.role == 'reception' else '' }}>📥 Réceptionnaire</option>
+                            <option value="qualite" {{ 'selected' if user and user.role == 'qualite' else '' }}>🔧 Responsable qualité</option>
+                            <option value="admin" {{ 'selected' if user and user.role == 'admin' else '' }}>👑 Administrateur</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Service / Équipe</label>
+                        <select id="departement" class="input">
+                            <option value="">Sélectionner</option>
+                            <option value="direction" {{ 'selected' if user and user.departement == 'direction' else '' }}>👑 Direction</option>
+                            <option value="stock" {{ 'selected' if user and user.departement == 'stock' else '' }}>🏭 Stock</option>
+                            <option value="reception" {{ 'selected' if user and user.departement == 'reception' else '' }}>📥 Réception</option>
+                            <option value="qualite" {{ 'selected' if user and user.departement == 'qualite' else '' }}>🔧 Qualité</option>
+                            <option value="livraison" {{ 'selected' if user and user.departement == 'livraison' else '' }}>🚚 Livraison</option>
+                            <option value="informatique" {{ 'selected' if user and user.departement == 'informatique' else '' }}>💻 Informatique</option>
+                            <option value="rh" {{ 'selected' if user and user.departement == 'rh' else '' }}>📋 RH</option>
+                            <option value="commercial" {{ 'selected' if user and user.departement == 'commercial' else '' }}>💼 Commercial</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Statut</label>
+                        <select id="userStatus" class="input">
+                            <option value="pending" {{ 'selected' if user and user.statut == 'pending' else '' }}>⏳ En attente</option>
+                            <option value="actif" {{ 'selected' if user and user.statut == 'actif' else '' }}>🟢 Actif</option>
+                            <option value="inactif" {{ 'selected' if user and user.statut == 'inactif' else '' }}>🔴 Inactif</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="/admin?section=users" class="btn btn-secondary">Annuler</a>
+                <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.user-form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.form-header {
+    margin-bottom: 1.5rem;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+}
+
+.back-link:hover {
+    color: var(--primary);
+}
+
+.form-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 2rem;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.section-title {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: var(--primary);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.form-group small {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.username-wrapper {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.username-wrapper .input {
+    flex: 1;
+}
+
+.btn-generate {
+    background: var(--border-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-generate:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+    .form-card {
+        padding: 1.5rem;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+    
+    .username-wrapper {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+// Génération du nom d'utilisateur depuis l'email
+function generateUsername() {
+    const email = document.getElementById('email').value;
+    const usernameInput = document.getElementById('username');
+    if (email && !usernameInput.value) {
+        let username = email.split('@')[0];
+        username = username.toLowerCase().replace(/[^a-z0-9_.-]/g, '_');
+        usernameInput.value = username;
+    }
+}
+
+// Auto-génération lors de la saisie de l'email
+document.getElementById('email').addEventListener('change', function() {
+    const usernameInput = document.getElementById('username');
+    if (!usernameInput.value) {
+        generateUsername();
+    }
+});
+
+// Soumission du formulaire
+document.getElementById('userForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const userId = document.getElementById('editUserId').value;
+    
+    const data = {
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        username: document.getElementById('username').value,
+        fullname: document.getElementById('fullname').value,
+        sexe: document.getElementById('sexe').value,
+        nationalite: document.getElementById('nationalite').value,
+        birthdate: document.getElementById('birthdate').value,
+        telephone: document.getElementById('telephone').value,
+        adresse: document.getElementById('adresse').value,
+        hireDate: document.getElementById('hireDate').value,
+        role: document.getElementById('role').value,
+        departement: document.getElementById('departement').value,
+        statut: document.getElementById('userStatus').value
+    };
+    
+    if (!data.email) {
+        showToast('Email requis', 'error');
+        return;
+    }
+    
+    const url = userId ? '/api/admin/users/' + userId : '/api/admin/users';
+    const method = userId ? 'PUT' : 'POST';
+    
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            let message = userId ? '✅ Utilisateur modifié' : '✅ Utilisateur créé';
+            if (result.password) message += ' - Mot de passe: ' + result.password;
+            showToast(message, 'success');
+            // Rediriger vers la liste des utilisateurs
+            window.location.href = '/admin?section=users';
+        } else {
+            showToast(result.error || 'Erreur', 'error');
+        }
+    } catch(e) {
+        console.error('Erreur:', e);
+        showToast('Erreur réseau', 'error');
+    }
+});
+
+function showToast(message, type) {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    toast.innerHTML = '<span>' + message + '</span><button class="toast-close" onclick="this.parentElement.remove()">✕</button>';
+    container.appendChild(toast);
+    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 5000);
+}
+</script>
+{% endblock %}

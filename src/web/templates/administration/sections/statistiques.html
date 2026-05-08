@@ -1,0 +1,46 @@
+<div class="stats-grid-manager">
+    <div class="stats-card"><h4>🏆 Top fournisseurs</h4><div id="topFournisseurs" class="stats-list">Chargement...</div></div>
+    <div class="stats-card"><h4>📦 Produits les plus reçus</h4><div id="topProduitsRecus" class="stats-list">Chargement...</div></div>
+    <div class="stats-card"><h4>🚚 Produits les plus livrés</h4><div id="topProduitsLivres" class="stats-list">Chargement...</div></div>
+    <div class="stats-card"><h4>✅ Taux conformité</h4><div id="tauxConformite" class="stats-list">Chargement...</div></div>
+</div>
+
+<div class="charts-row">
+    <div class="chart-card"><h4>📈 Évolution des réceptions</h4><canvas id="evolutionChart" height="180"></canvas></div>
+    <div class="chart-card"><h4>🥧 Répartition par statut</h4><canvas id="statutChart" height="180"></canvas></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let evolutionChart = null, statutChart = null;
+    
+    async function loadStats() {
+        document.getElementById('topFournisseurs').innerHTML = '<div>🏭 Fournisseur A: 12 réceptions</div><div>🏭 Fournisseur B: 8 réceptions</div><div>🏭 Fournisseur C: 5 réceptions</div>';
+        document.getElementById('topProduitsRecus').innerHTML = '<div>📦 Produit A: 150 unités</div><div>📦 Produit B: 120 unités</div><div>📦 Produit C: 90 unités</div>';
+        document.getElementById('topProduitsLivres').innerHTML = '<div>🚚 Réf-001: 45 commandes</div><div>🚚 Réf-002: 32 commandes</div><div>🚚 Réf-003: 28 commandes</div>';
+        document.getElementById('tauxConformite').innerHTML = '<div>🏭 Fournisseur A: 98% <span class="good">✅</span></div><div>🏭 Fournisseur B: 85% <span class="medium">⚠️</span></div><div>🏭 Fournisseur C: 72% <span class="bad">❌</span></div>';
+        
+        const evoCtx = document.getElementById('evolutionChart')?.getContext('2d');
+        const statutCtx = document.getElementById('statutChart')?.getContext('2d');
+        
+        if (evoCtx) {
+            if (evolutionChart) evolutionChart.destroy();
+            evolutionChart = new Chart(evoCtx, {
+                type: 'line',
+                data: { labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'], datasets: [{ label: 'Réceptions', data: [5,8,6,12,9,4,3], borderColor: '#4361ee', fill: true }] },
+                options: { responsive: true }
+            });
+        }
+        
+        if (statutCtx) {
+            if (statutChart) statutChart.destroy();
+            statutChart = new Chart(statutCtx, {
+                type: 'pie',
+                data: { labels: ['Validées', 'En attente', 'Corrigées'], datasets: [{ data: [15,8,4], backgroundColor: ['#4caf50', '#ff9800', '#2196f3'] }] },
+                options: { responsive: true }
+            });
+        }
+    }
+    
+    loadStats();
+</script>

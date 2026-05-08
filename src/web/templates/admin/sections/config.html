@@ -1,0 +1,163 @@
+<div class="config-section">
+    <div class="config-form">
+        <div class="form-section">
+            <div class="section-title">⚙️ Paramètres généraux</div>
+            
+            <div class="form-group">
+                <label>Nom de l'application</label>
+                <input type="text" id="configAppName" class="input" value="AutoStockCheck">
+            </div>
+            
+            <div class="form-group">
+                <label>Timeout session (minutes)</label>
+                <input type="number" id="configSessionTimeout" class="input" value="30" min="5" max="480">
+            </div>
+            
+            <div class="form-group">
+                <label>Notifications activées</label>
+                <select id="configNotifications" class="input">
+                    <option value="true">✅ Activées</option>
+                    <option value="false">❌ Désactivées</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Mode maintenance</label>
+                <select id="configMaintenance" class="input">
+                    <option value="false">🟢 Mode normal</option>
+                    <option value="true">🔴 Mode maintenance</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <div class="section-title">🔐 Sécurité</div>
+            
+            <div class="form-group">
+                <label>Longueur minimale mot de passe</label>
+                <input type="number" id="configPasswordMinLength" class="input" value="8" min="6" max="20">
+            </div>
+            
+            <div class="form-group">
+                <label>Exiger caractère spécial</label>
+                <select id="configRequireSpecial" class="input">
+                    <option value="true">✅ Oui</option>
+                    <option value="false">❌ Non</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Délai d'activation automatique (heures)</label>
+                <input type="number" id="configActivationDelay" class="input" value="24" min="0" max="168">
+            </div>
+        </div>
+        
+        <div class="config-actions">
+            <button class="btn btn-primary" onclick="saveConfig()">💾 Sauvegarder la configuration</button>
+            <button class="btn btn-secondary" onclick="resetConfig()">🔄 Réinitialiser</button>
+        </div>
+    </div>
+</div>
+
+<script>
+async function loadConfig() {
+    try {
+        const response = await fetch('/api/admin/config');
+        const data = await response.json();
+        if (data.status === 'success') {
+            document.getElementById('configAppName').value = data.config.app_name || 'AutoStockCheck';
+            document.getElementById('configSessionTimeout').value = data.config.session_timeout || 30;
+            document.getElementById('configNotifications').value = data.config.notifications_enabled || 'true';
+            document.getElementById('configMaintenance').value = data.config.maintenance || 'false';
+            document.getElementById('configPasswordMinLength').value = data.config.password_min_length || 8;
+            document.getElementById('configRequireSpecial').value = data.config.password_require_special || 'true';
+            document.getElementById('configActivationDelay').value = data.config.auto_activation_delay || 24;
+        }
+    } catch(e) { console.error(e); }
+}
+
+async function saveConfig() {
+    const config = {
+        app_name: document.getElementById('configAppName').value,
+        session_timeout: parseInt(document.getElementById('configSessionTimeout').value),
+        notifications_enabled: document.getElementById('configNotifications').value,
+        maintenance: document.getElementById('configMaintenance').value,
+        password_min_length: parseInt(document.getElementById('configPasswordMinLength').value),
+        password_require_special: document.getElementById('configRequireSpecial').value,
+        auto_activation_delay: parseInt(document.getElementById('configActivationDelay').value)
+    };
+    
+    const response = await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+    });
+    
+    if (response.ok) {
+        showToast('Configuration sauvegardée', 'success');
+    } else {
+        showToast('Erreur lors de la sauvegarde', 'error');
+    }
+}
+
+function resetConfig() {
+    if (confirm('Réinitialiser tous les paramètres ?')) {
+        document.getElementById('configAppName').value = 'AutoStockCheck';
+        document.getElementById('configSessionTimeout').value = 30;
+        document.getElementById('configNotifications').value = 'true';
+        document.getElementById('configMaintenance').value = 'false';
+        document.getElementById('configPasswordMinLength').value = 8;
+        document.getElementById('configRequireSpecial').value = 'true';
+        document.getElementById('configActivationDelay').value = 24;
+        showToast('Paramètres réinitialisés', 'info');
+    }
+}
+
+loadConfig();
+</script>
+
+<style>
+.config-section {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.config-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.section-title {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--primary);
+    display: inline-block;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.config-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+</style>

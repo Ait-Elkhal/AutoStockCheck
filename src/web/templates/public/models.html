@@ -1,0 +1,499 @@
+{% extends "base/public.html" %}
+
+{% block title %}Modèles IA - AutoStockCheck{% endblock %}
+
+{% block content %}
+<div class="models-page">
+    <div class="container">
+        <div class="page-header">
+            <h1>🤖 Modèles d'Intelligence Artificielle</h1>
+            <p>Découvrez les algorithmes qui propulsent votre gestion de stock</p>
+        </div>
+
+        <!-- Modèle sélectionné -->
+        <div class="featured-card">
+            <div class="featured-badge">🏆 Modèle sélectionné</div>
+            <h2>SVM (Linear)</h2>
+            <div class="featured-stats">
+                <div class="featured-stat">
+                    <span class="stat-value">100%</span>
+                    <span class="stat-label">Précision</span>
+                </div>
+                <div class="featured-stat">
+                    <span class="stat-value">27 431</span>
+                    <span class="stat-label">Échantillons</span>
+                </div>
+                <div class="featured-stat">
+                    <span class="stat-value">0.001s</span>
+                    <span class="stat-label">Temps prédiction</span>
+                </div>
+            </div>
+            <p class="featured-description">
+                SVM (Support Vector Machine) est ultra-rapide et parfaitement adapté à la détection des manques de stock. 
+                Sa capacité à trouver des frontières de décision optimales dans des espaces de grande dimension en fait 
+                le choix idéal pour notre problématique.
+            </p>
+        </div>
+
+        <!-- Tableau comparatif -->
+        <div class="comparison-card">
+            <h3>📊 Comparaison des modèles</h3>
+            <div class="table-wrapper">
+                <table class="table models-table">
+                    <thead>
+                        <tr>
+                            <th>Modèle</th>
+                            <th>Type</th>
+                            <th>F1-Score</th>
+                            <th>Temps prédiction</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="model-highlight">
+                            <td><strong>SVM (Linear)</strong></td>
+                            <td>Classification</td>
+                            <td><span class="badge badge-success">1.00</span></td>
+                            <td>0.001s</td>
+                            <td>⭐ Modèle final - Ultra-rapide</td>
+                        </tr>
+                        <tr>
+                            <td>Decision Tree</td>
+                            <td>Classification</td>
+                            <td><span class="badge badge-success">1.00</span></td>
+                            <td>0.003s</td>
+                            <td>Arbre interprétable</td>
+                        </tr>
+                        <tr>
+                            <td>Random Forest</td>
+                            <td>Ensemble</td>
+                            <td><span class="badge badge-warning">0.91</span></td>
+                            <td>0.165s</td>
+                            <td>Robuste aux données bruitées</td>
+                        </tr>
+                        <tr>
+                            <td>Neural Network</td>
+                            <td>Deep Learning</td>
+                            <td><span class="badge badge-success">1.00</span></td>
+                            <td>0.004s</td>
+                            <td>Réseau de neurones profond</td>
+                        </tr>
+                        <tr>
+                            <td>Logistic Regression</td>
+                            <td>Classification</td>
+                            <td><span class="badge badge-warning">0.65</span></td>
+                            <td>0.001s</td>
+                            <td>Modèle linéaire simple</td>
+                        </tr>
+                        <tr>
+                            <td>Isolation Forest</td>
+                            <td>Anomalie</td>
+                            <td><span class="badge badge-warning">0.25</span></td>
+                            <td>0.642s</td>
+                            <td>Détection d'anomalies</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Features & Données -->
+        <div class="two-columns">
+            <div class="features-card">
+                <h3>🔬 Features utilisées (14)</h3>
+                <div class="features-list">
+                    <span class="feature-tag">diff_quantite</span>
+                    <span class="feature-tag">produit_absent</span>
+                    <span class="feature-tag">quantite_insuffisante</span>
+                    <span class="feature-tag">ratio_stock</span>
+                    <span class="feature-tag">etat_produit</span>
+                    <span class="feature-tag">fiabilite_fournisseur</span>
+                    <span class="feature-tag">popularite</span>
+                    <span class="feature-tag">saisonnalite</span>
+                    <span class="feature-tag">prix</span>
+                    <span class="feature-tag">valeur_ligne</span>
+                    <span class="feature-tag">produit_cher</span>
+                    <span class="feature-tag">diff_x_prix</span>
+                    <span class="feature-tag">absent_x_prix</span>
+                    <span class="feature-tag">etat_x_popularite</span>
+                </div>
+            </div>
+
+            <div class="data-card">
+                <h3>📊 Données d'entraînement</h3>
+                <div class="data-grid">
+                    <div class="data-item">
+                        <div class="data-value">27 431</div>
+                        <div class="data-label">Échantillons</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-value">73%</div>
+                        <div class="data-label">Conformes</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-value">27%</div>
+                        <div class="data-label">Manques</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-value">50</div>
+                        <div class="data-label">Fichiers test</div>
+                    </div>
+                </div>
+                <div class="progress-section">
+                    <div class="progress-label">
+                        <span>Répartition des classes</span>
+                        <span>Conformes 73% / Manques 27%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill-success" style="width: 73%"></div>
+                        <div class="progress-fill-warning" style="width: 27%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance chart -->
+        <div class="performance-card">
+            <h3>📈 Performances par modèle</h3>
+            <div class="performance-bars">
+                <div class="perf-item">
+                    <span class="perf-name">SVM Linear</span>
+                    <div class="perf-bar"><div class="perf-fill" style="width: 100%"></div></div>
+                    <span class="perf-value">100%</span>
+                </div>
+                <div class="perf-item">
+                    <span class="perf-name">Decision Tree</span>
+                    <div class="perf-bar"><div class="perf-fill" style="width: 100%"></div></div>
+                    <span class="perf-value">100%</span>
+                </div>
+                <div class="perf-item">
+                    <span class="perf-name">Neural Network</span>
+                    <div class="perf-bar"><div class="perf-fill" style="width: 100%"></div></div>
+                    <span class="perf-value">100%</span>
+                </div>
+                <div class="perf-item">
+                    <span class="perf-name">Random Forest</span>
+                    <div class="perf-bar"><div class="perf-fill" style="width: 91%"></div></div>
+                    <span class="perf-value">91%</span>
+                </div>
+                <div class="perf-item">
+                    <span class="perf-name">Logistic Regression</span>
+                    <div class="perf-bar"><div class="perf-fill warning" style="width: 65%"></div></div>
+                    <span class="perf-value">65%</span>
+                </div>
+                <div class="perf-item">
+                    <span class="perf-name">Isolation Forest</span>
+                    <div class="perf-bar"><div class="perf-fill danger" style="width: 25%"></div></div>
+                    <span class="perf-value">25%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.models-page {
+    padding: 2rem 0;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-light);
+}
+
+.page-header p {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+}
+
+/* Featured card */
+.featured-card {
+    background: linear-gradient(135deg, var(--wood-medium) 0%, var(--wood-dark) 100%);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    position: relative;
+}
+
+.featured-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: var(--wood-dark);
+    padding: 0.25rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.featured-card h2 {
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+}
+
+.featured-stats {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin-bottom: 1.5rem;
+}
+
+.featured-stat {
+    text-align: center;
+}
+
+.featured-stat .stat-value {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.featured-stat .stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.featured-description {
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Comparison card */
+.comparison-card {
+    background: var(--gray-dark);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.comparison-card h3 {
+    margin-bottom: 1rem;
+    color: var(--accent);
+}
+
+.models-table {
+    width: 100%;
+}
+
+.models-table th {
+    color: var(--accent);
+    font-weight: 600;
+    padding: 1rem 0.75rem;
+}
+
+.models-table td {
+    padding: 0.75rem;
+    color: var(--text-light);
+}
+
+.model-highlight {
+    background: rgba(196, 154, 108, 0.15);
+}
+
+/* Two columns */
+.two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.features-card, .data-card {
+    background: var(--gray-dark);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+}
+
+.features-card h3, .data-card h3 {
+    color: var(--accent);
+    margin-bottom: 1rem;
+}
+
+.features-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.feature-tag {
+    background: var(--wood-medium);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    font-family: monospace;
+}
+
+.data-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.data-item {
+    text-align: center;
+    padding: 1rem;
+    background: var(--wood-medium);
+    border-radius: 12px;
+}
+
+.data-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.data-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.progress-section {
+    margin-top: 1rem;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.progress-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill-success {
+    background: var(--success);
+}
+
+.progress-fill-warning {
+    background: var(--accent);
+}
+
+/* Performance card */
+.performance-card {
+    background: var(--gray-dark);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+}
+
+.performance-card h3 {
+    color: var(--accent);
+    margin-bottom: 1rem;
+}
+
+.performance-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.perf-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.perf-name {
+    width: 140px;
+    font-size: 0.85rem;
+}
+
+.perf-bar {
+    flex: 1;
+    height: 24px;
+    background: var(--wood-medium);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.perf-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 12px;
+    transition: width 0.5s ease;
+}
+
+.perf-fill.warning {
+    background: var(--warning);
+}
+
+.perf-fill.danger {
+    background: var(--danger);
+}
+
+.perf-value {
+    width: 45px;
+    text-align: right;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+/* Badges */
+.badge-success {
+    background: rgba(124, 179, 66, 0.2);
+    color: var(--success);
+    padding: 0.2rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+.badge-warning {
+    background: rgba(196, 154, 108, 0.2);
+    color: var(--accent);
+    padding: 0.2rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .two-columns {
+        grid-template-columns: 1fr;
+    }
+    
+    .featured-stats {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .perf-item {
+        flex-wrap: wrap;
+    }
+    
+    .perf-name {
+        width: 100%;
+    }
+    
+    .models-table {
+        font-size: 0.75rem;
+    }
+    
+    .models-table th, .models-table td {
+        padding: 0.5rem;
+    }
+}
+</style>
+{% endblock %}

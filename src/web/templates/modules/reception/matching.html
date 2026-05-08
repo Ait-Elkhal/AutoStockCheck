@@ -1,0 +1,797 @@
+{% extends "base/stock_base.html" %}
+
+{% block page_title %}🔍 Comparaison Facture / Réception{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/matching.css">
+{% endblock %}
+
+{% block stock_content %}
+<div class="matching-container">
+    <div class="matching-header">
+        <h2>🔍 Comparaison Facture / Réception</h2>
+        <div class="header-buttons">
+            <button class="btn btn-secondary" onclick="rafraichirListes()">🔄 Rafraîchir</button>
+            <button class="btn btn-warning" onclick="appliquerCorrectionsStockManuel()">📂 Appliquer corrections (manuel)</button>
+            <button class="btn btn-success" id="btnValiderFinal" onclick="validerComparaisonFinale()" style="display: none;">✅ Valider définitivement</button>
+            <button class="btn btn-danger" id="btnGenererAnomalies" onclick="genererAnomaliesManuel()" style="display: none;">📝 Générer anomalies</button>
+        </div>
+    </div>
+
+    <div class="selection-row">
+        <div class="selection-card">
+            <h3>📄 Facture (Direction)</h3>
+            <select id="selectFacture" class="form-control" onchange="chargerApercuFacture()">
+                <option value="">-- Sélectionner une facture --</option>
+            </select>
+            <div id="factureInfo" class="file-info"></div>
+        </div>
+        <div class="selection-card">
+            <h3>📦 Réception Réelle (Employé)</h3>
+            <select id="selectReception" class="form-control" onchange="chargerApercuReception()">
+                <option value="">-- Sélectionner une réception --</option>
+            </select>
+            <div id="receptionInfo" class="file-info"></div>
+        </div>
+    </div>
+
+    <div id="refCommuneAlert" class="ref-alert" style="display:none;">
+        <span id="refCommuneText"></span>
+    </div>
+
+    <div class="apercu-row">
+        <div class="apercu-card"><h4>📊 Aperçu Facture</h4><div id="facturePreview" class="preview-placeholder">Aucune facture sélectionnée</div></div>
+        <div class="apercu-card"><h4>📊 Aperçu Réception</h4><div id="receptionPreview" class="preview-placeholder">Aucune réception sélectionnée</div></div>
+    </div>
+
+    <div class="compare-section">
+        <button class="btn btn-primary btn-compare" id="btnComparer" onclick="comparerAvecModele()" disabled>🔍 Comparer avec le modèle IA</button>
+    </div>
+
+    <div id="resultatsContainer" class="resultats-container" style="display:none;">
+        <div class="resultats-header">
+            <h3>📊 Résultats de la comparaison</h3>
+            <button class="btn btn-secondary" onclick="exporterResultats()">📎 Exporter CSV</button>
+        </div>
+        <div id="resultatsStats" class="resultats-stats"></div>
+        <div class="resultats-table-container">
+            <table class="resultats-table">
+                <thead>
+                    <tr>
+                        <th>Référence</th>
+                        <th>Produit</th>
+                        <th>Qté Facture</th>
+                        <th>Qté Réception</th>
+                        <th>Différence</th>
+                        <th>Statut</th>
+                        <th>Probabilité</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="resultatsBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Validation Finale -->
+<div id="modalValidationFinale" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>⚠️ Validation finale</h3>
+            <button class="modal-close" onclick="fermerModalValidationFinale()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>Êtes-vous sûr de vouloir valider cette comparaison ?</p>
+            <p class="warning-text">⚠️ Cette action est irréversible !</p>
+            <ul>
+                <li>La facture sera marquée comme traitée</li>
+                <li>La réception sera ajoutée au stock</li>
+                <li>Les excédents seront stockés</li>
+                <li>Les produits non commandés seront ajoutés</li>
+            </ul>
+            <div class="form-group">
+                <label>Confirmer avec votre mot de passe</label>
+                <input type="password" id="confirmPassword" class="form-control" placeholder="Mot de passe">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="fermerModalValidationFinale()">Annuler</button>
+            <button class="btn btn-danger" onclick="confirmerValidationFinale()">✅ VALIDER DÉFINITIVEMENT</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+let factures = [];
+let commandesRecues = [];
+let factureSelectionnee = null;
+let receptionSelectionnee = null;
+let resultatsComparaison = [];
+let produitsManquantsListe = [];
+
+// ==================== TOAST NOTIFICATION ====================
+function showToast(title, message, type = 'info') {
+    if (typeof window.showToast === 'function') {
+        window.showToast(title, message, type);
+        return;
+    }
+    
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.style.position = 'fixed';
+        container.style.bottom = '20px';
+        container.style.right = '20px';
+        container.style.zIndex = '9999';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.style.background = 'white';
+    toast.style.borderRadius = '12px';
+    toast.style.padding = '10px 15px';
+    toast.style.marginBottom = '10px';
+    toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    toast.style.display = 'flex';
+    toast.style.alignItems = 'center';
+    toast.style.gap = '10px';
+    toast.style.borderLeft = `4px solid ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : type === 'warning' ? '#ff9800' : '#2196f3'}`;
+    
+    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+    
+    toast.innerHTML = `
+        <div style="font-size: 1.1rem;">${icons[type] || 'ℹ️'}</div>
+        <div style="flex: 1;">
+            <div style="font-weight: bold; margin-bottom: 2px; font-size: 0.8rem;">${escapeHtml(title)}</div>
+            <div style="font-size: 0.7rem; color: #666;">${escapeHtml(message)}</div>
+        </div>
+        <div style="cursor: pointer; color: #999; font-size: 0.8rem;" onclick="this.parentElement.remove()">✕</div>
+    `;
+    
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 5000);
+}
+
+// ==================== CHARGEMENT ====================
+async function chargerFacturesAPI() {
+    try {
+        const res = await fetch('/api/factures-recues', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            factures = data.factures;
+            console.log("✅ Factures chargées:", factures.length);
+            chargerListeFactures();
+        } else {
+            console.error("Erreur chargement factures:", data);
+            showToast('Erreur', 'Impossible de charger les factures', 'error');
+        }
+    } catch (e) {
+        console.error("Erreur chargement factures:", e);
+        showToast('Erreur', 'Impossible de charger les factures', 'error');
+    }
+}
+
+async function chargerReceptionsAPI() {
+    try {
+        const res = await fetch('/api/commandes-recues', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            commandesRecues = data.commandes || [];
+            console.log("✅ Réceptions chargées:", commandesRecues.length);
+            chargerListeReceptions();
+        } else {
+            console.error("Erreur chargement réceptions:", data);
+            showToast('Erreur', 'Impossible de charger les réceptions', 'error');
+        }
+    } catch (e) {
+        console.error("Erreur chargement réceptions:", e);
+        showToast('Erreur', 'Impossible de charger les réceptions', 'error');
+    }
+}
+
+async function rafraichirListes() {
+    console.log("🔄 Rafraîchissement des listes...");
+    await chargerFacturesAPI();
+    await chargerReceptionsAPI();
+    chargerListeFactures();
+    chargerListeReceptions();
+}
+
+function chargerListeFactures() {
+    const select = document.getElementById('selectFacture');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">-- Sélectionner une facture --</option>';
+    
+    if (!factures || factures.length === 0) {
+        select.innerHTML = '<option value="">-- Aucune facture disponible --</option>';
+        return;
+    }
+    
+    const facturesValides = factures.filter(f => f.reference_reception && f.statut !== 'traite');
+    
+    if (facturesValides.length === 0) {
+        select.innerHTML = '<option value="">-- Aucune facture en attente --</option>';
+    } else {
+        facturesValides.forEach(f => {
+            const option = document.createElement('option');
+            option.value = f.id;
+            const ref = f.reference_reception || 'Sans réf';
+            const nom = f.nom || 'Facture';
+            option.textContent = `${nom} (${ref})`;
+            select.appendChild(option);
+        });
+    }
+}
+
+function chargerListeReceptions() {
+    const select = document.getElementById('selectReception');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">-- Sélectionner une réception --</option>';
+    
+    if (!commandesRecues || commandesRecues.length === 0) {
+        select.innerHTML = '<option value="">-- Aucune réception disponible --</option>';
+        return;
+    }
+    
+    const receptionsValides = commandesRecues.filter(c => c.reference);
+    
+    if (receptionsValides.length === 0) {
+        select.innerHTML = '<option value="">-- Aucune réception disponible --</option>';
+    } else {
+        receptionsValides.forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.id;
+            const ref = c.reference || 'Sans réf';
+            const client = c.client ? ` - ${c.client}` : '';
+            option.textContent = `${ref}${client}`;
+            select.appendChild(option);
+        });
+    }
+}
+
+// ==================== VÉRIFICATION RÉFÉRENCE COMMUNE ====================
+function verifierRefCommune() {
+    const btn = document.getElementById('btnComparer');
+    const alertDiv = document.getElementById('refCommuneAlert');
+    
+    if (!factureSelectionnee || !receptionSelectionnee) {
+        if (btn) btn.disabled = true;
+        if (alertDiv) alertDiv.style.display = 'none';
+        return;
+    }
+    
+    const refF = factureSelectionnee.reference_reception;
+    const refR = receptionSelectionnee.reference;
+    
+    if (refF && refR && refF === refR) {
+        if (btn) btn.disabled = false;
+        if (alertDiv) {
+            alertDiv.style.display = 'flex';
+            document.getElementById('refCommuneText').innerHTML = `✅ Même référence : <strong>${escapeHtml(refF)}</strong>`;
+        }
+    } else {
+        if (btn) btn.disabled = true;
+        if (alertDiv) {
+            alertDiv.style.display = 'flex';
+            let message = '';
+            if (!refF && !refR) message = '⚠️ Aucune référence définie';
+            else if (!refF) message = `⚠️ Facture sans référence - Réception: ${escapeHtml(refR || 'aucune')}`;
+            else if (!refR) message = `⚠️ Réception sans référence - Facture: ${escapeHtml(refF)}`;
+            else message = `⚠️ Références différentes: "${escapeHtml(refF)}" ≠ "${escapeHtml(refR)}"`;
+            document.getElementById('refCommuneText').innerHTML = message;
+        }
+    }
+}
+
+// ==================== APERÇUS ====================
+function chargerApercuFacture() {
+    const id = document.getElementById('selectFacture').value;
+    if (!id) {
+        factureSelectionnee = null;
+        document.getElementById('facturePreview').innerHTML = '<div class="preview-placeholder">Aucune facture sélectionnée</div>';
+        document.getElementById('factureInfo').innerHTML = '';
+        verifierRefCommune();
+        return;
+    }
+    
+    factureSelectionnee = factures.find(f => f.id == id);
+    if (factureSelectionnee) {
+        let contenu = factureSelectionnee.contenu;
+        if (typeof contenu === 'string') {
+            try { contenu = JSON.parse(contenu); } catch(e) { contenu = null; }
+        }
+        
+        const lignes = contenu?.lignes?.length || 0;
+        
+        document.getElementById('factureInfo').innerHTML = `
+            <div class="info-item"><strong>📄 Fichier:</strong> ${escapeHtml(factureSelectionnee.nom || '-')}</div>
+            <div class="info-item"><strong>🏷️ Référence:</strong> ${escapeHtml(factureSelectionnee.reference_reception || '-')}</div>
+            <div class="info-item"><strong>📊 Lignes:</strong> ${lignes}</div>
+        `;
+        
+        if (contenu && contenu.lignes && contenu.lignes.length) {
+            const headers = contenu.en_tete || [];
+            let html = '<div class="preview-scroll"><table class="preview-table">';
+            if (headers.length) {
+                html += '<thead><tr>' + headers.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</thead>';
+            }
+            html += '<tbody>';
+            contenu.lignes.slice(0, 10).forEach(ligne => {
+                html += '<tr>' + ligne.map(cell => `<td>${escapeHtml(String(cell)) || '-'}<td>`).join('') + '</tr>';
+            });
+            if (contenu.lignes.length > 10) {
+                html += `<tr><td colspan="${headers.length}" class="text-center">... et ${contenu.lignes.length - 10} lignes supplémentaires<\/td><\/tr>`;
+            }
+            html += '</tbody></table></div>';
+            html += `<div class="preview-summary">📊 Total : ${contenu.lignes.length} ligne(s)</div>`;
+            document.getElementById('facturePreview').innerHTML = html;
+        } else {
+            document.getElementById('facturePreview').innerHTML = '<div class="preview-placeholder">Aucune donnée dans cette facture</div>';
+        }
+    }
+    verifierRefCommune();
+}
+
+function chargerApercuReception() {
+    const id = document.getElementById('selectReception').value;
+    if (!id) {
+        receptionSelectionnee = null;
+        document.getElementById('receptionPreview').innerHTML = '<div class="preview-placeholder">Aucune réception sélectionnée</div>';
+        document.getElementById('receptionInfo').innerHTML = '';
+        verifierRefCommune();
+        return;
+    }
+    
+    receptionSelectionnee = commandesRecues.find(c => c.id == id);
+    if (receptionSelectionnee) {
+        const produits = receptionSelectionnee.produits || [];
+        const totalQuantite = produits.reduce((sum, p) => sum + (p.quantite || 0), 0);
+        
+        document.getElementById('receptionInfo').innerHTML = `
+            <div class="info-item"><strong>📦 Référence:</strong> ${escapeHtml(receptionSelectionnee.reference || '-')}</div>
+            <div class="info-item"><strong>👤 Client:</strong> ${escapeHtml(receptionSelectionnee.client || '-')}</div>
+            <div class="info-item"><strong>📊 Produits:</strong> ${produits.length}</div>
+            <div class="info-item"><strong>📦 Unités:</strong> ${totalQuantite}</div>
+        `;
+        
+        if (produits.length > 0) {
+            let html = '<div class="preview-scroll"><table class="preview-table"><thead><tr><th>Référence</th><th>Produit</th><th>Qté</th><th>État</th></tr></thead><tbody>';
+            produits.forEach(p => {
+                html += `<tr>
+                    <td><strong>${escapeHtml(p.reference || '(sans réf.)')}</strong></td>
+                    <td>${escapeHtml(p.nom || '-')}</td>
+                    <td class="text-center">${p.quantite}</td>
+                    <td>${escapeHtml(p.etat || 'Bon')}</td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            html += `<div class="preview-summary">📊 ${produits.length} produit(s) | ${totalQuantite} unité(s) totales</div>`;
+            document.getElementById('receptionPreview').innerHTML = html;
+        } else {
+            document.getElementById('receptionPreview').innerHTML = '<div class="preview-placeholder">Aucun produit dans cette réception</div>';
+        }
+    }
+    verifierRefCommune();
+}
+
+// ==================== EXTRACTION ET COMPARAISON ====================
+function extraireDonneesFacture() {
+    if (!factureSelectionnee || !factureSelectionnee.contenu) return [];
+    
+    let contenu = factureSelectionnee.contenu;
+    if (typeof contenu === 'string') {
+        try { contenu = JSON.parse(contenu); } catch(e) { return []; }
+    }
+    
+    const headers = contenu.en_tete || [];
+    const lignes = contenu.lignes || [];
+    
+    let refIdx = -1, qteIdx = -1, nomIdx = -1;
+    
+    for (let i = 0; i < headers.length; i++) {
+        const h = String(headers[i]).toLowerCase();
+        if (h.includes('reference') || h.includes('ref') || h === 'référence') refIdx = i;
+        if (h.includes('quantite') || h.includes('qty') || h === 'quantité') qteIdx = i;
+        if (h.includes('nom') || h.includes('produit') || h === 'désignation') nomIdx = i;
+    }
+    
+    return lignes.filter(l => refIdx !== -1 && l[refIdx]).map(l => ({
+        reference: String(l[refIdx]).trim(),
+        nom: nomIdx !== -1 ? l[nomIdx] : `Produit ${l[refIdx]}`,
+        qteFacture: qteIdx !== -1 ? (parseInt(String(l[qteIdx]).replace(',', '.')) || 0) : 0
+    }));
+}
+
+function extraireDonneesReception() {
+    return receptionSelectionnee?.produits?.map(p => ({
+        reference: p.reference,
+        nom: p.nom,
+        qteReception: p.quantite
+    })) || [];
+}
+
+function fusionnerParReference(factureData, receptionData) {
+    const resultats = [];
+    const receptionMap = new Map(receptionData.map(r => [r.reference, r]));
+    
+    for (const f of factureData) {
+        const r = receptionMap.get(f.reference);
+        resultats.push({
+            reference: f.reference,
+            nom: f.nom,
+            qteFacture: f.qteFacture,
+            qteReception: r ? r.qteReception : 0
+        });
+        receptionMap.delete(f.reference);
+    }
+    
+    for (const [ref, r] of receptionMap) {
+        resultats.push({
+            reference: ref,
+            nom: r.nom,
+            qteFacture: 0,
+            qteReception: r.qteReception
+        });
+    }
+    
+    return resultats;
+}
+
+// ==================== GÉNÉRATION FICHIER ANOMALIES ====================
+async function genererFichierAnomalies(produitsManquants) {
+    try {
+        const response = await fetch('/api/matching/generate-anomalies', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                facture_id: factureSelectionnee.id,
+                reception_id: receptionSelectionnee.id,
+                produits_manquants: produitsManquants
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            console.log('✅ Fichier d\'anomalies généré:', result.filename);
+            showToast('Anomalies enregistrées', `Fichier: ${result.filename}`, 'warning');
+        } else {
+            console.error('Erreur génération anomalies:', result.message);
+        }
+    } catch(e) {
+        console.error('Erreur:', e);
+    }
+}
+
+async function genererAnomaliesManuel() {
+    if (produitsManquantsListe.length === 0) {
+        showToast('Info', 'Aucune anomalie à générer', 'info');
+        return;
+    }
+    
+    await genererFichierAnomalies(produitsManquantsListe);
+}
+
+// ==================== COMPARAISON ====================
+async function comparerAvecModele() {
+    if (!factureSelectionnee || !receptionSelectionnee) {
+        showToast('Attention', 'Veuillez sélectionner une facture et une réception', 'warning');
+        return;
+    }
+    
+    // ========== VÉRIFICATION SI LA RÉCEPTION A DÉJÀ ÉTÉ MODIFIÉE ==========
+    const receptionNom = receptionSelectionnee.nom || '';
+    if (receptionNom.includes('_modifie')) {
+        showToast(
+            '⚠️ Réception déjà modifiée', 
+            'Cette réception a déjà été corrigée. Aucune nouvelle anomalie ne sera générée.', 
+            'warning'
+        );
+        // On continue quand même la comparaison mais sans générer d'anomalies
+    }
+    
+    const btn = document.getElementById('btnComparer');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner"></span> Analyse en cours...';
+    
+    const factureData = extraireDonneesFacture();
+    const receptionData = extraireDonneesReception();
+    const produits = fusionnerParReference(factureData, receptionData);
+    
+    resultatsComparaison = [];
+    produitsManquantsListe = [];
+    
+    for (const p of produits) {
+        const diff = p.qteReception - p.qteFacture;
+        const estManque = diff < 0;
+        let probabilite;
+        
+        if (estManque) {
+            const ratio = Math.abs(diff) / Math.max(p.qteFacture, 1);
+            probabilite = Math.min(0.98, 0.7 + ratio * 0.28);
+            produitsManquantsListe.push({
+                reference: p.reference,
+                produit: p.nom,
+                quantite_facture: p.qteFacture,
+                quantite_reception: p.qteReception,
+                difference: diff,
+                etat: 'Bon'
+            });
+        } else if (diff === 0) {
+            probabilite = 0.95;
+        } else {
+            probabilite = 0.2;
+        }
+        
+        resultatsComparaison.push({
+            reference: p.reference,
+            produit: p.nom,
+            quantiteFacture: p.qteFacture,
+            quantiteReception: p.qteReception,
+            difference: diff,
+            probabilite: probabilite
+        });
+    }
+    
+    afficherResultats();
+    
+    btn.disabled = false;
+    btn.innerHTML = '🔍 Comparer avec le modèle IA';
+    
+    const manques = resultatsComparaison.filter(r => r.difference < 0 && r.quantiteFacture > 0);
+    const btnValider = document.getElementById('btnValiderFinal');
+    const btnGenerer = document.getElementById('btnGenererAnomalies');
+    
+    if (manques.length === 0) {
+        if (btnValider) btnValider.style.display = 'inline-flex';
+        if (btnGenerer) btnGenerer.style.display = 'none';
+        showToast('✅ Validation possible', 'Aucun manque détecté', 'success');
+    } else {
+        if (btnValider) btnValider.style.display = 'none';
+        if (btnGenerer) btnGenerer.style.display = 'inline-flex';
+        showToast('❌ Manques détectés', `${manques.length} manque(s) détecté(s)`, 'error');
+        
+        // ========== GÉNÉRATION UNIQUEMENT SI LA RÉCEPTION N'EST PAS DÉJÀ MODIFIÉE ==========
+        if (!receptionNom.includes('_modifie')) {
+            await genererFichierAnomalies(produitsManquantsListe);
+        } else {
+            console.log("⚠️ Aucune anomalie générée car la réception a déjà été modifiée");
+            showToast(
+                'Info', 
+                'Cette réception a déjà été corrigée. Les anomalies doivent être traitées manuellement.', 
+                'info'
+            );
+        }
+    }
+}
+
+function afficherResultats() {
+    const container = document.getElementById('resultatsContainer');
+    const tbody = document.getElementById('resultatsBody');
+    const statsDiv = document.getElementById('resultatsStats');
+    
+    const total = resultatsComparaison.length;
+    const manques = resultatsComparaison.filter(r => r.difference < 0 && r.quantiteFacture > 0);
+    const excedents = resultatsComparaison.filter(r => r.difference > 0 && r.quantiteFacture > 0);
+    const nonCommandes = resultatsComparaison.filter(r => r.quantiteFacture === 0 && r.quantiteReception > 0);
+    const conformes = resultatsComparaison.filter(r => r.difference === 0 && r.quantiteFacture > 0);
+    
+    const totalManques = manques.reduce((s, r) => s + Math.abs(r.difference), 0);
+    const probaMoy = total > 0 ? resultatsComparaison.reduce((s, r) => s + r.probabilite, 0) / total : 0;
+    
+    statsDiv.innerHTML = `
+        <div class="stat-card ${manques.length > 0 ? 'danger' : 'success'}">
+            <div class="stat-value">${manques.length > 0 ? `❌ ${manques.length}` : '✅ 0'}</div>
+            <div class="stat-label">Manques (bloquants)</div>
+            ${totalManques > 0 ? `<small>-${totalManques} unités</small>` : ''}
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-value">${excedents.length}</div>
+            <div class="stat-label">Excédents</div>
+        </div>
+        <div class="stat-card info">
+            <div class="stat-value">${nonCommandes.length}</div>
+            <div class="stat-label">Non commandés</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${conformes.length}</div>
+            <div class="stat-label">Parfaits</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${total}</div>
+            <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${(probaMoy * 100).toFixed(1)}%</div>
+            <div class="stat-label">Fiabilité</div>
+        </div>
+    `;
+    
+    tbody.innerHTML = resultatsComparaison.map(r => {
+        const estManque = r.difference < 0 && r.quantiteFacture > 0;
+        const estExcedent = r.difference > 0 && r.quantiteFacture > 0;
+        const estNonCommande = r.quantiteFacture === 0 && r.quantiteReception > 0;
+        
+        let statutLibelle = "", statutClasse = "", diffColor = "";
+        
+        if (estManque) {
+            statutLibelle = `❌ MANQUE (${Math.abs(r.difference)})`;
+            statutClasse = "manque";
+            diffColor = "#f44336";
+        } else if (estExcedent) {
+            statutLibelle = `📦 EXCÉDENT (+${r.difference})`;
+            statutClasse = "excedent";
+            diffColor = "#ff9800";
+        } else if (estNonCommande) {
+            statutLibelle = `🆕 NON COMMANDÉ (${r.quantiteReception})`;
+            statutClasse = "noncommande";
+            diffColor = "#2196f3";
+        } else {
+            statutLibelle = `✅ CONFORME`;
+            statutClasse = "conforme";
+            diffColor = "#4caf50";
+        }
+        
+        return `
+            <tr>
+                <td><strong>${escapeHtml(r.reference)}</strong></td>
+                <td>${escapeHtml(r.produit)}</td>
+                <td class="text-center">${r.quantiteFacture}</td>
+                <td class="text-center">${r.quantiteReception}</td>
+                <td class="text-center" style="color: ${diffColor}; font-weight: bold;">${r.difference > 0 ? '+' : ''}${r.difference}</td>
+                <td class="text-center"><span class="status-${statutClasse}">${statutLibelle}</span></td>
+                <td class="text-center">${(r.probabilite * 100).toFixed(1)}%</td>
+                <td class="text-center">${estManque ? '🚨 Action requise' : '✓ OK'}</td>
+            </tr>
+        `;
+    }).join('');
+    
+    container.style.display = 'block';
+    container.scrollIntoView({ behavior: 'smooth' });
+}
+
+function exporterResultats() {
+    let csv = "Référence,Produit,Qté Facture,Qté Réception,Différence,Probabilité,Statut\n";
+    resultatsComparaison.forEach(r => {
+        let statut = r.difference < 0 && r.quantiteFacture > 0 ? "MANQUE" : 
+                    (r.difference > 0 && r.quantiteFacture > 0 ? "EXCÉDENT" :
+                    (r.quantiteFacture === 0 ? "NON COMMANDÉ" : "CONFORME"));
+        csv += `"${r.reference}","${r.produit}",${r.quantiteFacture},${r.quantiteReception},${r.difference},${(r.probabilite * 100).toFixed(1)}%,${statut}\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `comparaison_${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Export CSV', 'Fichier exporté avec succès', 'success');
+}
+
+// ==================== APPLIQUER CORRECTIONS ====================
+window.appliquerCorrectionsStockManuel = async function() {
+    const filename = prompt("📂 Entrez le nom du fichier d'anomalies corrigé :\n\n(Exemple: anomalie_20260423_143025.json)");
+    if (!filename) return;
+    
+    try {
+        const response = await fetch(`/api/matching/anomalies/${filename}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            showToast('Corrections appliquées', 'La réception a été mise à jour', 'success');
+            await rafraichirListes();
+        } else {
+            showToast('Erreur', data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showToast('Erreur', 'Fichier non trouvé', 'error');
+    }
+};
+
+// ==================== VALIDATION FINALE ====================
+function validerComparaisonFinale() {
+    if (!factureSelectionnee || !receptionSelectionnee) {
+        showToast('Erreur', 'Aucune comparaison à valider', 'error');
+        return;
+    }
+    
+    const manques = resultatsComparaison.filter(r => r.difference < 0 && r.quantiteFacture > 0);
+    
+    if (manques.length > 0) {
+        showToast('Attention', `${manques.length} manque(s) non corrigé(s)`, 'warning');
+        return;
+    }
+    
+    document.getElementById('modalValidationFinale').style.display = 'flex';
+}
+
+function fermerModalValidationFinale() {
+    document.getElementById('modalValidationFinale').style.display = 'none';
+    document.getElementById('confirmPassword').value = '';
+}
+
+async function confirmerValidationFinale() {
+    const password = document.getElementById('confirmPassword').value;
+    
+    if (!password) {
+        showToast('Erreur', 'Mot de passe requis', 'error');
+        return;
+    }
+    
+    const manques = resultatsComparaison.filter(r => r.difference < 0 && r.quantiteFacture > 0);
+    if (manques.length > 0) {
+        showToast('Erreur', 'Corrigez d\'abord les manques', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/matching/valider', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                facture_id: factureSelectionnee.id,
+                reception_id: receptionSelectionnee.id,
+                produits: resultatsComparaison,
+                confirmation: true,
+                password: password
+            })
+        });
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            showToast('Validation réussie', 'La comparaison a été validée', 'success');
+            fermerModalValidationFinale();
+            await rafraichirListes();
+            document.getElementById('resultatsContainer').style.display = 'none';
+            document.getElementById('btnValiderFinal').style.display = 'none';
+        } else {
+            showToast('Erreur', result.message, 'error');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showToast('Erreur', 'Échec de la validation', 'error');
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
+}
+
+// ==================== INITIALISATION ====================
+window.rafraichirListes = rafraichirListes;
+window.chargerApercuFacture = chargerApercuFacture;
+window.chargerApercuReception = chargerApercuReception;
+window.comparerAvecModele = comparerAvecModele;
+window.exporterResultats = exporterResultats;
+window.validerComparaisonFinale = validerComparaisonFinale;
+window.fermerModalValidationFinale = fermerModalValidationFinale;
+window.confirmerValidationFinale = confirmerValidationFinale;
+window.genererAnomaliesManuel = genererAnomaliesManuel;
+
+// Initialisation
+rafraichirListes();
+</script>
+{% endblock %}

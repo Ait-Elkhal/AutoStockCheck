@@ -1,0 +1,163 @@
+{% extends "base/admin_base.html" %}
+
+{% block title %}Administration - AutoStockCheck{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <!-- Statistiques globales -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-info">
+                <div class="stat-label">Total utilisateurs</div>
+                <div class="stat-value" id="statTotalUsers">0</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🟢</div>
+            <div class="stat-info">
+                <div class="stat-label">Actifs</div>
+                <div class="stat-value" id="statActiveUsers">0</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🔴</div>
+            <div class="stat-info">
+                <div class="stat-label">Inactifs</div>
+                <div class="stat-value" id="statInactiveUsers">0</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🖥️</div>
+            <div class="stat-info">
+                <div class="stat-label">Sessions actives</div>
+                <div class="stat-value" id="statActiveSessions">0</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-info">
+                <div class="stat-label">Actions (24h)</div>
+                <div class="stat-value" id="statActions24h">0</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-info">
+                <div class="stat-label">En attente activation</div>
+                <div class="stat-value" id="statPendingActivation">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenu dynamique -->
+    <div id="adminContent">
+        <div class="loading">Chargement...</div>
+    </div>
+</div>
+
+<script>
+let currentPage = 'dashboard';
+
+async function loadAdminSection(section) {
+    const container = document.getElementById('adminContent');
+    currentPage = section;
+    
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Chargement...</p></div>';
+    
+    try {
+        const response = await fetch(`/api/admin/section/${section}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const html = await response.text();
+        container.innerHTML = html;
+        
+        const scripts = container.querySelectorAll('script');
+        scripts.forEach(script => {
+            const newScript = document.createElement('script');
+            if (script.src) newScript.src = script.src;
+            else newScript.textContent = script.textContent;
+            document.body.appendChild(newScript);
+        });
+    } catch(e) {
+        container.innerHTML = '<div class="error">Erreur de chargement</div>';
+    }
+}
+
+async function loadGlobalStats() {
+    try {
+        const response = await fetch('/api/admin/stats', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            document.getElementById('statTotalUsers').textContent = data.stats.total_users || 0;
+            document.getElementById('statActiveUsers').textContent = data.stats.active_users || 0;
+            document.getElementById('statInactiveUsers').textContent = data.stats.inactive_users || 0;
+            document.getElementById('statActiveSessions').textContent = data.stats.active_sessions || 0;
+            document.getElementById('statActions24h').textContent = data.stats.actions_last_24h || 0;
+            document.getElementById('statPendingActivation').textContent = data.stats.pending_activation || 0;
+        }
+    } catch(e) { console.error(e); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadGlobalStats();
+    loadAdminSection('dashboard');
+    setInterval(loadGlobalStats, 30000);
+});
+</script>
+
+<style>
+.admin-container {
+    padding: 1rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.stat-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+@media (max-width: 1200px) {
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
+{% endblock %}

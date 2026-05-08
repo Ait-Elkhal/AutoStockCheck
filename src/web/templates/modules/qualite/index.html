@@ -1,0 +1,599 @@
+{% extends "base/base.html" %}
+
+{% block title %}Qualité - AutoStockCheck{% endblock %}
+
+{% block content %}
+<div class="module-header">
+    <h2>🔧 Gestion des anomalies qualité</h2>
+    <button class="btn btn-secondary" onclick="loadAnomalies()">
+        🔄 Rafraîchir
+    </button>
+</div>
+
+<!-- Statistiques -->
+<div class="stats-grid-mini">
+    <div class="stat-card-mini">
+        <div class="stat-icon">🔴</div>
+        <div class="stat-info">
+            <div class="stat-label">En attente</div>
+            <div class="stat-value" id="statEnAttente">0</div>
+        </div>
+    </div>
+    <div class="stat-card-mini">
+        <div class="stat-icon">🟢</div>
+        <div class="stat-info">
+            <div class="stat-label">Corrigées</div>
+            <div class="stat-value" id="statCorrigees">0</div>
+        </div>
+    </div>
+    <div class="stat-card-mini">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+            <div class="stat-label">Total anomalies</div>
+            <div class="stat-value" id="statTotal">0</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('en-attente')">🟡 En attente de correction</button>
+    <button class="tab-btn" onclick="switchTab('corrigees')">🟢 Anomalies corrigées</button>
+    <button class="tab-btn" onclick="switchTab('statistiques')">📊 Statistiques qualité</button>
+</div>
+
+<!-- Onglet En attente -->
+<div id="tab-en-attente" class="tab-content active">
+    <div class="filters-bar">
+        <div class="search-box">
+            <input type="text" id="searchAnomalie" class="input" placeholder="🔍 Référence facture, réception..." onkeyup="filterAnomalies()">
+        </div>
+        <select id="prioriteFilter" class="select" onchange="filterAnomalies()">
+            <option value="all">📊 Toutes priorités</option>
+            <option value="haute">🔴 Haute priorité</option>
+            <option value="moyenne">🟡 Priorité moyenne</option>
+            <option value="basse">🟢 Priorité basse</option>
+        </select>
+    </div>
+    
+    <div id="anomaliesList" class="anomalies-grid">
+        <div class="loading">Chargement des anomalies...</div>
+    </div>
+</div>
+
+<!-- Onglet Corrigées -->
+<div id="tab-corrigees" class="tab-content">
+    <div class="filters-bar">
+        <div class="search-box">
+            <input type="text" id="searchCorrigee" class="input" placeholder="🔍 Rechercher..." onkeyup="filterCorrigees()">
+        </div>
+    </div>
+    <div id="corrigeesList" class="anomalies-grid">
+        <div class="loading">Chargement...</div>
+    </div>
+</div>
+
+<!-- Onglet Statistiques -->
+<div id="tab-statistiques" class="tab-content">
+    <div class="stats-dashboard">
+        <div class="chart-card">
+            <h3>📈 Évolution des anomalies</h3>
+            <canvas id="evolutionChart" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>🥧 Répartition par type</h3>
+            <canvas id="repartitionChart" height="200"></canvas>
+        </div>
+        <div class="stats-table-card">
+            <h3>📋 Top produits défectueux</h3>
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr><th>Produit</th><th>Référence</th><th>Nombre d'incidents</th><th>Taux</th></thead>
+                    <tbody id="topProduitsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Correction -->
+<div id="correctionModal" class="modal-overlay" style="display: none;">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3>✏️ Correction des anomalies</h3>
+            <button class="modal-close" onclick="closeModal('correctionModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="info-section" id="anomalieInfo">
+                <div class="info-row">
+                    <span class="info-label">📄 Facture:</span>
+                    <span class="info-value" id="anomalieFactureRef">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📦 Réception:</span>
+                    <span class="info-value" id="anomalieReceptionRef">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📅 Date création:</span>
+                    <span class="info-value" id="anomalieDate">-</span>
+                </div>
+            </div>
+            
+            <h4>📋 Produits à corriger</h4>
+            <div id="correctionProduitsList" class="correction-produits"></div>
+            
+            <div class="form-group">
+                <label>📝 Commentaire général</label>
+                <textarea id="correctionCommentaire" class="input" rows="3" placeholder="Commentaire sur les corrections..."></textarea>
+            </div>
+            
+            <div class="warning-box">
+                ⚠️ <strong>Attention :</strong> Cette action est irréversible. Une fois confirmée, les corrections seront appliquées définitivement.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('correctionModal')">Annuler</button>
+            <button class="btn btn-danger" id="confirmCorrectionBtn" onclick="confirmCorrection()">
+                ✅ Valider les corrections
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let anomaliesList = [];
+let currentAnomalie = null;
+let currentAnomalieFile = null;
+let evolutionChart = null;
+let repartitionChart = null;
+
+// ==================== CHARGEMENT ====================
+async function loadAnomalies() {
+    const response = await fetch('/api/matching/anomalies');
+    const data = await response.json();
+    if (data.status === 'success') {
+        anomaliesList = data.anomalies;
+        displayAnomalies();
+        updateStats();
+    }
+}
+
+function displayAnomalies() {
+    const container = document.getElementById('anomaliesList');
+    const search = document.getElementById('searchAnomalie')?.value.toLowerCase() || '';
+    const priorite = document.getElementById('prioriteFilter')?.value || 'all';
+    
+    let enAttente = anomaliesList.filter(a => a.statut === 'en_attente');
+    
+    let filtered = enAttente.filter(a => {
+        const matchSearch = a.facture_reference?.toLowerCase().includes(search) || 
+                           a.reception_reference?.toLowerCase().includes(search);
+        return matchSearch;
+    });
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">✅ Aucune anomalie en attente</div>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map(a => `
+        <div class="anomalie-card" onclick="openCorrectionModal('${a.filename}')">
+            <div class="anomalie-header">
+                <div class="anomalie-ref">
+                    <span class="anomalie-icon">🔴</span>
+                    <strong>${a.facture_reference || a.reception_reference || 'Sans réf'}</strong>
+                </div>
+                <div class="anomalie-date">${new Date(a.date_creation).toLocaleDateString()}</div>
+            </div>
+            <div class="anomalie-details">
+                <div>📄 Facture: ${a.facture_reference || '-'}</div>
+                <div>📦 Réception: ${a.reception_reference || '-'}</div>
+                <div>⚠️ ${a.produits_count} anomalie(s) détectée(s)</div>
+            </div>
+            <div class="anomalie-actions">
+                <span class="priority-badge haute">Haute priorité</span>
+                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openCorrectionModal('${a.filename}')">
+                    ✏️ Corriger
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function displayCorrigees() {
+    const container = document.getElementById('corrigeesList');
+    const search = document.getElementById('searchCorrigee')?.value.toLowerCase() || '';
+    
+    let corrigees = anomaliesList.filter(a => a.statut === 'corrige');
+    let filtered = corrigees.filter(a => {
+        return a.facture_reference?.toLowerCase().includes(search) || 
+               a.reception_reference?.toLowerCase().includes(search);
+    });
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">📭 Aucune anomalie corrigée</div>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map(a => `
+        <div class="anomalie-card corrigee">
+            <div class="anomalie-header">
+                <div class="anomalie-ref">
+                    <span class="anomalie-icon">🟢</span>
+                    <strong>${a.facture_reference || a.reception_reference || 'Sans réf'}</strong>
+                </div>
+                <div class="anomalie-date">${new Date(a.date_creation).toLocaleDateString()}</div>
+            </div>
+            <div class="anomalie-details">
+                <div>📄 Facture: ${a.facture_reference || '-'}</div>
+                <div>📦 Réception: ${a.reception_reference || '-'}</div>
+                <div>✅ Corrigée le ${a.date_correction ? new Date(a.date_correction).toLocaleDateString() : '-'}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateStats() {
+    const enAttente = anomaliesList.filter(a => a.statut === 'en_attente').length;
+    const corrigees = anomaliesList.filter(a => a.statut === 'corrige').length;
+    document.getElementById('statEnAttente').textContent = enAttente;
+    document.getElementById('statCorrigees').textContent = corrigees;
+    document.getElementById('statTotal').textContent = anomaliesList.length;
+}
+
+// ==================== CORRECTION ====================
+async function openCorrectionModal(filename) {
+    const response = await fetch(`/api/matching/anomalies/${filename}`);
+    const data = await response.json();
+    if (data.status === 'success') {
+        currentAnomalie = data.anomalie;
+        currentAnomalieFile = filename;
+        
+        document.getElementById('anomalieFactureRef').textContent = currentAnomalie.facture_reference || '-';
+        document.getElementById('anomalieReceptionRef').textContent = currentAnomalie.reception_reference || '-';
+        document.getElementById('anomalieDate').textContent = new Date(currentAnomalie.date_creation).toLocaleString();
+        document.getElementById('correctionCommentaire').value = '';
+        
+        renderCorrectionProduits(currentAnomalie.produits);
+        openModal('correctionModal');
+    }
+}
+
+function renderCorrectionProduits(produits) {
+    const container = document.getElementById('correctionProduitsList');
+    container.innerHTML = produits.map((p, i) => `
+        <div class="correction-produit">
+            <div class="correction-produit-header">
+                <strong>${p.reference}</strong> - ${p.produit}
+            </div>
+            <div class="correction-produit-info">
+                <div class="info-original">
+                    📊 Quantité facture: ${p.quantite_facture}<br>
+                    📦 Quantité reçue: ${p.quantite_recue}
+                </div>
+                <div class="info-correction">
+                    <div class="form-group">
+                        <label>Nouvelle quantité</label>
+                        <input type="number" id="new_qty_${i}" class="input" value="${p.quantite_recue}" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Nouvel état</label>
+                        <select id="new_etat_${i}" class="input">
+                            <option ${p.correction?.nouvel_etat === 'Bon' ? 'selected' : ''}>Bon</option>
+                            <option ${p.correction?.nouvel_etat === 'Très bon' ? 'selected' : ''}>Très bon</option>
+                            <option ${p.correction?.nouvel_etat === 'Correct' ? 'selected' : ''}>Correct</option>
+                            <option ${p.correction?.nouvel_etat === 'Défectueux' ? 'selected' : ''}>Défectueux</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function confirmCorrection() {
+    const confirmation = confirm(
+        "⚠️ ATTENTION - CORRECTION DÉFINITIVE ⚠️\n\n" +
+        "Cette action est IRRÉVERSIBLE !\n\n" +
+        "Êtes-vous ABSOLUMENT sûr de vouloir appliquer ces corrections ?"
+    );
+    
+    if (!confirmation) return;
+    
+    const produitsCorriges = currentAnomalie.produits.map((p, i) => ({
+        reference: p.reference,
+        correction: {
+            nouvelle_quantite: parseInt(document.getElementById(`new_qty_${i}`).value) || 0,
+            nouvel_etat: document.getElementById(`new_etat_${i}`).value,
+            commentaire: document.getElementById('correctionCommentaire').value
+        }
+    }));
+    
+    const response = await fetch(`/api/matching/anomalies/${currentAnomalieFile}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            produits: produitsCorriges,
+            commentaire: document.getElementById('correctionCommentaire').value,
+            statut: 'corrige',
+            date_correction: new Date().toISOString()
+        })
+    });
+    
+    if (response.ok) {
+        showToast('✅ Corrections appliquées avec succès', 'success');
+        closeModal('correctionModal');
+        loadAnomalies();
+        if (currentTab === 'corrigees') displayCorrigees();
+    } else {
+        showToast('❌ Erreur lors de l\'application des corrections', 'error');
+    }
+}
+
+// ==================== STATISTIQUES ====================
+async function loadStatsQualite() {
+    try {
+        const response = await fetch('/api/qualite/stats');
+        const data = await response.json();
+        
+        if (response.ok) {
+            updateEvolutionChart(data.evolution);
+            updateRepartitionChart(data.repartition);
+            updateTopProduits(data.topProduits);
+        }
+    } catch(e) {
+        console.error('Erreur chargement stats:', e);
+    }
+}
+
+function updateEvolutionChart(data) {
+    const ctx = document.getElementById('evolutionChart')?.getContext('2d');
+    if (!ctx) return;
+    
+    if (evolutionChart) evolutionChart.destroy();
+    evolutionChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data?.labels || ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+            datasets: [{
+                label: 'Anomalies détectées',
+                data: data?.values || [0, 0, 0, 0],
+                borderColor: 'var(--primary)',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: true }
+    });
+}
+
+function updateRepartitionChart(data) {
+    const ctx = document.getElementById('repartitionChart')?.getContext('2d');
+    if (!ctx) return;
+    
+    if (repartitionChart) repartitionChart.destroy();
+    repartitionChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: data?.labels || ['Manques', 'Excédents', 'Non commandés'],
+            datasets: [{
+                data: data?.values || [0, 0, 0],
+                backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6']
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: true }
+    });
+}
+
+function updateTopProduits(produits) {
+    const tbody = document.getElementById('topProduitsBody');
+    if (!produits || produits.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="table-empty">Aucune donnée</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = produits.map(p => `
+        <tr>
+            <td>${p.nom}</td>
+            <td>${p.reference}</td>
+            <td class="text-center">${p.incidents}</td>
+            <td class="text-center">${p.taux}%</td>
+        </tr>
+    `).join('');
+}
+
+// ==================== UTILITAIRES ====================
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    
+    if (tab === 'en-attente') loadAnomalies();
+    else if (tab === 'corrigees') displayCorrigees();
+    else if (tab === 'statistiques') loadStatsQualite();
+}
+
+function filterAnomalies() { displayAnomalies(); }
+function filterCorrigees() { displayCorrigees(); }
+
+// Initialisation
+loadAnomalies();
+</script>
+
+<style>
+/* Statistiques mini */
+.stats-grid-mini {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card-mini {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-card-mini .stat-icon {
+    font-size: 2rem;
+}
+
+.stat-card-mini .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* Grille anomalies */
+.anomalies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 1rem;
+}
+
+.anomalie-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.anomalie-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.anomalie-card.corrigee {
+    opacity: 0.8;
+}
+
+.anomalie-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.anomalie-ref {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.anomalie-icon {
+    font-size: 1rem;
+}
+
+.anomalie-details {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.anomalie-details div {
+    margin-bottom: 0.25rem;
+}
+
+.anomalie-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.priority-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.priority-badge.haute {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+/* Correction produits */
+.correction-produit {
+    background: var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.correction-produit-header {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.correction-produit-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.info-original {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.info-correction {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.warning-box {
+    background: var(--warning-light);
+    color: var(--warning);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    margin-top: 1rem;
+    font-size: 0.8rem;
+}
+
+.stats-dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.stats-table-card {
+    grid-column: span 2;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+}
+
+@media (max-width: 768px) {
+    .stats-grid-mini {
+        grid-template-columns: 1fr;
+    }
+    .anomalies-grid {
+        grid-template-columns: 1fr;
+    }
+    .stats-dashboard {
+        grid-template-columns: 1fr;
+    }
+    .stats-table-card {
+        grid-column: span 1;
+    }
+    .correction-produit-info {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,249 @@
+<link rel="stylesheet" href="/static/css/qualite-anomalies.css">
+
+<div class="qualite-container">
+    <div class="qualite-header">
+        <h2>Gestion des anomalies qualité</h2>
+        <button class="btn btn-secondary" onclick="chargerAnomaliesQualite()">🔄 Rafraîchir</button>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value" id="statEnAttente">0</div>
+            <div class="stat-label">En attente</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statCorrige">0</div>
+            <div class="stat-label">Corrigés</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-label">Total</div>
+        </div>
+    </div>
+
+    <div class="anomalies-list" id="anomaliesList"></div>
+</div>
+
+<!-- Modal Correction -->
+<div id="modalCorrection" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ Correction des anomalies</h3>
+            <button class="close-btn" onclick="fermerModalCorrection()">✕</button>
+        </div>
+        <div class="modal-body" id="correctionContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="fermerModalCorrection()">Annuler</button>
+            <button class="btn btn-primary" onclick="envoyerCorrectionStock()">📤 Envoyer la correction</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // Variables locales
+    let anomaliesListData = [];
+    let currentAnomalieFile = null;
+    let currentAnomalieData = null;
+
+    // ==================== CHARGEMENT DES ANOMALIES ====================
+    window.chargerAnomaliesQualite = async function() {
+        const container = document.getElementById('anomaliesList');
+        if (!container) return;
+        
+        container.innerHTML = '<div style="text-align:center; padding:40px;">🔄 Chargement...</div>';
+        
+        try {
+            const response = await fetch('/api/matching/anomalies/list', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                anomaliesListData = data.anomalies;
+                afficherAnomalies();
+                mettreAJourStats();
+            } else {
+                container.innerHTML = '<div style="text-align:center; padding:40px;">📭 Aucune anomalie</div>';
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            container.innerHTML = '<div style="text-align:center; padding:40px; color:#f44336;">❌ Erreur de chargement</div>';
+        }
+    };
+
+    function afficherAnomalies() {
+        const container = document.getElementById('anomaliesList');
+        
+        if (!anomaliesListData || anomaliesListData.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:40px;">📭 Aucune anomalie</div>';
+            return;
+        }
+        
+        container.innerHTML = anomaliesListData.map(a => {
+            const statusClass = a.statut === 'en_attente' ? 'status-attente' : 'status-corrige';
+            const statusText = a.statut === 'en_attente' ? '🟡 En attente' : '🟢 Corrigé';
+            
+            return `
+                <div class="anomalie-card">
+                    <div class="anomalie-header">
+                        <span class="anomalie-id">📄 ${a.id}</span>
+                        <span class="anomalie-date">📅 ${new Date(a.date_creation).toLocaleString()}</span>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="anomalie-details">
+                        <span>📦 Produits concernés: <strong>${a.produits_count}</strong></span>
+                    </div>
+                    <div class="anomalie-actions">
+                        <button class="btn btn-primary" onclick="ouvrirCorrection('${a.filename}')">✏️ Corriger</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function mettreAJourStats() {
+        const enAttente = anomaliesListData.filter(a => a.statut === 'en_attente').length;
+        const corrige = anomaliesListData.filter(a => a.statut === 'corrige').length;
+        
+        document.getElementById('statEnAttente').textContent = enAttente;
+        document.getElementById('statCorrige').textContent = corrige;
+        document.getElementById('statTotal').textContent = anomaliesListData.length;
+    }
+
+    // ==================== CORRECTION ====================
+    window.ouvrirCorrection = async function(filename) {
+        try {
+            const response = await fetch(`/api/matching/anomalies/${filename}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                currentAnomalieFile = filename;
+                currentAnomalieData = data.anomalie;
+                afficherFormulaireCorrection(data.anomalie);
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('❌ Erreur de chargement');
+        }
+    };
+
+    function afficherFormulaireCorrection(anomalie) {
+        const container = document.getElementById('correctionContent');
+        
+        if (!anomalie.produits || anomalie.produits.length === 0) {
+            container.innerHTML = '<p>Aucun produit à corriger</p>';
+            document.getElementById('modalCorrection').style.display = 'flex';
+            return;
+        }
+        
+        container.innerHTML = `
+            <div class="info-section">
+                <h4>Informations</h4>
+                <div class="info-grid">
+                    <div class="info-item"><span class="info-label">📄 Facture:</span><span class="info-value">${escapeHtml(anomalie.facture_reference || '-')}</span></div>
+                    <div class="info-item"><span class="info-label">📦 Réception:</span><span class="info-value">${escapeHtml(anomalie.reception_reference || '-')}</span></div>
+                    <div class="info-item"><span class="info-label">📅 Date:</span><span class="info-value">${new Date(anomalie.date_creation).toLocaleString()}</span></div>
+                </div>
+            </div>
+            
+            <h4>📋 Produits à corriger</h4>
+            <table class="correction-table">
+                <thead>
+                    <tr>
+                        <th>Réf.</th>
+                        <th>Produit</th>
+                        <th>Facture</th>
+                        <th>Reçu</th>
+                        <th>Nouvelle Qté</th>
+                        <th>État</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${anomalie.produits.map((p, i) => `
+                        <tr>
+                            <td><strong>${escapeHtml(p.reference)}</strong></td>
+                            <td>${escapeHtml(p.produit)}</td>
+                            <td style="text-align:center">${p.quantite_facture}</td>
+                            <td style="text-align:center">${p.quantite_recue}</td>
+                            <td><input type="number" id="new_qty_${i}" value="${p.correction?.nouvelle_quantite || p.quantite_recue}" min="0" style="width:80px;"></td>
+                            <td>
+                                <select id="new_etat_${i}">
+                                    <option value="Bon" ${p.correction?.nouvel_etat === 'Bon' ? 'selected' : ''}>Bon</option>
+                                    <option value="Très bon" ${p.correction?.nouvel_etat === 'Très bon' ? 'selected' : ''}>Très bon</option>
+                                    <option value="Correct" ${p.correction?.nouvel_etat === 'Correct' ? 'selected' : ''}>Correct</option>
+                                    <option value="Défectueux" ${p.correction?.nouvel_etat === 'Défectueux' ? 'selected' : ''}>Défectueux</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            
+            <div class="form-group" style="margin-top: 20px;">
+                <label>📝 Commentaire général</label>
+                <textarea id="generalComment" class="form-control" rows="3" placeholder="Commentaire sur les corrections..."></textarea>
+            </div>
+        `;
+        
+        document.getElementById('modalCorrection').style.display = 'flex';
+    }
+
+    window.fermerModalCorrection = function() {
+        document.getElementById('modalCorrection').style.display = 'none';
+        currentAnomalieFile = null;
+        currentAnomalieData = null;
+    };
+
+    window.envoyerCorrectionStock = async function() {
+        if (!currentAnomalieFile || !currentAnomalieData) return;
+        
+        // Récupérer les corrections
+        const produitsCorriges = currentAnomalieData.produits.map((p, i) => ({
+            reference: p.reference,
+            correction: {
+                nouvelle_quantite: parseInt(document.getElementById(`new_qty_${i}`).value) || 0,
+                nouvel_etat: document.getElementById(`new_etat_${i}`).value,
+                commentaire: document.getElementById('generalComment').value
+            }
+        }));
+        
+        try {
+            const response = await fetch(`/api/matching/anomalies/${currentAnomalieFile}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    produits: produitsCorriges,
+                    commentaire: document.getElementById('generalComment').value,
+                    statut: 'corrige'
+                })
+            });
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                alert('✅ Corrections envoyées au responsable stock !');
+                fermerModalCorrection();
+                window.chargerAnomaliesQualite();
+            } else {
+                alert('❌ Erreur: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('❌ Erreur lors de l\'envoi');
+        }
+    };
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
+    }
+
+    // Initialisation
+    window.chargerAnomaliesQualite();
+})();
+</script>

@@ -1,0 +1,58 @@
+<div class="section-header">
+    <h3>📦 Toutes les réceptions</h3>
+    <div class="search-box">
+        <input type="text" id="searchReception" class="search-input" placeholder="🔍 Référence, client..." onkeyup="filterReceptions()">
+        <select id="statusReceptionFilter" class="filter-select" onchange="filterReceptions()">
+            <option value="all">📊 Tous statuts</option>
+            <option value="valide">✅ Validée</option>
+            <option value="en_attente">🟡 En attente</option>
+            <option value="corrige">🔧 Corrigée</option>
+        </select>
+        <button class="btn btn-secondary" onclick="loadReceptions()">🔄 Rafraîchir</button>
+    </div>
+</div>
+
+<div class="receptions-list" id="receptionsList"><div class="loading">⏳ Chargement...</div></div>
+
+<script>
+    let receptionsList = [];
+    
+    async function loadReceptions() {
+        if (window.AppData && window.AppData.commandesRecues) {
+            receptionsList = window.AppData.commandesRecues;
+            displayReceptions();
+        } else {
+            try {
+                const res = await fetch('/api/commandes-recues', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+                const data = await res.json();
+                if (data.status === 'success') { receptionsList = data.commandes || []; displayReceptions(); }
+            } catch(e) { console.error(e); }
+        }
+    }
+    
+    function displayReceptions() {
+        const container = document.getElementById('receptionsList');
+        const search = document.getElementById('searchReception')?.value.toLowerCase() || '';
+        const statusFilter = document.getElementById('statusReceptionFilter')?.value || 'all';
+        let filtered = receptionsList.filter(r => r.reference?.toLowerCase().includes(search));
+        if (statusFilter !== 'all') filtered = filtered.filter(r => r.statut === statusFilter);
+        if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">📭 Aucune réception</div>'; return; }
+        container.innerHTML = filtered.map(r => `
+            <div class="reception-card">
+                <div class="reception-header">
+                    <span class="reception-ref">🏷️ ${escapeHtml(r.reference)}</span>
+                    <span class="reception-date">📅 ${new Date(r.dateReception || r.date_ajout).toLocaleDateString()}</span>
+                    <span class="status-badge status-${r.statut}">${r.statut === 'valide' ? '✅ Validée' : r.statut === 'en_attente' ? '🟡 En attente' : '🔧 Corrigée'}</span>
+                </div>
+                <div class="reception-body">
+                    <div>👤 Client: ${escapeHtml(r.client) || '-'}</div>
+                    <div>📦 Produits: ${r.produits?.length || 0}</div>
+                    <div>📊 Quantité: ${r.produits?.reduce((s,p) => s + (p.quantite || 0), 0) || 0}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function filterReceptions() { displayReceptions(); }
+    loadReceptions();
+</script>

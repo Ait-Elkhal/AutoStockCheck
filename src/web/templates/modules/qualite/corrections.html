@@ -1,0 +1,268 @@
+{% extends "base/stock_base.html" %}
+
+{% block page_title %}✅ Corrections à valider{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/qualite.css">
+{% endblock %}
+
+{% block stock_content %}
+<div class="qualite-container">
+    <div class="qualite-header">
+        <h2>✅ Corrections à valider</h2>
+        <button class="btn btn-secondary" onclick="chargerCorrections()">🔄 Rafraîchir</button>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value" id="statEnAttente">0</div>
+            <div class="stat-label">En attente</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statValidees">0</div>
+            <div class="stat-label">Validées</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-label">Total</div>
+        </div>
+    </div>
+
+    <div class="filters-bar">
+        <input type="text" id="searchCorrection" class="search-input" placeholder="🔍 Rechercher..." onkeyup="filtrerCorrections()">
+    </div>
+
+    <div id="correctionsList" class="anomalies-list">
+        <div class="loading">⏳ Chargement des corrections...</div>
+    </div>
+</div>
+
+<!-- Modal Correction -->
+<div id="modalCorrection" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ Corriger les anomalies</h3>
+            <button class="modal-close" onclick="fermerModalCorrection()">✕</button>
+        </div>
+        <div class="modal-body" id="correctionContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="fermerModalCorrection()">Annuler</button>
+            <button class="btn btn-success" onclick="validerCorrections()">✅ Valider les corrections</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let correctionsList = [];
+let currentCorrection = null;
+
+async function chargerCorrections() {
+    const container = document.getElementById('correctionsList');
+    container.innerHTML = '<div class="loading">⏳ Chargement...</div>';
+    
+    try {
+        const response = await fetch('/api/qualite/corrections', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            correctionsList = data.corrections;
+            afficherCorrections();
+            mettreAJourStats();
+        } else {
+            container.innerHTML = '<div class="empty-state">📭 Aucune correction en attente</div>';
+        }
+    } catch(e) {
+        console.error('Erreur:', e);
+        container.innerHTML = '<div class="empty-state">❌ Erreur de chargement</div>';
+    }
+}
+
+function afficherCorrections() {
+    const container = document.getElementById('correctionsList');
+    const search = document.getElementById('searchCorrection').value.toLowerCase();
+    
+    let filtered = correctionsList.filter(c => {
+        return c.facture?.reference?.toLowerCase().includes(search) || 
+               c.reception?.reference?.toLowerCase().includes(search);
+    });
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">✅ Aucune correction en attente</div>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map(c => {
+        const estModifiee = c.reception?.fichier_original?.includes('_modifie') || false;
+        return `
+        <div class="anomalie-card">
+            <div class="anomalie-header">
+                <div class="anomalie-id">📋 ${c.id}</div>
+                <div class="anomalie-date">📅 ${new Date(c.date_creation).toLocaleString()}</div>
+                <div class="status-badge status-pending">🟡 En attente</div>
+                ${estModifiee ? '<span class="badge badge-warning">📝 Déjà modifiée</span>' : ''}
+            </div>
+            <div class="anomalie-details">
+                <div class="detail-item">
+                    <span class="detail-label">📄 Facture:</span>
+                    <span class="detail-value">${escapeHtml(c.facture?.reference || '-')}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">📦 Réception:</span>
+                    <span class="detail-value">${escapeHtml(c.reception?.reference || '-')}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">👤 Client:</span>
+                    <span class="detail-value">${escapeHtml(c.reception?.client || '-')}</span>
+                </div>
+            </div>
+            <div class="produits-manquants">
+                <div class="produits-manquants-title">📦 Produits à corriger:</div>
+                <div class="produits-list">
+                    ${(c.produits_manquants || []).map(p => `
+                        <span class="produit-tag">${escapeHtml(p.reference)}: -${Math.abs(p.difference)}</span>
+                    `).join('')}
+                </div>
+            </div>
+            <div class="anomalie-actions">
+                ${!estModifiee ? 
+                    `<button class="btn btn-primary" onclick="ouvrirCorrection('${c.id}')">✏️ Corriger</button>` :
+                    `<button class="btn btn-secondary" disabled>✅ Déjà corrigée</button>`
+                }
+            </div>
+        </div>
+    `}).join('');
+}
+
+function mettreAJourStats() {
+    const enAttente = correctionsList.filter(c => c.statut === 'en_attente').length;
+    const validees = correctionsList.filter(c => c.statut === 'valide').length;
+    
+    document.getElementById('statEnAttente').textContent = enAttente;
+    document.getElementById('statValidees').textContent = validees;
+    document.getElementById('statTotal').textContent = correctionsList.length;
+}
+
+function filtrerCorrections() {
+    afficherCorrections();
+}
+
+function ouvrirCorrection(correctionId) {
+    currentCorrection = correctionsList.find(c => c.id === correctionId);
+    if (!currentCorrection) return;
+    
+    const container = document.getElementById('correctionContent');
+    
+    container.innerHTML = `
+        <div class="correction-info">
+            <div class="correction-info-row"><strong>📄 Facture:</strong> ${escapeHtml(currentCorrection.facture?.reference || '-')}</div>
+            <div class="correction-info-row"><strong>📦 Réception:</strong> ${escapeHtml(currentCorrection.reception?.reference || '-')}</div>
+            <div class="correction-info-row"><strong>👤 Client:</strong> ${escapeHtml(currentCorrection.reception?.client || '-')}</div>
+        </div>
+        
+        <h4>📋 Produits à corriger</h4>
+        ${(currentCorrection.produits_manquants || []).map((p, i) => `
+            <div class="produit-correction">
+                <div class="produit-correction-header">
+                    <span class="produit-correction-ref">${escapeHtml(p.reference)} - ${escapeHtml(p.produit)}</span>
+                    <span class="produit-correction-manque">Manque: ${Math.abs(p.difference)} unités</span>
+                </div>
+                <div class="correction-fields">
+                    <div class="field">
+                        <label>Nouvelle quantité reçue:</label>
+                        <input type="number" id="new_qty_${i}" value="${p.quantite_reception}" min="0" step="1">
+                    </div>
+                    <div class="field">
+                        <label>État:</label>
+                        <select id="new_etat_${i}">
+                            <option value="Bon" ${p.etat === 'Bon' ? 'selected' : ''}>✅ Bon</option>
+                            <option value="Très bon" ${p.etat === 'Très bon' ? 'selected' : ''}>⭐ Très bon</option>
+                            <option value="Correct" ${p.etat === 'Correct' ? 'selected' : ''}>👍 Correct</option>
+                            <option value="Défectueux" ${p.etat === 'Défectueux' ? 'selected' : ''}>⚠️ Défectueux</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `).join('')}
+        
+        <div class="form-group">
+            <label>📝 Commentaire:</label>
+            <textarea id="commentaire" class="form-control" rows="3" placeholder="Commentaire sur les corrections..." style="width:100%; padding:0.5rem; border:1px solid var(--gray-200); border-radius:8px;"></textarea>
+        </div>
+    `;
+    
+    document.getElementById('modalCorrection').style.display = 'flex';
+}
+
+async function validerCorrections() {
+    if (!currentCorrection) return;
+    
+    const corrections = (currentCorrection.produits_manquants || []).map((p, i) => {
+        const nouvelleQuantite = parseInt(document.getElementById(`new_qty_${i}`).value);
+        const nouvelEtat = document.getElementById(`new_etat_${i}`).value;
+        
+        return {
+            reference: p.reference,
+            ancienne_quantite: p.quantite_reception,
+            nouvelle_quantite: nouvelleQuantite,
+            ancien_etat: p.etat || 'Bon',
+            nouvel_etat: nouvelEtat
+        };
+    });
+    
+    const commentaire = document.getElementById('commentaire').value;
+    
+    if (confirm('Valider ces corrections ? La réception sera mise à jour.')) {
+        try {
+            const response = await fetch('/api/qualite/appliquer-corrections', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    anomalie_id: currentCorrection.id,
+                    corrections: corrections,
+                    commentaire: commentaire
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                showToast('✅ Corrections appliquées', 'La réception a été mise à jour', 'success');
+                fermerModalCorrection();
+                chargerCorrections();
+            } else {
+                showToast('❌ Erreur', result.message, 'error');
+            }
+        } catch(e) {
+            console.error('Erreur:', e);
+            showToast('❌ Erreur', 'Impossible d\'appliquer les corrections', 'error');
+        }
+    }
+}
+
+function fermerModalCorrection() {
+    document.getElementById('modalCorrection').style.display = 'none';
+    currentCorrection = null;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, m => {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+function showToast(title, message, type) {
+    if (typeof window.showToast === 'function') {
+        window.showToast(title, message, type);
+    }
+}
+
+chargerCorrections();
+</script>
+{% endblock %}

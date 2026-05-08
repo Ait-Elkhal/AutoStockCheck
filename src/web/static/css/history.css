@@ -1,25 +1,424 @@
+/* ==================== HISTORIQUE UNIFIÉ - STYLES ==================== */
+
 .history-section {
     background: white;
-    border-radius: 15px;
-    padding: 20px;
+    border-radius: 20px;
+    padding: 25px;
     margin-top: 20px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
+/* ==================== HEADER ==================== */
 .history-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 25px;
     padding-bottom: 15px;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid #e8ecf2;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .history-header h2 {
     margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.4rem;
+    color: #4361ee;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* ==================== ONGLETS ==================== */
+.history-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e8ecf2;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #666;
+    transition: all 0.3s;
+    border-radius: 8px 8px 0 0;
+}
+
+.tab-btn:hover {
+    color: #4361ee;
+    background: #f0f4ff;
+}
+
+.tab-btn.active {
+    color: #4361ee;
+    border-bottom: 3px solid #4361ee;
+    background: #f8faff;
+}
+
+/* ==================== STATISTIQUES ==================== */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);
+    border-radius: 16px;
+    padding: 15px;
+    text-align: center;
+    border: 1px solid rgba(67, 97, 238, 0.1);
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(67, 97, 238, 0.1);
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
     color: #4361ee;
 }
 
+.stat-label {
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* ==================== FILTRES ==================== */
+.history-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 16px;
+}
+
+.search-box {
+    flex: 2;
+    min-width: 200px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    background: white;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #4361ee;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.filter-select {
+    padding: 10px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.3s;
+}
+
+.filter-select:hover {
+    border-color: #4361ee;
+}
+
+/* ==================== TABLEAU HISTORIQUE ==================== */
+.history-table {
+    overflow-x: auto;
+    border-radius: 16px;
+    border: 1px solid #e8ecf2;
+}
+
+.history-table-style {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.history-table-style th {
+    background: linear-gradient(135deg, #1a2a3a 0%, #2d3a4a 100%);
+    color: white;
+    padding: 14px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.8rem;
+    position: sticky;
+    top: 0;
+}
+
+.history-table-style td {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+
+.history-table-style tr:hover {
+    background: #f8faff;
+}
+
+/* ==================== BADGES DE STATUT ==================== */
+.status-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.status-validated {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-pending {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+.status-forgotten {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.status-en_attente {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+.status-valide {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-erreur {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.status-corrige {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.payment-paid {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.payment-unpaid {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+/* ==================== BOUTONS D'ACTION ==================== */
+.action-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.action-btn.edit {
+    background: #ffc107;
+    color: #333;
+}
+
+.action-btn.delete {
+    background: #dc3545;
+    color: white;
+}
+
+.action-btn.view {
+    background: #4361ee;
+    color: white;
+}
+
+.action-btn:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+}
+
+/* ==================== PAGINATION ==================== */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+.pagination button {
+    padding: 8px 14px;
+    border: 1px solid #e0e0e0;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.8rem;
+}
+
+.pagination button:hover {
+    background: #4361ee;
+    color: white;
+    border-color: #4361ee;
+}
+
+.pagination button.active {
+    background: #4361ee;
+    color: white;
+    border-color: #4361ee;
+}
+
+/* ==================== MODAL DÉTAILS ==================== */
+.modal-details {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-details-content {
+    background: white;
+    border-radius: 20px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: fadeInUp 0.3s ease;
+}
+
+.modal-details-content .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #4361ee, #6c5ce7);
+    color: white;
+    border-radius: 20px 20px 0 0;
+}
+
+.modal-details-content .modal-header h3 {
+    margin: 0;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.modal-details-content .modal-body {
+    padding: 25px;
+}
+
+.modal-details-content .modal-footer {
+    padding: 15px 25px;
+    border-top: 1px solid #e8ecf2;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.detail-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.detail-row {
+    display: flex;
+    padding: 10px 0;
+    border-bottom: 1px solid #e8ecf2;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    width: 120px;
+    font-weight: 600;
+    color: #4361ee;
+}
+
+.detail-value {
+    flex: 1;
+    color: #333;
+}
+
+/* ==================== MODAL CONFIRMATION ==================== */
+.modal-confirm {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-confirm-content {
+    background: white;
+    border-radius: 20px;
+    max-width: 400px;
+    width: 90%;
+    padding: 25px;
+    text-align: center;
+    animation: fadeInUp 0.3s ease;
+}
+
+.modal-confirm-content h3 {
+    color: #dc3545;
+    margin-bottom: 15px;
+}
+
+.modal-confirm-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+/* ==================== NOTIFICATIONS ==================== */
 .notification-btn {
     position: relative;
     background: none;
@@ -57,19 +456,20 @@
     width: 380px;
     max-height: 500px;
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     z-index: 1000;
     display: none;
     overflow: hidden;
+    animation: slideInRight 0.3s ease;
 }
 
 .notifications-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
-    background: #4361ee;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #4361ee, #6c5ce7);
     color: white;
 }
 
@@ -81,9 +481,10 @@
 
 .notification-item {
     padding: 12px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e8ecf2;
     cursor: pointer;
     transition: background 0.2s;
+    border-radius: 8px;
 }
 
 .notification-item:hover {
@@ -98,173 +499,151 @@
 .notification-title {
     font-weight: bold;
     margin-bottom: 5px;
+    color: #333;
 }
 
 .notification-date {
     font-size: 0.7rem;
-    color: #666;
+    color: #999;
     margin-top: 5px;
 }
 
-.history-filters {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-
-.search-box {
-    flex: 1;
-    display: flex;
-    gap: 10px;
-}
-
-.search-box input {
-    flex: 1;
-    padding: 10px 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 0.9rem;
-}
-
-.filter-select {
-    padding: 10px 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background: white;
-    cursor: pointer;
-}
-
-.history-table {
-    overflow-x: auto;
-}
-
-.history-table table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.history-table th {
-    background: #f8f9fa;
-    padding: 12px;
-    text-align: left;
-    font-weight: 600;
-    border-bottom: 2px solid #e0e0e0;
-    font-size: 0.85rem;
-}
-
-.history-table td {
-    padding: 12px;
-    border-bottom: 1px solid #e0e0e0;
-    font-size: 0.85rem;
-}
-
-.history-table tr:hover {
-    background: #f5f5f5;
-}
-
-.status-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    font-weight: 500;
-}
-
-.status-validated {
-    background: #d4edda;
-    color: #155724;
-}
-
-.status-pending {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.status-forgotten {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-.payment-paid {
-    background: #d4edda;
-    color: #155724;
-}
-
-.payment-unpaid {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.action-btn {
-    padding: 5px 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.7rem;
-    transition: all 0.2s;
-}
-
-.action-btn.edit {
-    background: #ffc107;
-    color: #333;
-}
-
-.action-btn.delete {
-    background: #dc3545;
-    color: white;
-}
-
-.action-btn:hover {
-    opacity: 0.8;
-    transform: scale(1.02);
-}
-
-.modal-confirm {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 2000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-confirm-content {
-    background: white;
-    border-radius: 12px;
-    max-width: 400px;
-    width: 90%;
-    padding: 25px;
-    text-align: center;
-}
-
-.modal-confirm-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin-top: 20px;
-}
-
+/* ==================== TOAST ==================== */
 .toast-notification {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: #4caf50;
+    bottom: 30px;
+    right: 30px;
+    background: #333;
     color: white;
     padding: 12px 20px;
-    border-radius: 8px;
+    border-radius: 10px;
     z-index: 2000;
     display: none;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    animation: slideInRight 0.3s ease;
+    font-size: 0.85rem;
 }
 
-@keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+.toast-notification.success {
+    background: #4caf50;
+}
+
+.toast-notification.error {
+    background: #f44336;
+}
+
+.toast-notification.warning {
+    background: #ff9800;
+}
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ==================== SCROLLBAR ==================== */
+.history-table::-webkit-scrollbar,
+.notifications-list::-webkit-scrollbar,
+.modal-details-content::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.history-table::-webkit-scrollbar-track,
+.notifications-list::-webkit-scrollbar-track,
+.modal-details-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.history-table::-webkit-scrollbar-thumb,
+.notifications-list::-webkit-scrollbar-thumb,
+.modal-details-content::-webkit-scrollbar-thumb {
+    background: #4361ee;
+    border-radius: 10px;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+    .history-section {
+        padding: 15px;
+    }
+    
+    .history-tabs {
+        gap: 0;
+    }
+    
+    .tab-btn {
+        padding: 8px 12px;
+        font-size: 0.75rem;
+    }
+    
+    .history-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-select,
+    .search-box {
+        width: 100%;
+    }
+    
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .stat-value {
+        font-size: 1.4rem;
+    }
+    
+    .history-table-style th,
+    .history-table-style td {
+        padding: 8px;
+        font-size: 0.7rem;
+    }
+    
+    .notifications-panel {
+        width: 90%;
+        right: 5%;
+        left: 5%;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+    }
+    
+    .detail-label {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .history-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }

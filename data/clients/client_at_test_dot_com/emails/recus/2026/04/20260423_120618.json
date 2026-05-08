@@ -1,0 +1,7 @@
+{
+  "from": "client@test.com",
+  "subject": "Facture REC-001",
+  "body": "Bonjour, voici ma facture.",
+  "reference": "REC-001",
+  "date": "2026-04-23T12:06:18.469496"
+}

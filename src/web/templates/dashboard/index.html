@@ -1,498 +1,138 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoStockCheck - Dashboard</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/dashboard.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-</head>
-<body>
-    <!-- Barre de menu principale (dynamique) -->
-    <nav class="navbar" id="navbar">
-        <div class="navbar-container">
-            <a href="/" class="logo">
-                <span>📦</span>
-                AutoStockCheck
-            </a>
-            <ul class="nav-menu">
-                <li><a href="/dashboard" class="nav-link active">📊 Dashboard</a></li>
-                <li><a href="/" class="nav-link">🏠 Accueil</a></li>
-                <li><a href="#" onclick="logout()" class="nav-link">🚪 Déconnexion</a></li>
-            </ul>
+{% extends "base/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <!-- Cartes statistiques -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-info">
+                <div class="stat-label">Stock total</div>
+                <div class="stat-value" id="statStockTotal">0</div>
+            </div>
         </div>
-    </nav>
-
-    <!-- Bouton menu mobile -->
-    <button class="menu-toggle" id="menuToggle">☰</button>
-
-    <div class="dashboard-container">
-        <!-- Barre latérale -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-toggle" onclick="toggleSidebar()">◀</div>
-            <div class="sidebar-header">
-                <h3>📦 AutoStockCheck</h3>
-                <p id="userCompany">Chargement...</p>
-                <p id="userRole" style="font-size: 0.7rem; margin-top: 5px;"></p>
+        <div class="stat-card">
+            <div class="stat-icon">📥</div>
+            <div class="stat-info">
+                <div class="stat-label">Entrées (mois)</div>
+                <div class="stat-value" id="statEntries">0</div>
             </div>
-            <div class="sidebar-menu" id="sidebarMenu"></div>
-        </aside>
-
-        <!-- Contenu principal -->
-        <main class="main-content" id="mainContent">
-            <div id="dynamicContent">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Chargement du tableau de bord...</p>
-                </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📤</div>
+            <div class="stat-info">
+                <div class="stat-label">Sorties (mois)</div>
+                <div class="stat-value" id="statExits">0</div>
             </div>
-        </main>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-info">
+                <div class="stat-label">Alertes stock</div>
+                <div class="stat-value warning" id="statAlerts">0</div>
+            </div>
+        </div>
     </div>
 
-    <!-- Toast Notifications -->
-    <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+    <!-- Graphique + Activités -->
+    <div class="dashboard-row">
+        <div class="chart-card">
+            <h3>📈 Évolution du stock</h3>
+            <canvas id="stockChart" height="250"></canvas>
+        </div>
+        <div class="activity-card">
+            <h3>🕐 Dernières activités</h3>
+            <div id="activityList" class="activity-list">
+                <div class="skeleton">Chargement...</div>
+            </div>
+        </div>
+    </div>
 
-    <style>
-        /* Toast notifications */
-        .toast-notification {
-            background: white;
-            border-radius: 12px;
-            padding: 15px 20px;
-            margin-bottom: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            min-width: 300px;
-            animation: slideIn 0.3s ease;
-            border-left: 4px solid;
-        }
-        .toast-notification.success { border-left-color: #4caf50; }
-        .toast-notification.error { border-left-color: #f44336; }
-        .toast-notification.warning { border-left-color: #ff9800; }
-        .toast-notification.info { border-left-color: #2196f3; }
-        .toast-icon { font-size: 1.2rem; }
-        .toast-content { flex: 1; }
-        .toast-title { font-weight: bold; margin-bottom: 3px; }
-        .toast-message { font-size: 0.8rem; color: #666; }
-        .toast-close { cursor: pointer; color: #999; padding: 0 5px; }
-        .toast-close:hover { color: #333; }
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-    </style>
+    <!-- Alertes -->
+    <div class="alerts-card">
+        <h3>⚠️ Alertes importantes</h3>
+        <div id="alertsList" class="alerts-list">
+            <div class="skeleton">Chargement des alertes...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-    <script>
-        // ==================== SERVICE GLOBAL DE DONNÉES ====================
-        const AppData = {
-            // État
-            factures: [],
-            commandesRecues: [],
-            clients: [],
-            isLoading: false,
-            
-            // Callbacks
-            listeners: {
-                factures: [],
-                commandes: [],
-                clients: []
-            },
-            
-            // Initialisation
-            async init() {
-                console.log("🔄 Initialisation du service global...");
-                this.isLoading = true;
-                await Promise.all([
-                    this.loadFactures(),
-                    this.loadCommandes(),
-                    this.loadClients()
-                ]);
-                this.isLoading = false;
-                console.log("✅ Service global initialisé");
-            },
-            
-            // Chargement des factures
-            async loadFactures() {
-                try {
-                    const res = await fetch('/api/factures-recues', {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                    });
-                    const data = await res.json();
-                    if (data.status === 'success') {
-                        this.factures = data.factures;
-                        this.notify('factures', this.factures);
-                        console.log(`📥 ${this.factures.length} factures chargées`);
-                    }
-                } catch(e) { console.error("Erreur chargement factures:", e); }
-            },
-            
-            // Chargement des commandes/réceptions
-            async loadCommandes() {
-                try {
-                    const res = await fetch('/api/commandes-recues', {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                    });
-                    const data = await res.json();
-                    if (data.status === 'success') {
-                        this.commandesRecues = data.commandes || [];
-                        this.notify('commandes', this.commandesRecues);
-                        console.log(`📦 ${this.commandesRecues.length} réceptions chargées`);
-                    }
-                } catch(e) { console.error("Erreur chargement réceptions:", e); }
-            },
-            
-            // Chargement des clients
-            async loadClients() {
-                try {
-                    const res = await fetch('/api/clients', {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                    });
-                    const data = await res.json();
-                    if (data.status === 'success') {
-                        this.clients = data.clients;
-                        this.notify('clients', this.clients);
-                        console.log(`👥 ${this.clients.length} clients chargés`);
-                    }
-                } catch(e) { console.error("Erreur chargement clients:", e); }
-            },
-            
-            // Abonnement aux mises à jour
-            subscribe(type, callback) {
-                if (!this.listeners[type]) return;
-                this.listeners[type].push(callback);
-                // Appeler immédiatement avec les données existantes
-                if (type === 'factures' && this.factures.length) callback(this.factures);
-                if (type === 'commandes' && this.commandesRecues.length) callback(this.commandesRecues);
-                if (type === 'clients' && this.clients.length) callback(this.clients);
-            },
-            
-            // Notification des changements
-            notify(type, data) {
-                if (this.listeners[type]) {
-                    this.listeners[type].forEach(cb => cb(data));
-                }
-            },
-            
-            // Rafraîchir tout
-            async refreshAll() {
-                console.log("🔄 Rafraîchissement global...");
-                await Promise.all([
-                    this.loadFactures(),
-                    this.loadCommandes(),
-                    this.loadClients()
-                ]);
-                window.dispatchEvent(new CustomEvent("dataRefreshed", { detail: { factures: this.factures, commandes: this.commandesRecues } }));
-            },
-            
-            // Ajouter une facture et notifier
-            async addFacture(factureData) {
-                await this.loadFactures();
-                return true;
-            },
-            
-            // Ajouter une réception et notifier
-            async addReception(receptionData) {
-                await this.loadCommandes();
-                return true;
-            }
-        };
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let stockChart = null;
 
-        // ==================== TOAST NOTIFICATIONS ====================
-        function showToast(title, message, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            if (!container) return;
+    async function loadDashboard() {
+        try {
+            const response = await fetch('/api/dashboard/stats');
+            const data = await response.json();
             
-            const toast = document.createElement('div');
-            toast.className = `toast-notification ${type}`;
-            
-            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-            
-            toast.innerHTML = `
-                <div class="toast-icon">${icons[type] || 'ℹ️'}</div>
-                <div class="toast-content">
-                    <div class="toast-title">${escapeHtml(title)}</div>
-                    <div class="toast-message">${escapeHtml(message)}</div>
-                </div>
-                <div class="toast-close" onclick="this.parentElement.remove()">✕</div>
-            `;
-            
-            container.appendChild(toast);
-            setTimeout(() => {
-                if (toast.parentElement) toast.remove();
-            }, 5000);
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-
-        // ==================== CONFIGURATION DES MENUS PAR RÔLE ====================
-        const roleMenus = {
-            admin: [
-                { icon: "📊", label: "Tableau de bord", section: "dashboard", roles: ["admin", "stock", "user"] },
-                { icon: "📥", label: "Réception (Factures)", section: "reception", roles: ["admin", "stock"] },
-                { icon: "📦", label: "Réception Réelle", section: "reception_reelle", roles: ["admin", "stock"] },
-                { icon: "🔍", label: "Matching", section: "matching", roles: ["admin", "stock"] },
-                { icon: "📋", label: "Historique", section: "historique", roles: ["admin", "stock", "user"] },
-                { icon: "📖", label: "Guide", section: "guide", roles: ["admin", "stock", "user"] },
-                { icon: "🏭", label: "Gestion du stock", section: "stock", roles: ["admin", "stock"] },
-                { icon: "🚚", label: "Livraison", section: "livraison", roles: ["admin", "stock"] },
-                { icon: "📅", label: "Agenda livraisons", section: "date-livraison", roles: ["admin", "stock", "user"] },
-                { icon: "👥", label: "Gestion clients", section: "gestion-clients-unifie", roles: ["admin"] },
-                { icon: "👑", label: "Admin Dashboard", section: "admin-dashboard", roles: ["admin"] },
-                { icon: "📊", label: "Statistiques", section: "stats", roles: ["admin"] }
-            ],
-            stock: [
-                { icon: "📊", label: "Tableau de bord", section: "dashboard", roles: ["admin", "stock", "user"] },
-                { icon: "📥", label: "Réception (Factures)", section: "reception", roles: ["admin", "stock"] },
-                { icon: "📦", label: "Réception Réelle", section: "reception_reelle", roles: ["admin", "stock"] },
-                { icon: "🔍", label: "Matching", section: "matching", roles: ["admin", "stock"] },
-                { icon: "📋", label: "Historique", section: "historique", roles: ["admin", "stock", "user"] },
-                { icon: "📖", label: "Guide", section: "guide", roles: ["admin", "stock", "user"] },
-                { icon: "🏭", label: "Gestion du stock", section: "stock", roles: ["admin", "stock"] },
-                { icon: "🚚", label: "Livraison", section: "livraison", roles: ["admin", "stock"] },
-                { icon: "📅", label: "Agenda livraisons", section: "date-livraison", roles: ["admin", "stock", "user"] }
-            ],
-            user: [
-                { icon: "📊", label: "Tableau de bord", section: "dashboard", roles: ["admin", "stock", "user"] },
-                { icon: "📋", label: "Historique", section: "historique", roles: ["admin", "stock", "user"] },
-                { icon: "📖", label: "Guide", section: "guide", roles: ["admin", "stock", "user"] },
-                { icon: "🚚", label: "Mes livraisons", section: "livraison", roles: ["user"] },
-                { icon: "📅", label: "Mon agenda", section: "date-livraison", roles: ["user"] }
-            ]
-        };
-
-        let currentUserRole = 'user';
-        let sidebarCollapsed = false;
-
-        // ==================== AUTHENTIFICATION ====================
-        function checkAuth() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = '/login';
-                return false;
-            }
-            return true;
-        }
-
-        // ==================== DÉCONNEXION ====================
-        function logout() {
-            fetch('/api/logout', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            }).finally(() => {
-                localStorage.clear();
-                window.location.href = '/login';
-            });
-        }
-
-        // ==================== GESTION DE LA BARRE LATÉRALE ====================
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const toggleBtn = document.querySelector('.sidebar-toggle');
-            
-            sidebarCollapsed = !sidebarCollapsed;
-            
-            if (sidebarCollapsed) {
-                sidebar.classList.add('collapsed');
-                mainContent.classList.add('expanded');
-                toggleBtn.innerHTML = '▶';
-            } else {
-                sidebar.classList.remove('collapsed');
-                mainContent.classList.remove('expanded');
-                toggleBtn.innerHTML = '◀';
-            }
-            
-            localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
-        }
-
-        // ==================== CHARGEMENT DU MENU ====================
-        function chargerMenu() {
-            const menuContainer = document.getElementById('sidebarMenu');
-            const menus = roleMenus[currentUserRole] || roleMenus.user;
-            
-            menuContainer.innerHTML = menus.map(menu => `
-                <div class="sidebar-item" data-section="${menu.section}" onclick="chargerSection('${menu.section}', this)">
-                    <span class="icon">${menu.icon}</span>
-                    <span class="label">${menu.label}</span>
-                </div>
-            `).join('');
-            
-            // Activer le premier item
-            const firstItem = document.querySelector('.sidebar-item');
-            if (firstItem) firstItem.classList.add('active');
-        }
-
-        // ==================== CHARGEMENT D'UNE SECTION ====================
-        function chargerSection(sectionId, element) {
-            // Désactiver tous les items
-            document.querySelectorAll('.sidebar-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // Activer l'item cliqué
-            if (element) element.classList.add('active');
-            
-            // Afficher le chargement
-            const contentDiv = document.getElementById('dynamicContent');
-            contentDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Chargement...</p></div>';
-            
-            // Charger le contenu via AJAX
-            fetch(`/api/dashboard/section/${sectionId}`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            })
-            .then(response => {
-                if (response.status === 401) {
-                    window.location.href = '/login';
-                    throw new Error('Non authentifié');
-                }
-                if (response.status === 403) {
-                    contentDiv.innerHTML = '<div class="dashboard-card"><p>⛔ Accès non autorisé</p></div>';
-                    throw new Error('Accès non autorisé');
-                }
-                return response.text();
-            })
-            .then(html => {
-                contentDiv.innerHTML = html;
+            if (data.status === 'success') {
+                // Mettre à jour les cartes
+                document.getElementById('statStockTotal').innerText = data.stockTotal;
+                document.getElementById('statEntries').innerText = data.entries;
+                document.getElementById('statExits').innerText = data.exits;
+                document.getElementById('statAlerts').innerText = data.alerts;
                 
-                // Exécuter les scripts dans le contenu chargé
-                const scripts = contentDiv.querySelectorAll('script');
-                scripts.forEach(script => {
-                    try {
-                        const newScript = document.createElement('script');
-                        if (script.src) {
-                            newScript.src = script.src;
-                        } else {
-                            newScript.textContent = script.textContent;
-                        }
-                        document.body.appendChild(newScript);
-                        script.remove();
-                    } catch(e) {
-                        console.error('Erreur script:', e);
+                // Initialiser le graphique
+                if (stockChart) stockChart.destroy();
+                const ctx = document.getElementById('stockChart').getContext('2d');
+                stockChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.chartLabels || ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+                        datasets: [{
+                            label: 'Stock',
+                            data: data.chartData || [0, 0, 0, 0, 0, 0],
+                            borderColor: '#4f46e5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { position: 'bottom' } }
                     }
                 });
-            })
-            .catch(err => {
-                console.error('Erreur:', err);
-                contentDiv.innerHTML = `<div class="dashboard-card"><p>❌ Erreur de chargement: ${err.message}</p></div>`;
-            });
-        }
-
-        // ==================== VÉRIFICATION NOTIFICATIONS ====================
-        async function checkNotifications() {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-            
-            try {
-                const response = await fetch('/api/notifications', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (response.status === 401) {
-                    console.log('Session expirée');
-                    return;
-                }
-                
-                const data = await response.json();
-                if (data.status === 'success') {
-                    const unread = data.notifications.filter(n => !n.read);
-                    unread.forEach(n => {
-                        showToast(n.title, n.message, n.type);
-                        fetch(`/api/notifications/${n.id}/read`, {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        }).catch(e => console.error(e));
-                    });
-                }
-            } catch(e) {
-                console.error('Erreur notifications:', e);
             }
+        } catch (e) {
+            console.error('Erreur chargement dashboard:', e);
         }
-
-        // ==================== INITIALISATION ====================
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (!checkAuth()) return;
-            
-            const token = localStorage.getItem('token');
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            currentUserRole = user.role || 'user';
-            
-            // Afficher les infos utilisateur
-            document.getElementById('userCompany').textContent = user.company || 'Mon entreprise';
-            const roleLabels = {
-                admin: '👑 Administrateur',
-                stock: '🏭 Responsable Stock',
-                user: '👤 Utilisateur'
-            };
-            document.getElementById('userRole').textContent = roleLabels[currentUserRole] || '👤 Utilisateur';
-            
-            // Initialiser le service global de données
-            await AppData.init();
-            
-            // Charger le menu
-            chargerMenu();
-            
-            // Restaurer l'état de la sidebar
-            const savedState = localStorage.getItem('sidebarCollapsed');
-            if (savedState === 'true') {
-                setTimeout(() => toggleSidebar(), 100);
-            }
-            
-            // Charger la section par défaut (dashboard)
-            chargerSection('dashboard', document.querySelector('.sidebar-item'));
-            
-            // Vérifier les notifications toutes les 30 secondes
-            setInterval(checkNotifications, 30000);
-            
-            // Écouter les événements de rafraîchissement global
-            window.addEventListener('dataRefreshed', (event) => {
-                console.log("📢 Données globales rafraîchies");
-            });
-        });
-
-        // Menu mobile
-        const menuToggle = document.getElementById('menuToggle');
-        const sidebar = document.getElementById('sidebar');
         
-        if (menuToggle) {
-            menuToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('open');
-            });
-        }
-
-        // Barre de menu dynamique (scroll)
-        let lastScrollTop = 0;
-        const navbar = document.getElementById('navbar');
-        
-        window.addEventListener('scroll', function() {
-            const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-            
-            if (currentScroll > lastScrollTop && currentScroll > 100) {
-                navbar.classList.add('hide');
-                navbar.classList.remove('show');
-            } else {
-                navbar.classList.remove('hide');
-                navbar.classList.add('show');
-            }
-            
-            lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
-        });
-        
-        navbar.classList.add('show');
-        
-        // Exposer AppData globalement
-        window.AppData = AppData;
-    </script>
+        // Charger les activités
+        await loadActivities();
+    }
     
-</body>
-</html>
+    async function loadActivities() {
+        try {
+            const response = await fetch('/api/activities');
+            const data = await response.json();
+            const container = document.getElementById('activityList');
+            
+            if (data.activities && data.activities.length > 0) {
+                container.innerHTML = data.activities.map(a => `
+                    <div class="activity-item">
+                        <div>
+                            <div class="activity-product">${a.product}</div>
+                            <div class="activity-action">${a.action}</div>
+                        </div>
+                        <div class="activity-quantity">${a.quantity} unités</div>
+                        <div class="activity-date">${a.date}</div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="activity-empty">Aucune activité récente</div>';
+            }
+        } catch (e) {
+            document.getElementById('activityList').innerHTML = '<div class="activity-empty">Erreur de chargement</div>';
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+{% endblock %}

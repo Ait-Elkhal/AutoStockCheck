@@ -1,0 +1,7 @@
+{
+  "id": 7,
+  "from": "client@test.com",
+  "subject": "Facture avec fichier",
+  "reference": "TEST-001_20260423_121226",
+  "date": "2026-04-23T12:12:26.850596"
+}

@@ -1,0 +1,249 @@
+{% extends "base/public.html" %}
+
+{% block title %}Connexion - AutoStockCheck{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+    <div class="login-container">
+        <div class="login-left">
+            <div class="login-brand">
+                <div class="brand-icon">📦</div>
+                <h1>AutoStockCheck</h1>
+                <p>La solution intelligente pour la gestion de vos réceptions et de votre stock</p>
+                <div class="brand-features">
+                    <div class="feature">
+                        <span class="feature-icon">✅</span>
+                        <span>Vérification instantanée</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">🔍</span>
+                        <span>Détection automatique</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">📊</span>
+                        <span>Rapports automatisés</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="login-right">
+            <div class="login-card">
+                <div class="login-header">
+                    <h2>Connexion</h2>
+                    <p>Accédez à votre espace de travail</p>
+                </div>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Nom d'utilisateur</label>
+                        <div class="input-group">
+                            <span class="input-icon">👤</span>
+                            <input type="text" id="username" class="input" placeholder="admin" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Mot de passe</label>
+                        <div class="input-group">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="password" class="input" placeholder="••••••" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-login">
+                        <span>Se connecter</span>
+                        <span class="btn-icon">→</span>
+                    </button>
+                </form>
+                
+                <div id="errorMsg" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.login-wrapper {
+    min-height: calc(100vh - 200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.login-container {
+    display: flex;
+    max-width: 1000px;
+    width: 100%;
+    background: var(--bg-card);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.login-left {
+    flex: 1;
+    background: linear-gradient(135deg, var(--primary) 0%, #6c5ce7 100%);
+    padding: 3rem;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.brand-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.login-left h1 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    color: white;
+}
+
+.login-left p {
+    opacity: 0.9;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.brand-features {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.feature {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.feature-icon {
+    font-size: 1.2rem;
+}
+
+.login-right {
+    flex: 1;
+    padding: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 320px;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.login-header p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.input-group {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    opacity: 0.6;
+}
+
+.input-group .input {
+    padding-left: 2.5rem;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    gap: 0.5rem;
+}
+
+.btn-icon {
+    transition: transform 0.2s;
+}
+
+.btn-login:hover .btn-icon {
+    transform: translateX(3px);
+}
+
+.error-message {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: var(--danger-light);
+    color: var(--danger);
+    border-radius: var(--radius-md);
+    text-align: center;
+    font-size: 0.8rem;
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .login-container {
+        flex-direction: column;
+    }
+    .login-left {
+        padding: 2rem;
+        text-align: center;
+    }
+    .brand-features {
+        align-items: center;
+    }
+    .login-right {
+        padding: 2rem;
+    }
+}
+</style>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const errorDiv = document.getElementById('errorMsg');
+    
+    errorDiv.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            // Stocker les infos utilisateur
+            localStorage.setItem('user', JSON.stringify(result.user));
+            window.location.href = result.redirect_url || '/dashboard';
+        } else {
+            errorDiv.textContent = result.message;
+            errorDiv.style.display = 'block';
+        }
+    } catch (err) {
+        errorDiv.textContent = 'Erreur de connexion au serveur';
+        errorDiv.style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,295 @@
+<div class="logs-section">
+    <div class="filters-bar">
+        <input type="text" id="searchLog" class="input" placeholder="🔍 Rechercher..." onkeyup="filterLogs()">
+        <select id="actionFilter" class="select" onchange="filterLogs()">
+            <option value="all">Toutes actions</option>
+            <option value="login">🔐 Connexion</option>
+            <option value="logout">🚪 Déconnexion</option>
+            <option value="create">➕ Création</option>
+            <option value="update">✏️ Modification</option>
+            <option value="delete">🗑️ Suppression</option>
+        </select>
+        <select id="daysFilter" class="select" onchange="loadLogs()">
+            <option value="1">1 jour</option>
+            <option value="7" selected>7 jours</option>
+            <option value="15">15 jours</option>
+            <option value="30">30 jours</option>
+        </select>
+        <button class="btn btn-secondary" onclick="exportLogs()">📎 Exporter CSV</button>
+        <button class="btn btn-secondary" onclick="loadLogs()">🔄 Rafraîchir</button>
+    </div>
+    
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date/Heure</th>
+                    <th>Utilisateur</th>
+                    <th>Action</th>
+                    <th>Détails</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody id="logsTableBody">
+                <tr><td colspan="5" class="text-center">⏳ Chargement des logs...<\/td><\/tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+let logsData = [];
+
+async function loadLogs() {
+    const tbody = document.getElementById('logsTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">⏳ Chargement...<\/td><\/tr>';
+    
+    const days = document.getElementById('daysFilter')?.value || 7;
+    
+    try {
+        const response = await fetch('/api/admin/logs?days=' + days);
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            logsData = data.logs || [];
+            displayLogs();
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">❌ Erreur chargement<\/td><\/tr>';
+        }
+    } catch(e) {
+        console.error('Erreur loadLogs:', e);
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">❌ Erreur connexion<\/td><\/tr>';
+    }
+}
+
+function displayLogs() {
+    const tbody = document.getElementById('logsTableBody');
+    const search = document.getElementById('searchLog')?.value.toLowerCase() || '';
+    const actionFilter = document.getElementById('actionFilter')?.value || 'all';
+    
+    let filtered = logsData.filter(function(l) {
+        const matchSearch = (l.user_name || '').toLowerCase().includes(search) || (l.details || '').toLowerCase().includes(search);
+        const matchAction = actionFilter === 'all' || l.action === actionFilter;
+        return matchSearch && matchAction;
+    });
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">📭 Aucun log trouvé<\/td><\/tr>';
+        return;
+    }
+    
+    const actionLabels = {
+        login: '🔐 Connexion',
+        logout: '🚪 Déconnexion',
+        create: '➕ Création',
+        update: '✏️ Modification',
+        delete: '🗑️ Suppression',
+        reset_password: '🔑 Réinitialisation'
+    };
+    
+    let html = '';
+    for (var i = 0; i < filtered.length; i++) {
+        var l = filtered[i];
+        var actionLabel = actionLabels[l.action] || l.action;
+        var date = l.created_at ? new Date(l.created_at).toLocaleString() : '-';
+        
+        html += '<tr>' +
+            '<td>' + date + '<\/td>' +
+            '<td><strong>' + escapeHtml(l.user_name || '-') + '<\/strong><br><small>' + escapeHtml(l.user_role || '-') + '<\/small><\/td>' +
+            '<td>' + actionLabel + '<\/td>' +
+            '<td>' + escapeHtml(l.details || '-') + '<\/td>' +
+            '<td>' + escapeHtml(l.ip_address || '-') + '<\/td>' +
+        '<\/tr>';
+    }
+    tbody.innerHTML = html;
+}
+
+function filterLogs() { displayLogs(); }
+
+async function exportLogs() {
+    const days = document.getElementById('daysFilter')?.value || 30;
+    
+    try {
+        const response = await fetch('/api/admin/logs/export?days=' + days);
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.csv) {
+            const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.filename || 'logs_' + new Date().toISOString().split('T')[0] + '.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Export CSV terminé', 'success');
+        } else {
+            showToast('Erreur lors de l\'export', 'error');
+        }
+    } catch(e) {
+        console.error('Erreur export:', e);
+        showToast('Erreur de connexion', 'error');
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+function showToast(message, type) {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    toast.innerHTML = '<span>' + message + '</span><button class="toast-close" onclick="this.parentElement.remove()">✕</button>';
+    container.appendChild(toast);
+    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 5000);
+}
+
+// Charger les logs au chargement
+loadLogs();
+</script>
+
+<style>
+.logs-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.filters-bar {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 1rem;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+}
+
+.filters-bar .input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+}
+
+.filters-bar .select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    cursor: pointer;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.table th {
+    text-align: left;
+    padding: 0.75rem;
+    background: var(--border-light);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+}
+
+.table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Toast container */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background: var(--bg-card);
+    border-left: 4px solid;
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 250px;
+    animation: slideIn 0.3s ease;
+}
+
+.toast-success { border-left-color: #10b981; }
+.toast-error { border-left-color: #ef4444; }
+.toast-warning { border-left-color: #f59e0b; }
+.toast-info { border-left-color: #3b82f6; }
+
+.toast-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    opacity: 0.6;
+}
+
+.toast-close:hover { opacity: 1; }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+    .filters-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filters-bar .input,
+    .filters-bar .select {
+        width: 100%;
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.5rem;
+        font-size: 0.7rem;
+    }
+}
+</style>

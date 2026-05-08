@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoStockCheck - {% block title %}Admin{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="admin-app">
+        {% include "admin/sidebar.html" %}
+        <main class="admin-main">
+            <div class="admin-header">
+                <button class="menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
+                <div class="admin-header-right">
+                    <div class="admin-user">
+                        <span class="admin-user-name" id="adminUserName">Admin</span>
+                        <div class="admin-user-avatar" id="adminUserAvatar">👑</div>
+                    </div>
+                </div>
+            </div>
+            <div class="admin-content">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // Menu mobile
+        const menuToggle = document.getElementById('menuToggle');
+        if (menuToggle) {
+            menuToggle.addEventListener('click', function() {
+                const sidebar = document.querySelector('.admin-sidebar');
+                if (sidebar) sidebar.classList.toggle('open');
+            });
+        }
+        
+        // Charger les infos admin
+        async function loadAdminInfo() {
+            try {
+                const response = await fetch('/api/me');
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const userNameSpan = document.getElementById('adminUserName');
+                    if (userNameSpan) userNameSpan.textContent = data.user.username;
+                }
+            } catch(e) {
+                console.error('Erreur chargement admin:', e);
+            }
+        }
+        loadAdminInfo();
+        
+        // Fonction toast globale
+        window.showToast = function(message, type) {
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-' + (type || 'info');
+            toast.innerHTML = '<span>' + escapeHtml(message) + '</span><button class="toast-close" onclick="this.parentElement.remove()">✕</button>';
+            container.appendChild(toast);
+            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 5000);
+        };
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+    </script>
+    
+    <script src="/static/js/theme.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

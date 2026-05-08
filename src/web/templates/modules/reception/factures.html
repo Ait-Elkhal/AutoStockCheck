@@ -1,0 +1,568 @@
+{% extends "base/stock_base.html" %}
+
+{% block page_title %}📄 Factures reçues{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/reception.css">
+{% endblock %}
+
+{% block stock_content %}
+<div id="receptionMain">
+    <div class="reception-container">
+        <div class="reception-header">
+            <h2>📥 Réception des commandes (Factures)</h2>
+            <div class="reception-actions">
+                <button class="btn btn-primary" onclick="ouvrirModalAjoutFacture()">➕ Ajouter facture</button>
+                <button class="btn btn-secondary" onclick="rafraichirListe()">🔄 Rafraîchir</button>
+            </div>
+        </div>
+
+        <div class="reception-filters">
+            <input type="text" id="searchFacture" class="search-input" placeholder="🔍 Rechercher par nom, référence..." onkeyup="filtrerFactures()">
+            <select id="filterStatus" class="filter-select" onchange="filtrerFactures()">
+                <option value="all">📊 Tous les statuts</option>
+                <option value="en-attente">🟡 En attente</option>
+                <option value="traite">🟢 Traité</option>
+                <option value="erreur">🔴 Erreur</option>
+            </select>
+            <select id="filterResponsable" class="filter-select" onchange="filtrerFactures()">
+                <option value="all">👥 Tous les responsables</option>
+            </select>
+        </div>
+
+        <div class="factures-table-container">
+            <table class="factures-table">
+                <thead>
+                    <tr>
+                        <th style="width: 23%">Nom du fichier</th>
+                        <th style="width: 18%">Référence</th>
+                        <th style="width: 18%">Date d'ajout</th>
+                        <th style="width: 12%">Responsable</th>
+                        <th style="width: 10%">Statut</th>
+                        <th style="width: 19%">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="facturesList">
+                    <tr>
+                        <td colspan="6" style="text-align:center;">⏳ Chargement...<\/td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">📭</div>
+            <p>Aucune facture reçue</p>
+        </div>
+    </div>
+</div>
+
+<div id="factureView" class="facture-view-container" style="display: none;">
+    <div class="view-header">
+        <h2><span class="excel-icon">XLSX</span><span id="viewFileName"></span></h2>
+        <button class="back-btn" onclick="retourListe()">← Retour</button>
+    </div>
+    <div class="facture-info-bar">
+        <div class="info-item"><span class="info-label">📅 Date:</span><span class="info-value" id="viewDate"></span></div>
+        <div class="info-item"><span class="info-label">👤 Ajouté par:</span><span class="info-value" id="viewUser"></span></div>
+        <div class="info-item"><span class="info-label">📊 Statut:</span><span class="info-value" id="viewStatus"></span></div>
+        <div class="info-item"><span class="info-label">🏷️ Référence:</span><span class="info-value" id="viewRefReception"></span></div>
+    </div>
+    <div class="table-search-bar">
+        <input type="text" id="tableSearchInput" placeholder="🔍 Rechercher..." onkeyup="filtrerTableau()">
+        <span id="tableResultCount"></span>
+    </div>
+    <div class="extracted-table-container">
+        <table class="extracted-table">
+            <thead id="tableHeader"></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+    <div class="error-section">
+        <h4>⚠️ Signaler une erreur</h4>
+        <textarea id="errorComment" rows="3" placeholder="Décrivez l'erreur..."></textarea>
+        <div class="error-actions">
+            <button class="btn btn-error" onclick="signalerErreur()">🚩 Signaler</button>
+            <button class="btn btn-primary" onclick="marquerTraite()">✅ Marquer traité</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalAjoutFacture" class="modal-upload" style="display: none;">
+    <div class="modal-upload-content">
+        <div class="modal-upload-header">
+            <h3>📤 Ajouter une facture</h3>
+            <button class="btn-close" onclick="fermerModalAjoutFacture()">✕</button>
+        </div>
+        <div class="modal-body-scroll">
+            <div class="dropzone-upload" id="dropzoneUpload" onclick="document.getElementById('factureFileInput').click()" 
+                 ondragover="dragoverUpload(event)" ondragleave="dragleaveUpload(event)" ondrop="dropUpload(event)">
+                <div class="dropzone-icon">📁📄</div>
+                <div class="dropzone-text">Déposez votre fichier Excel ici</div>
+                <input type="file" id="factureFileInput" accept=".xlsx,.xls" style="display: none;" onchange="window.handleFileSelect(this.files[0])">
+            </div>
+            <div id="fileInfo" style="display: none;"><strong>📄 Fichier :</strong> <span id="selectedFileName"></span></div>
+            <div class="form-group">
+                <label>🏷️ Référence *</label>
+                <input type="text" id="refReception" class="form-control" placeholder="REC-001" required>
+            </div>
+            <div class="form-group">
+                <label>📝 Informations</label>
+                <input type="text" id="infoSupplementaire" class="form-control" placeholder="Client, fournisseur...">
+            </div>
+            <div id="previewExtraction" style="display: none;"><h4>📊 Aperçu</h4><div id="previewContent"></div></div>
+        </div>
+        <div class="modal-footer-buttons">
+            <button class="btn" onclick="fermerModalAjoutFacture()">Annuler</button>
+            <button class="btn btn-primary" id="btnValiderFacture" onclick="validerEtEnregistrerFacture()" disabled>✅ Valider</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+(function() {
+    // ==================== DONNÉES LOCALES ====================
+    let facturesList = [];
+    let currentViewFacture = null;
+    let fichierTemp = null;
+    let donneesExcelTemp = null;
+
+    const synonymesReference = ['reference','ref','référence','code'];
+    const synonymesQuantite = ['quantite','qty','quantity','qté'];
+    const synonymesNom = ['nom','produit','product','designation'];
+    const synonymesPrix = ['prix','price','pu','unit_price'];
+
+    function trouverColonne(headers, synonymes) {
+        for(let i=0; i<headers.length; i++){
+            const h = headers[i].toLowerCase().trim();
+            for(const syn of synonymes){
+                if(h === syn || h.includes(syn) || syn.includes(h)) return i;
+            }
+        }
+        return -1;
+    }
+
+    // ==================== NOTIFICATION TOAST ====================
+    function showToast(title, message, type = 'info') {
+        if (typeof window.showToast === 'function') {
+            window.showToast(title, message, type);
+            return;
+        }
+        
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            const newContainer = document.createElement('div');
+            newContainer.id = 'toastContainer';
+            newContainer.style.position = 'fixed';
+            newContainer.style.bottom = '20px';
+            newContainer.style.right = '20px';
+            newContainer.style.zIndex = '9999';
+            document.body.appendChild(newContainer);
+            container = newContainer;
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = `toast-notification ${type}`;
+        toast.style.background = 'white';
+        toast.style.borderRadius = '12px';
+        toast.style.padding = '12px 16px';
+        toast.style.marginBottom = '10px';
+        toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '12px';
+        toast.style.borderLeft = `4px solid ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : type === 'warning' ? '#ff9800' : '#2196f3'}`;
+        
+        const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+        
+        toast.innerHTML = `
+            <div style="font-size: 1.2rem;">${icons[type] || 'ℹ️'}</div>
+            <div style="flex: 1;">
+                <div style="font-weight: bold; margin-bottom: 3px;">${escapeHtml(title)}</div>
+                <div style="font-size: 0.8rem; color: #666;">${escapeHtml(message)}</div>
+            </div>
+            <div style="cursor: pointer; color: #999;" onclick="this.parentElement.remove()">✕</div>
+        `;
+        
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+    }
+
+    function escapeHtml(str){ 
+        if(!str) return ''; 
+        return str.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]||m)); 
+    }
+
+    // ==================== HANDLE FILE SELECT (exposé globalement) ====================
+    window.handleFileSelect = function(file) {
+        if(!file) {
+            showToast('Erreur', 'Aucun fichier sélectionné', 'error');
+            return;
+        }
+        
+        console.log("📄 Fichier sélectionné:", file.name);
+        fichierTemp = file;
+        document.getElementById('selectedFileName').textContent = file.name;
+        document.getElementById('fileInfo').style.display = 'block';
+        
+        const reader = new FileReader();
+        reader.onload = function(e){
+            try{
+                const workbook = XLSX.read(e.target.result, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: false });
+                
+                if(!json || !json.length) throw new Error("Fichier vide");
+                
+                let headers = null, start = 0;
+                for(let i=0; i<json.length; i++){
+                    if(json[i] && json[i].some(c=>c!=="")){ 
+                        headers = json[i].map(h=>String(h).toLowerCase().trim()); 
+                        start = i+1; 
+                        break; 
+                    }
+                }
+                if(!headers) throw new Error("Pas d'en-tête trouvé");
+                
+                const rows = json.slice(start).filter(r=>r.some(c=>c!==""));
+                const refIdx = trouverColonne(headers, synonymesReference);
+                const qteIdx = trouverColonne(headers, synonymesQuantite);
+                const nomIdx = trouverColonne(headers, synonymesNom);
+                const prixIdx = trouverColonne(headers, synonymesPrix);
+                let score = (refIdx!==-1?1:0)+(qteIdx!==-1?1:0)+(nomIdx!==-1?1:0)+(prixIdx!==-1?1:0);
+                
+                if(score<2) throw new Error("Colonnes insuffisantes (besoin au moins Réf + Qté ou Nom)");
+                
+                let preview = `<div><strong>✅ Fichier reconnu (score ${score}/4)</strong></div>
+                              <div style="overflow-x:auto;"><table class="preview-table" style="width:100%; border-collapse:collapse; font-size:0.7rem;">
+                              <thead><tr>${headers.map((h,i)=>{ 
+                                  let b=''; 
+                                  if(i===refIdx) b=' (Réf)'; 
+                                  if(i===qteIdx) b=' (Qté)'; 
+                                  if(i===nomIdx) b=' (Nom)'; 
+                                  if(i===prixIdx) b=' (Prix)'; 
+                                  return `<th style="border:1px solid #ddd; padding:5px;">${escapeHtml(h)}${b}</th>`; 
+                              }).join('')}</thead><tbody>`;
+                
+                for(let i=0;i<Math.min(5,rows.length);i++){
+                    preview += '</td>'+rows[i].map(c=>`<td style="border:1px solid #ddd; padding:5px;">${escapeHtml(String(c)) || '-'}</td>`).join('')+'</tr>';
+                }
+                if(rows.length>5) preview += `<tr><td colspan="${headers.length}" style="text-align:center;">... et ${rows.length-5} lignes supplémentaires<\/td><\/tr>`;
+                preview += '</tbody></table></div>';
+                
+                document.getElementById('previewContent').innerHTML = preview;
+                document.getElementById('previewExtraction').style.display = 'block';
+                document.getElementById('btnValiderFacture').disabled = false;
+                donneesExcelTemp = { headers, rows, indices: { ref: refIdx, qte: qteIdx, nom: nomIdx, prix: prixIdx } };
+                showToast('Fichier analysé', `${rows.length} lignes extraites`, 'success');
+            } catch(err){
+                console.error("Erreur analyse:", err);
+                document.getElementById('previewContent').innerHTML = `<div style="color:red">❌ ${escapeHtml(err.message)}</div>`;
+                document.getElementById('previewExtraction').style.display = 'block';
+                document.getElementById('btnValiderFacture').disabled = true;
+                showToast('Erreur analyse', err.message, 'error');
+            }
+        };
+        reader.onerror = function(err) {
+            console.error("Erreur lecture fichier:", err);
+            showToast('Erreur', 'Impossible de lire le fichier', 'error');
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    // ==================== DRAG & DROP ====================
+    window.dragoverUpload = function(e){ 
+        e.preventDefault(); 
+        document.getElementById('dropzoneUpload').classList.add('drag-over'); 
+    };
+    
+    window.dragleaveUpload = function(e){ 
+        e.preventDefault(); 
+        document.getElementById('dropzoneUpload').classList.remove('drag-over'); 
+    };
+    
+    window.dropUpload = function(e){
+        e.preventDefault();
+        document.getElementById('dropzoneUpload').classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if(file && (file.name.endsWith('.xlsx')||file.name.endsWith('.xls'))) {
+            window.handleFileSelect(file);
+        } else {
+            showToast('Format requis', 'Format Excel requis (.xlsx ou .xls)', 'warning');
+        }
+    };
+
+    // ==================== CHARGEMENT DES FACTURES ====================
+    window.chargerFactures = async function() {
+        const tbody = document.getElementById('facturesList');
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">⏳ Chargement...<\/td><\/tr>';
+        try {
+            const res = await fetch('/api/factures-recues', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            if(data.status === 'success'){
+                facturesList = data.factures;
+                afficherFactures();
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#f44336;">❌ Erreur chargement<\/td><\/tr>';
+            }
+        } catch(e){ 
+            console.error(e); 
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#f44336;">❌ Erreur de connexion<\/td><\/tr>';
+        }
+    };
+
+    function afficherFactures() {
+        const tbody = document.getElementById('facturesList');
+        const search = document.getElementById('searchFacture')?.value.toLowerCase() || '';
+        const status = document.getElementById('filterStatus')?.value || 'all';
+        const resp = document.getElementById('filterResponsable')?.value || 'all';
+        
+        let filtered = facturesList.filter(f => {
+            return (search==='' || (f.nom && f.nom.toLowerCase().includes(search)) || (f.reference_reception && f.reference_reception.toLowerCase().includes(search))) &&
+                   (status==='all' || f.statut === status) &&
+                   (resp==='all' || f.ajoute_par === resp);
+        });
+        
+        const empty = document.getElementById('emptyState');
+        const tableContainer = document.querySelector('.factures-table-container');
+        
+        if(filtered.length === 0){
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">📭 Aucune facture<\/td><\/tr>';
+            if(empty) empty.style.display = 'block';
+            if(tableContainer) tableContainer.style.display = 'none';
+            return;
+        }
+        if(empty) empty.style.display = 'none';
+        if(tableContainer) tableContainer.style.display = 'block';
+        
+        tbody.innerHTML = filtered.map(f => {
+            const statusClass = f.statut === 'en-attente' ? 'en-attente' : f.statut === 'traite' ? 'traite' : 'erreur';
+            const statusText = f.statut === 'en-attente' ? '🟡 En attente' : f.statut === 'traite' ? '🟢 Traité' : '🔴 Erreur';
+            const dateStr = f.created_at ? new Date(f.created_at).toLocaleString() : '-';
+            return `
+                <tr onclick="ouvrirFacture(${f.id})" style="cursor:pointer;">
+                    <td>
+                        <div class="file-name">
+                            <div class="excel-icon">XLSX</div>
+                            <span class="file-title">${escapeHtml(f.nom || '-')}</span>
+                        </div>
+                        ${f.informations ? `<div class="file-info">${escapeHtml(f.informations)}</div>` : ''}
+                    <\/td>
+                    <td><strong>${escapeHtml(f.reference_reception || '-')}</strong><\/td>
+                    <td>${dateStr}<\/td>
+                    <td>${escapeHtml(f.ajoute_par) || '-'}<\/td>
+                    <td><span class="status-badge status-${statusClass}">${statusText}</span><\/td>
+                    <td>
+                        <div class="action-buttons" onclick="event.stopPropagation()">
+                            <button class="action-btn view" onclick="ouvrirFacture(${f.id})">👁️ Voir</button>
+                            <button class="action-btn delete" onclick="supprimerFacture(${f.id})">🗑️</button>
+                        </div>
+                    <\/td>
+                比
+            `;
+        }).join('');
+        
+        const responsables = [...new Set(facturesList.map(f=>f.ajoute_par).filter(r=>r))];
+        const select = document.getElementById('filterResponsable');
+        if(select) {
+            select.innerHTML = '<option value="all">👥 Tous</option>';
+            responsables.forEach(r => { select.innerHTML += `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`; });
+        }
+    }
+
+    // ==================== OUVERTURE FACTURE ====================
+    window.ouvrirFacture = async function(id){
+        try{
+            let facture = facturesList.find(f => f.id == id);
+            if (facture) {
+                currentViewFacture = facture;
+                document.getElementById('receptionMain').style.display = 'none';
+                document.getElementById('factureView').style.display = 'block';
+                document.getElementById('viewFileName').textContent = facture.nom || '-';
+                document.getElementById('viewDate').textContent = facture.created_at ? new Date(facture.created_at).toLocaleString() : '-';
+                document.getElementById('viewUser').textContent = facture.ajoute_par || '-';
+                document.getElementById('viewRefReception').textContent = facture.reference_reception || '-';
+                const statusText = facture.statut === 'en-attente' ? '🟡 En attente' : facture.statut === 'traite' ? '🟢 Traité' : '🔴 Erreur';
+                document.getElementById('viewStatus').innerHTML = `<span class="status-badge status-${facture.statut === 'en-attente' ? 'en-attente' : facture.statut === 'traite' ? 'traite' : 'erreur'}">${statusText}</span>`;
+                
+                let contenu = facture.contenu;
+                if(typeof contenu === 'string') {
+                    try { contenu = JSON.parse(contenu); } catch(e) { contenu = null; }
+                }
+                afficherTableauExtrait(contenu);
+                document.getElementById('errorComment').value = '';
+            }
+        } catch(e){ 
+            console.error(e);
+            showToast('Erreur chargement', e.message, 'error');
+        }
+    };
+
+    function afficherTableauExtrait(contenu){
+        const thead = document.getElementById('tableHeader');
+        const tbody = document.getElementById('tableBody');
+        if(!contenu || !contenu.lignes || !contenu.lignes.length){
+            thead.innerHTML = '';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Aucune donnée disponible<\/td><\/tr>';
+            document.getElementById('tableResultCount').textContent = '';
+            return;
+        }
+        const headers = contenu.en_tete || [];
+        thead.innerHTML = '<td>' + headers.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '<\/tr>';
+        let html = '';
+        contenu.lignes.forEach(ligne => {
+            html += '<tr>' + ligne.map(cell => `<td>${escapeHtml(String(cell)) || '-'}</td>`).join('') + '</tr>';
+        });
+        tbody.innerHTML = html;
+        document.getElementById('tableResultCount').textContent = `${contenu.lignes.length} lignes`;
+        window.currentTableData = contenu.lignes;
+    }
+
+    window.filtrerTableau = function(){
+        const search = document.getElementById('tableSearchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#tableBody tr');
+        let visible = 0;
+        rows.forEach(row => {
+            if(row.textContent.toLowerCase().includes(search)){
+                row.style.display = '';
+                visible++;
+            } else row.style.display = 'none';
+        });
+        document.getElementById('tableResultCount').textContent = `${visible} / ${window.currentTableData?.length || 0} lignes`;
+    };
+
+    window.signalerErreur = async function(){
+        const comment = document.getElementById('errorComment').value.trim();
+        if(!comment) return showToast("Erreur", "Décrivez l'erreur", 'warning');
+        if(confirm(`Signaler une erreur pour la facture ${currentViewFacture.reference_reception} ?`)){
+            try {
+                const response = await fetch(`/api/factures-recues/${currentViewFacture.id}/erreur`, {
+                    method: 'POST', 
+                    headers: { 'Content-Type':'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ commentaire: comment })
+                });
+                if(response.ok) {
+                    document.getElementById('viewStatus').innerHTML = '<span class="status-badge status-erreur">🔴 Erreur signalée</span>';
+                    showToast('Erreur signalée', 'L\'équipe va traiter votre signalement', 'warning');
+                    window.chargerFactures();
+                }
+            } catch(e) {
+                showToast('Erreur', 'Impossible de signaler l\'erreur', 'error');
+            }
+        }
+    };
+
+    window.marquerTraite = async function(){
+        if(confirm(`Marquer la facture ${currentViewFacture.reference_reception} comme traitée ?`)){
+            try {
+                const response = await fetch(`/api/factures-recues/${currentViewFacture.id}/traite`, {
+                    method: 'POST', 
+                    credentials: 'include'
+                });
+                if(response.ok) {
+                    document.getElementById('viewStatus').innerHTML = '<span class="status-badge status-traite">🟢 Traité</span>';
+                    showToast('Facture traitée', 'La facture a été marquée comme traitée', 'success');
+                    window.chargerFactures();
+                }
+            } catch(e) {
+                showToast('Erreur', 'Impossible de marquer comme traitée', 'error');
+            }
+        }
+    };
+
+    window.retourListe = function(){
+        document.getElementById('receptionMain').style.display = 'block';
+        document.getElementById('factureView').style.display = 'none';
+        window.chargerFactures();
+    };
+
+    window.supprimerFacture = async function(id){
+        if(confirm("Supprimer cette facture définitivement ?")){
+            try {
+                const response = await fetch(`/api/factures-recues/${id}`, { 
+                    method: 'DELETE', 
+                    credentials: 'include'
+                });
+                if(response.ok) {
+                    showToast('Facture supprimée', 'La facture a été supprimée', 'success');
+                    window.chargerFactures();
+                }
+            } catch(e) {
+                showToast('Erreur', 'Impossible de supprimer la facture', 'error');
+            }
+        }
+    };
+
+    window.filtrerFactures = function(){ afficherFactures(); };
+    window.rafraichirListe = function(){ window.chargerFactures(); };
+
+    window.ouvrirModalAjoutFacture = function(){
+        document.getElementById('modalAjoutFacture').style.display = 'flex';
+        document.getElementById('refReception').value = '';
+        document.getElementById('infoSupplementaire').value = '';
+        document.getElementById('fileInfo').style.display = 'none';
+        document.getElementById('previewExtraction').style.display = 'none';
+        document.getElementById('btnValiderFacture').disabled = true;
+        fichierTemp = null;
+        donneesExcelTemp = null;
+    };
+    
+    window.fermerModalAjoutFacture = function(){ 
+        document.getElementById('modalAjoutFacture').style.display = 'none'; 
+    };
+
+    window.validerEtEnregistrerFacture = async function(){
+        const ref = document.getElementById('refReception').value.trim();
+        if(!ref) return showToast('Erreur', 'Référence requise', 'error');
+        if(!fichierTemp || !donneesExcelTemp) return showToast('Erreur', 'Fichier non analysé', 'error');
+        const info = document.getElementById('infoSupplementaire').value;
+        const lignes = [];
+        for(const row of donneesExcelTemp.rows){
+            if(donneesExcelTemp.indices.ref !== -1 && !row[donneesExcelTemp.indices.ref]) continue;
+            const ligne = [];
+            for(let j=0; j<donneesExcelTemp.headers.length; j++) ligne.push(row[j] !== undefined && row[j] !== null ? String(row[j]) : '');
+            lignes.push(ligne);
+        }
+        
+        if(lignes.length === 0) return showToast('Erreur', 'Aucune ligne valide à importer', 'error');
+        
+        const formData = new FormData();
+        formData.append('fichier', fichierTemp);
+        formData.append('reference', ref);
+        formData.append('informations', info);
+        formData.append('contenu', JSON.stringify({ en_tete: donneesExcelTemp.headers, lignes: lignes }));
+        
+        showToast('Enregistrement', 'Traitement en cours...', 'info');
+        
+        const response = await fetch('/api/factures-recues', {
+            method: 'POST', 
+            credentials: 'include',
+            body: formData
+        });
+        const result = await response.json();
+        
+        if(result.status==='success'){
+            showToast('✅ Facture ajoutée', `${lignes.length} lignes importées`, 'success');
+            window.fermerModalAjoutFacture();
+            window.chargerFactures();
+            window.dispatchEvent(new Event("facturesUpdated"));
+        } else {
+            showToast('❌ Erreur', result.message || 'Erreur lors de l\'ajout', 'error');
+        }
+    };
+
+    // ==================== INITIALISATION ====================
+    window.initFactures = function(){ 
+        window.chargerFactures(); 
+    };
+    
+    window.initFactures();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,357 @@
+/* ==================== LAYOUT ==================== */
+/* Sidebar + Main content + Header */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-body);
+  color: var(--text-primary);
+  transition: background var(--transition);
+}
+
+/* Application container */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ==================== SIDEBAR BLEUE ==================== */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 280px;
+  background: linear-gradient(180deg, #1a56db 0%, #0e3a8a 100%);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease, transform 0.3s ease;
+  z-index: 40;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+/* Sidebar réduite */
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .user-details,
+.sidebar.collapsed .nav-section-title {
+  display: none;
+}
+
+.sidebar.collapsed .nav-icon {
+  font-size: 1.3rem;
+  margin-right: 0;
+}
+
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-header .logo-text {
+  display: none;
+}
+
+/* En-tête sidebar */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.logo-icon {
+  font-size: 1.8rem;
+}
+
+.logo-text {
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex: 1;
+  margin-left: 0.75rem;
+  color: white;
+}
+
+/* Bouton collapse */
+.sidebar-toggle {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.05);
+}
+
+/* ==================== SCROLLBAR - Visible pendant le scroll ==================== */
+.sidebar-nav {
+  flex: 1;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+/* Scrollbar moderne - visible au scroll */
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+  transition: width 0.2s;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 10px 0;
+  border-radius: 20px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 20px;
+  transition: background 0.2s, width 0.2s;
+}
+
+/* Au survol, la scrollbar devient plus large */
+.sidebar-nav:hover::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav:hover::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.5);
+}
+
+/* Survol direct de la scrollbar */
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.8);
+}
+
+/* 🔥 PENDANT LE SCROLL ACTIF - Visible et réactive */
+.sidebar-nav:active::-webkit-scrollbar-thumb,
+.sidebar-nav:focus::-webkit-scrollbar-thumb,
+.sidebar-nav:focus-visible::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.7);
+  transition: background 0.1s;
+}
+
+/* Pour Firefox */
+.sidebar-nav {
+  scrollbar-color: rgba(255,255,255,0.3) transparent;
+  scrollbar-width: thin;
+}
+
+.sidebar-nav:hover {
+  scrollbar-color: rgba(255,255,255,0.6) transparent;
+}
+
+.sidebar-nav:active {
+  scrollbar-color: rgba(255,255,255,0.8) transparent;
+}
+
+/* Sections */
+.nav-section {
+  margin-bottom: 1.5rem;
+}
+
+.nav-section-title {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.5);
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+/* Éléments de navigation */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  margin: 0.2rem 0;
+  border-radius: 10px;
+  color: rgba(255,255,255,0.8);
+  transition: all 0.2s;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.nav-item.active {
+  background: rgba(255,255,255,0.15);
+  color: white;
+}
+
+.nav-icon {
+  font-size: 1.2rem;
+  width: 1.5rem;
+  text-align: center;
+}
+
+.nav-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Pied de sidebar */
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  margin-bottom: 0.75rem;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: white;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: white;
+}
+
+.user-role {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.6);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.8);
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #ff6b6b;
+}
+
+.logout-btn .icon {
+  font-size: 1.1rem;
+}
+
+.logout-btn .label {
+  font-size: 0.85rem;
+}
+
+/* ==================== MAIN CONTENT ==================== */
+.main-content {
+  flex: 1;
+  margin-left: 280px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+/* Quand la sidebar est réduite */
+.sidebar.collapsed ~ .main-content,
+.sidebar.collapsed + .main-content {
+  margin-left: 80px;
+}
+
+/* Pas de sidebar sur les pages publiques */
+body.public .main-content {
+  margin-left: 0;
+}
+
+/* Header */
+.top-header {
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+/* Content area */
+.content {
+  padding: 2rem;
+  flex: 1;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .sidebar {
+      transform: translateX(-100%);
+  }
+  .sidebar.open {
+      transform: translateX(0);
+  }
+  .main-content {
+      margin-left: 0;
+  }
+  .menu-toggle {
+      display: block;
+  }
+  .top-header {
+      padding: 0.5rem 1rem;
+  }
+  .content {
+      padding: 1rem;
+  }
+}

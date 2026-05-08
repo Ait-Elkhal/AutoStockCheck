@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoStockCheck - {% block title %}{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/public.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="public-wrapper">
+        <!-- Navbar professionnelle -->
+        <nav class="navbar-public">
+            <div class="navbar-container">
+                <a href="/" class="logo">
+                    <span class="logo-icon">📦</span>
+                    <span class="logo-text">AutoStockCheck</span>
+                </a>
+                <ul class="nav-menu">
+                    <li><a href="/" class="nav-link">🏠 Accueil</a></li>
+                    <li><a href="/models" class="nav-link">🤖 Modèles</a></li>
+                    <li><a href="/contact" class="nav-link">📞 Contact</a></li>
+                </ul>
+                <div class="navbar-right">
+                    <a href="/login" class="btn btn-primary">🔐 Connexion</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+            </div>
+        </nav>
+
+        <!-- Contenu principal -->
+        <main class="public-main">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Footer professionnel -->
+        <footer class="footer-public">
+            <div class="footer-container">
+                <div class="footer-grid">
+                    <div class="footer-brand">
+                        <div class="footer-logo">📦 AutoStockCheck</div>
+                        <p>La solution intelligente pour la gestion de vos réceptions et de votre stock.</p>
+                        <div class="footer-social">
+                            <a href="#" class="social-link">📘</a>
+                            <a href="#" class="social-link">🐦</a>
+                            <a href="#" class="social-link">🔗</a>
+                        </div>
+                    </div>
+                    <div class="footer-links">
+                        <h4>Produit</h4>
+                        <ul>
+                            <li><a href="/models">Modèles IA</a></li>
+                            <li><a href="#">Tarifs</a></li>
+                            <li><a href="#">Documentation</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-links">
+                        <h4>Support</h4>
+                        <ul>
+                            <li><a href="/contact">Contact</a></li>
+                            <li><a href="#">FAQ</a></li>
+                            <li><a href="#">Statut</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-links">
+                        <h4>Légal</h4>
+                        <ul>
+                            <li><a href="#">Confidentialité</a></li>
+                            <li><a href="#">CGU</a></li>
+                            <li><a href="#">Mentions légales</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; 2026 AutoStockCheck - ECU Worldwide. Tous droits réservés.</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Menu mobile
+        document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+            document.querySelector('.nav-menu')?.classList.toggle('show');
+        });
+    </script>
+    <script src="/static/js/theme.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

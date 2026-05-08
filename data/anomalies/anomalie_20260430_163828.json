@@ -1,0 +1,67 @@
+{
+    "id": "anomalie_20260430_163828",
+    "date_creation": "2026-04-30T16:38:28.676104",
+    "statut": "corrige",
+    "facture": {
+        "id": 2,
+        "reference": "REC-001",
+        "nom": "20260430_150758_facture_REC-001.xlsx"
+    },
+    "reception": {
+        "id": 3,
+        "reference": "REC-001",
+        "client": "Client",
+        "fichier_original": "reception_REC-001_1777558817857.xlsx"
+    },
+    "produits_manquants": [
+        {
+            "reference": "REF-002",
+            "produit": "Souris sans fil Logitech MX Master",
+            "quantite_facture": 10,
+            "quantite_reception": 2,
+            "difference": -8,
+            "etat": "Bon"
+        },
+        {
+            "reference": "REF-004",
+            "produit": "Écran 24 pouces Samsung",
+            "quantite_facture": 2,
+            "quantite_reception": 1,
+            "difference": -1,
+            "etat": "Bon"
+        },
+        {
+            "reference": "REF-005",
+            "produit": "Disque SSD 1To Samsung",
+            "quantite_facture": 4,
+            "quantite_reception": 0,
+            "difference": -4,
+            "etat": "Bon"
+        }
+    ],
+    "corrections": [
+        {
+            "reference": "REF-002",
+            "ancienne_quantite": 2,
+            "nouvelle_quantite": 8,
+            "ancien_etat": "Bon",
+            "nouvel_etat": "Bon"
+        },
+        {
+            "reference": "REF-004",
+            "ancienne_quantite": 1,
+            "nouvelle_quantite": 1,
+            "ancien_etat": "Bon",
+            "nouvel_etat": "Bon"
+        },
+        {
+            "reference": "REF-005",
+            "ancienne_quantite": 0,
+            "nouvelle_quantite": 1,
+            "ancien_etat": "Bon",
+            "nouvel_etat": "Bon"
+        }
+    ],
+    "date_correction": "2026-04-30T16:38:54.144323",
+    "commentaire": ""
+}

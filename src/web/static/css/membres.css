@@ -1,0 +1,331 @@
+/* ==================== MEMBRES PAGE STYLES ==================== */
+
+.membres-container {
+    padding: 20px;
+}
+
+/* En-tête */
+.membres-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.membres-header h2 {
+    margin: 0;
+    color: #4361ee;
+}
+
+.header-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+/* Vue toggle */
+.view-toggle {
+    display: flex;
+    gap: 5px;
+    background: #f0f0f0;
+    border-radius: 12px;
+    padding: 3px;
+}
+
+.view-btn {
+    padding: 8px 20px;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.view-btn.active {
+    background: #4361ee;
+    color: white;
+}
+
+/* Filtres équipe */
+.team-filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.team-filter {
+    padding: 8px 20px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.team-filter:hover {
+    border-color: #4361ee;
+    color: #4361ee;
+}
+
+.team-filter.active {
+    background: #4361ee;
+    color: white;
+    border-color: #4361ee;
+}
+
+/* Carrousel */
+.carousel-view {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.nav-arrow {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-arrow:hover {
+    background: #4361ee;
+    color: white;
+    border-color: #4361ee;
+}
+
+/* Carte principale */
+.main-card {
+    flex: 1;
+    max-width: 500px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.3s;
+}
+
+.main-card:hover {
+    transform: translateY(-5px);
+}
+
+.main-card-inner {
+    padding: 40px;
+    text-align: center;
+}
+
+.membre-avatar-large {
+    font-size: 80px;
+    margin-bottom: 20px;
+}
+
+.membre-role {
+    color: #4361ee;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.membre-equipe {
+    margin-bottom: 20px;
+}
+
+/* Détails */
+.membre-details {
+    text-align: left;
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 16px;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-icon {
+    width: 30px;
+    font-size: 1.1rem;
+}
+
+/* Boutons action */
+.membre-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn-cv, .btn-edit, .btn-delete {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+
+.btn-cv {
+    background: #4361ee;
+    color: white;
+}
+
+.btn-edit {
+    background: #ffc107;
+    color: #333;
+}
+
+.btn-delete {
+    background: #dc3545;
+    color: white;
+}
+
+/* Mini-cartes */
+.thumbnails-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 30px;
+    padding: 20px 0;
+}
+
+.thumb-prev, .thumb-next {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.thumbnails-wrapper {
+    flex: 1;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+}
+
+.thumbnails {
+    display: flex;
+    gap: 15px;
+    padding: 10px 0;
+}
+
+.thumbnail-card {
+    min-width: 100px;
+    padding: 15px;
+    background: white;
+    border-radius: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.thumbnail-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnail-card.active {
+    border-color: #4361ee;
+    background: #f0f4ff;
+}
+
+.thumb-avatar {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.thumb-name {
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+.thumb-role {
+    font-size: 0.65rem;
+    color: #666;
+}
+
+/* Vue Liste */
+.list-view {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.table th {
+    background: #f5f5f5;
+    font-weight: 600;
+}
+
+.table-avatar {
+    font-size: 28px;
+}
+
+/* Badges équipe */
+.equipe-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    display: inline-block;
+}
+
+.equipe-direction { background: #f44336; color: white; }
+.equipe-stock { background: #ff9800; color: white; }
+.equipe-reception { background: #2196f3; color: white; }
+.equipe-qualite { background: #9c27b0; color: white; }
+.equipe-livraison { background: #4caf50; color: white; }
+.equipe-informatique { background: #00bcd4; color: white; }
+
+/* Icônes */
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    margin: 0 3px;
+}
+
+.btn-icon.edit { color: #ffc107; }
+.btn-icon.delete { color: #dc3545; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .main-card { max-width: 90%; }
+    .carousel-view { gap: 10px; }
+    .membre-details { font-size: 0.8rem; }
+    .thumbnails-wrapper { overflow-x: auto; }
+    .membres-header { flex-direction: column; align-items: flex-start; }
+    .team-filters { gap: 8px; }
+    .team-filter { padding: 6px 12px; font-size: 0.8rem; }
+}

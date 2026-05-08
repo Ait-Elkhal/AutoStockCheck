@@ -1,0 +1,94 @@
+<div class="stats-section">
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-label">Total utilisateurs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statActifs">0</div>
+            <div class="stat-label">Utilisateurs actifs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statInactifs">0</div>
+            <div class="stat-label">Utilisateurs inactifs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statPending">0</div>
+            <div class="stat-label">En attente</div>
+        </div>
+    </div>
+    
+    <div class="chart-container">
+        <canvas id="usersChart" height="200"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+async function loadStatsData() {
+    const response = await fetch('/api/admin/stats');
+    const data = await response.json();
+    if (data.status === 'success') {
+        document.getElementById('statTotal').textContent = data.stats.total_users;
+        document.getElementById('statActifs').textContent = data.stats.active_users;
+        document.getElementById('statInactifs').textContent = data.stats.inactive_users;
+        document.getElementById('statPending').textContent = data.stats.pending_activation;
+        
+        const ctx = document.getElementById('usersChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Actifs', 'Inactifs', 'En attente'],
+                datasets: [{
+                    label: 'Utilisateurs',
+                    data: [data.stats.active_users, data.stats.inactive_users, data.stats.pending_activation],
+                    backgroundColor: ['#10b981', '#ef4444', '#f59e0b']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: true }
+        });
+    }
+}
+loadStatsData();
+</script>
+
+<style>
+.stats-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.chart-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+@media (max-width: 768px) {
+    .stats-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>

@@ -6,12 +6,27 @@
         <p>Gestion avancée, audit et supervision de la plateforme</p>
     </div>
 
-    <!-- Statistiques -->
+    <!-- Statistiques avancées -->
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-icon">👥</div>
             <div class="stat-value" id="statUsers">0</div>
             <div class="stat-label">Utilisateurs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🟢</div>
+            <div class="stat-value" id="statActifs">0</div>
+            <div class="stat-label">Actifs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🔴</div>
+            <div class="stat-value" id="statInactifs">0</div>
+            <div class="stat-label">Inactifs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🎭</div>
+            <div class="stat-value" id="statMultiRoles">0</div>
+            <div class="stat-label">Multi-rôles</div>
         </div>
         <div class="stat-card">
             <div class="stat-icon">📦</div>
@@ -28,62 +43,140 @@
             <div class="stat-value" id="statActions24h">0</div>
             <div class="stat-label">Actions (24h)</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-icon">🔐</div>
+            <div class="stat-value" id="statSessionsActives">0</div>
+            <div class="stat-label">Sessions actives</div>
+        </div>
     </div>
 
-    <!-- Onglets -->
+    <!-- Graphique répartition rôles -->
+    <div class="chart-container">
+        <h4>📊 Répartition des utilisateurs par rôle</h4>
+        <canvas id="rolesChart" width="400" height="200"></canvas>
+    </div>
+
+    <!-- Onglets principaux -->
     <div class="admin-tabs">
         <button class="tab-btn active" onclick="showAdminTab('users')">👥 Gestion utilisateurs</button>
+        <button class="tab-btn" onclick="showAdminTab('permissions')">🔐 Matrice permissions</button>
         <button class="tab-btn" onclick="showAdminTab('sessions')">🖥️ Sessions actives</button>
         <button class="tab-btn" onclick="showAdminTab('logs')">📋 Logs d'audit</button>
+        <button class="tab-btn" onclick="showAdminTab('stats')">📊 Statistiques</button>
     </div>
 
-    <!-- Onglet Utilisateurs -->
+    <!-- ==================== ONGLET UTILISATEURS ==================== -->
     <div id="tab-users" class="tab-content active">
-        <div class="users-header" style="margin-bottom: 20px;">
-            <button class="btn btn-primary" onclick="openUserModal()">➕ Nouvel utilisateur</button>
-            <button class="btn btn-secondary" onclick="loadUsers()" style="margin-left: 10px;">🔄 Rafraîchir</button>
+        <div class="users-header">
+            <div class="header-buttons">
+                <button class="btn btn-primary" onclick="openUserModal()">➕ Nouvel utilisateur</button>
+                <button class="btn btn-secondary" onclick="exportUsersCSV()">📎 Exporter CSV</button>
+                <button class="btn btn-secondary" onclick="importUsers()">📤 Importer CSV</button>
+                <button class="btn btn-secondary" onclick="loadUsers()">🔄 Rafraîchir</button>
+            </div>
         </div>
-        <div class="search-bar" style="margin-bottom: 15px;">
-            <input type="text" id="searchUserInput" class="search-input" placeholder="🔍 Rechercher..." onkeyup="filterUsers()">
-            <select id="roleFilter" class="filter-select" onchange="filterUsers()">
-                <option value="all">Tous les rôles</option>
-                <option value="admin">Administrateur</option>
-                <option value="stock">Responsable stock</option>
-                <option value="user">Utilisateur</option>
-            </select>
+
+        <!-- Recherche avancée -->
+        <div class="advanced-search">
+            <div class="search-row">
+                <input type="text" id="searchUserInput" class="search-input" placeholder="🔍 Nom, email..." onkeyup="filterUsers()">
+                <select id="statusFilter" class="filter-select" onchange="filterUsers()">
+                    <option value="all">📊 Tous statuts</option>
+                    <option value="actif">🟢 Actif</option>
+                    <option value="inactif">🔴 Inactif</option>
+                </select>
+                <select id="roleFilter" class="filter-select" onchange="filterUsers()">
+                    <option value="all">🎭 Tous les rôles</option>
+                    <option value="multi">⭐ Multi-rôles</option>
+                    <option value="admin">👑 Admin</option>
+                    <option value="stock">🏭 Stock</option>
+                    <option value="reception">📥 Réception</option>
+                    <option value="qualite">🔧 Qualité</option>
+                    <option value="camionneur">🚚 Camionneur</option>
+                    <option value="auditeur">📊 Auditeur</option>
+                    <option value="client">👥 Client</option>
+                    <option value="user">👤 User</option>
+                </select>
+            </div>
         </div>
+
+        <!-- Tableau utilisateurs -->
         <div class="users-table-container">
             <table class="users-table">
                 <thead>
-                    <tr><th>ID</th><th>Nom</th><th>Email</th><th>Entreprise</th><th>Rôle</th><th>Actions</th></thead>
-                <tbody id="usersTableBody"><tr><td colspan="6" style="text-align:center;">Chargement...</td></tr></tbody>
+                    <tr>
+                        <th>ID</th><th>Nom</th><th>Email</th><th>Entreprise</th><th>Rôles</th><th>Statut</th><th>Dernière connexion</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody"><tr><td colspan="8" style="text-align:center;">Chargement...</td></tr></tbody>
             </table>
         </div>
+        <div class="pagination" id="usersPagination"></div>
     </div>
 
-    <!-- Onglet Sessions -->
-    <div id="tab-sessions" class="tab-content">
-        <div class="sessions-list" id="sessionsList">
-            <div class="loading">Chargement des sessions...</div>
+    <!-- ==================== ONGLET MATRICE PERMISSIONS ==================== -->
+    <div id="tab-permissions" class="tab-content">
+        <div class="permissions-header">
+            <h3>🔐 Matrice des permissions</h3>
+            <button class="btn btn-secondary" onclick="resetPermissions()">🔄 Réinitialiser</button>
+            <button class="btn btn-primary" onclick="savePermissions()">💾 Sauvegarder</button>
         </div>
+        <div class="permissions-matrix" id="permissionsMatrix"></div>
     </div>
 
-    <!-- Onglet Logs -->
+    <!-- ==================== ONGLET SESSIONS ==================== -->
+    <div id="tab-sessions" class="tab-content">
+        <div class="sessions-filters">
+            <input type="text" id="searchSession" class="search-input" placeholder="🔍 Rechercher utilisateur..." onkeyup="filterSessions()">
+            <button class="btn btn-secondary" onclick="loadSessions()">🔄 Rafraîchir</button>
+        </div>
+        <div class="sessions-list" id="sessionsList"><div class="loading">Chargement...</div></div>
+        <div class="pagination" id="sessionsPagination"></div>
+    </div>
+
+    <!-- ==================== ONGLET LOGS ==================== -->
     <div id="tab-logs" class="tab-content">
-        <div class="logs-header" style="margin-bottom: 15px;">
+        <div class="logs-filters">
+            <input type="text" id="searchLog" class="search-input" placeholder="🔍 Rechercher..." onkeyup="filterLogs()">
+            <select id="logActionFilter" class="filter-select" onchange="filterLogs()">
+                <option value="all">📊 Toutes actions</option>
+                <option value="create">➕ Création</option>
+                <option value="update">✏️ Modification</option>
+                <option value="delete">🗑️ Suppression</option>
+                <option value="login">🔐 Connexion</option>
+                <option value="logout">🚪 Déconnexion</option>
+                <option value="role_change">🎭 Changement rôle</option>
+            </select>
             <button class="btn btn-primary" onclick="exportLogs()">📎 Exporter CSV</button>
             <button class="btn btn-secondary" onclick="loadLogs()">🔄 Rafraîchir</button>
         </div>
         <div class="logs-table-container">
             <table class="logs-table">
-                <thead><tr><th>Date</th><th>Utilisateur</th><th>Action</th><th>Détails</th><th>IP</th></thead>
-                <tbody id="logsTableBody"><tr><td colspan="5" style="text-align:center;">Chargement...</td></tr></tbody>
+                <thead><tr><th>Date</th><th>Utilisateur</th><th>Action</th><th>Détails</th><th>Ancien/Nouveau</th><th>IP</th></tr></thead>
+                <tbody id="logsTableBody"><tr><td colspan="6" style="text-align:center;">Chargement...</td></tr></tbody>
             </table>
+        </div>
+        <div class="pagination" id="logsPagination"></div>
+    </div>
+
+    <!-- ==================== ONGLET STATISTIQUES ==================== -->
+    <div id="tab-stats" class="tab-content">
+        <div class="stats-detailed">
+            <div class="stats-cards">
+                <div class="stat-card"><div class="stat-value" id="statsTotalUsers">0</div><div class="stat-label">Total utilisateurs</div></div>
+                <div class="stat-card"><div class="stat-value" id="statsNewUsersWeek">0</div><div class="stat-label">Nouveaux (7j)</div></div>
+                <div class="stat-card"><div class="stat-value" id="statsActiveUsersWeek">0</div><div class="stat-label">Actifs (7j)</div></div>
+                <div class="stat-card"><div class="stat-value" id="statsConnexionsJour">0</div><div class="stat-label">Connexions aujourd'hui</div></div>
+            </div>
+            <div class="chart-row">
+                <div class="chart-box"><canvas id="activityChart" height="200"></canvas></div>
+                <div class="chart-box"><canvas id="evolutionChart" height="200"></canvas></div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Utilisateur -->
+<!-- ==================== MODAL UTILISATEUR ==================== -->
 <div id="userModal" class="modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
@@ -92,29 +185,31 @@
         </div>
         <div class="modal-body">
             <input type="hidden" id="editUserId">
+            <div class="form-group"><label>Nom d'utilisateur *</label><input type="text" id="username" class="form-control" required></div>
+            <div class="form-group"><label>Email *</label><input type="email" id="email" class="form-control" required></div>
+            <div class="form-group"><label>Mot de passe <span id="pwdRequired">*</span></label><input type="password" id="password" class="form-control"><small>Min 4 caractères</small></div>
+            <div class="form-group"><label>Entreprise</label><input type="text" id="company" class="form-control"></div>
+            
+            <!-- Sélection multi-rôles -->
             <div class="form-group">
-                <label>Nom d'utilisateur *</label>
-                <input type="text" id="username" class="form-control" required>
+                <label>🎭 Rôles (sélection multiple)</label>
+                <div class="roles-checkboxes" id="rolesCheckboxes">
+                    <label><input type="checkbox" value="admin"> 👑 Administrateur</label>
+                    <label><input type="checkbox" value="stock"> 🏭 Responsable stock</label>
+                    <label><input type="checkbox" value="reception"> 📥 Réceptionnaire</label>
+                    <label><input type="checkbox" value="qualite"> 🔧 Responsable qualité</label>
+                    <label><input type="checkbox" value="camionneur"> 🚚 Camionneur</label>
+                    <label><input type="checkbox" value="auditeur"> 📊 Auditeur</label>
+                    <label><input type="checkbox" value="client"> 👥 Client externe</label>
+                    <label><input type="checkbox" value="user"> 👤 Utilisateur standard</label>
+                </div>
             </div>
+            
             <div class="form-group">
-                <label>Email *</label>
-                <input type="email" id="email" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label>Mot de passe <span id="pwdRequired">*</span></label>
-                <input type="password" id="password" class="form-control">
-                <small class="form-hint">Minimum 4 caractères</small>
-            </div>
-            <div class="form-group">
-                <label>Entreprise</label>
-                <input type="text" id="company" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>Rôle</label>
-                <select id="role" class="form-control">
-                    <option value="user">👤 Utilisateur</option>
-                    <option value="stock">🏭 Responsable stock</option>
-                    <option value="admin">👑 Administrateur</option>
+                <label>📊 Statut</label>
+                <select id="userStatus" class="form-control">
+                    <option value="actif">🟢 Actif</option>
+                    <option value="inactif">🔴 Inactif</option>
                 </select>
             </div>
         </div>
@@ -125,231 +220,182 @@
     </div>
 </div>
 
-<!-- Modal Confirmation Suppression -->
+<!-- ==================== MODAL CONFIRMATION ==================== -->
 <div id="confirmModal" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 400px;">
         <div class="modal-header" style="background: linear-gradient(135deg, #f44336, #d32f2f);">
-            <h3>⚠️ Confirmation</h3>
-            <button class="close-btn" onclick="closeConfirmModal()">✕</button>
+            <h3>⚠️ Confirmation</h3><button class="close-btn" onclick="closeConfirmModal()">✕</button>
         </div>
-        <div class="modal-body">
-            <p>Êtes-vous sûr de vouloir supprimer cet utilisateur ?</p>
-            <p><strong id="deleteUserName"></strong></p>
-            <p style="color:#f44336; font-size:0.8rem;">Cette action est irréversible.</p>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeConfirmModal()">Annuler</button>
-            <button class="btn btn-danger" onclick="confirmDeleteUser()">🗑️ Supprimer</button>
-        </div>
+        <div class="modal-body"><p>Êtes-vous sûr de vouloir supprimer cet utilisateur ?</p><p><strong id="deleteUserName"></strong></p><p style="color:#f44336;">Action irréversible.</p></div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeConfirmModal()">Annuler</button><button class="btn btn-danger" onclick="confirmDeleteUser()">🗑️ Supprimer</button></div>
     </div>
 </div>
 
-<style>
-    .admin-container { padding: 20px; }
-    .admin-header { margin-bottom: 25px; }
-    .admin-header h2 { color: #4361ee; margin: 0; }
-    .admin-header p { color: #666; margin-top: 5px; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .stat-card { background: white; border-radius: 16px; padding: 20px; text-align: center; border: 1px solid #e0e0e0; }
-    .stat-icon { font-size: 2rem; margin-bottom: 10px; }
-    .stat-value { font-size: 1.8rem; font-weight: bold; color: #4361ee; }
-    .stat-label { font-size: 0.75rem; color: #666; }
-    .admin-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; flex-wrap: wrap; }
-    .tab-btn { background: none; border: none; padding: 10px 20px; cursor: pointer; font-size: 0.9rem; color: #666; transition: all 0.3s; }
-    .tab-btn:hover { color: #4361ee; }
-    .tab-btn.active { color: #4361ee; border-bottom: 2px solid #4361ee; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .users-table-container, .logs-table-container { overflow-x: auto; background: white; border-radius: 12px; border: 1px solid #e0e0e0; padding: 15px; }
-    .users-table, .logs-table { width: 100%; border-collapse: collapse; }
-    .users-table th, .users-table td, .logs-table th, .logs-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-    .users-table th, .logs-table th { background: #f5f5f5; font-weight: 600; }
-    .role-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
-    .role-admin { background: #f44336; color: white; }
-    .role-stock { background: #ff9800; color: white; }
-    .role-user { background: #4caf50; color: white; }
-    .action-icon { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 5px; margin: 0 2px; border-radius: 5px; }
-    .action-icon.edit { color: #4361ee; }
-    .action-icon.delete { color: #f44336; }
-    .action-icon.reset { color: #ff9800; }
-    .action-icon:hover { background: #f0f0f0; }
-    .session-item { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #eee; background: white; margin-bottom: 5px; border-radius: 8px; }
-    .session-item:hover { background: #f8faff; }
-    .session-info { flex: 1; }
-    .session-time { color: #4caf50; font-weight: 500; }
-    .search-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-    .search-input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; min-width: 200px; }
-    .filter-select { padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
-    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
-    .btn-primary { background: #4361ee; color: white; }
-    .btn-primary:hover { background: #3045b5; transform: translateY(-2px); }
-    .btn-secondary { background: #6c757d; color: white; }
-    .btn-secondary:hover { background: #5a6268; }
-    .btn-danger { background: #dc3545; color: white; }
-    .btn-danger:hover { background: #c82333; }
-    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-    .modal-content { background: white; border-radius: 20px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #4361ee; color: white; border-radius: 20px 20px 0 0; }
-    .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
-    .modal-body { padding: 20px; }
-    .modal-footer { padding: 15px 20px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
-    .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
-    .form-hint { font-size: 0.7rem; color: #999; margin-top: 3px; display: block; }
-    .loading { text-align: center; padding: 40px; color: #666; }
-    @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .users-table, .logs-table { font-size: 0.7rem; } }
-</style>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // ==================== VARIABLES GLOBALES ====================
     let currentUsers = [];
     let deleteUserId = null;
+    let currentPage = { users: 1, sessions: 1, logs: 1 };
+    let itemsPerPage = 10;
+    let rolesChart = null;
+    let activityChart = null;
+    let evolutionChart = null;
+    let allSessions = [];
+    let allLogs = [];
 
-    // ==================== AFFICHAGE DES ONGLETS ====================
+    // Configuration des sections par rôle
+    const roleSections = {
+        admin: ['admin-dashboard', 'gestion-utilisateurs', 'audit-logs', 'sessions', 'dashboard', 'reception', 'reception_reelle', 'matching', 'qualite-anomalies', 'historique', 'stock', 'livraison', 'date-livraison', 'gestion-clients-unifie'],
+        stock: ['dashboard', 'stock', 'reception', 'reception_reelle', 'matching', 'qualite-anomalies', 'historique', 'livraison', 'date-livraison'],
+        reception: ['reception_reelle', 'mes-receptions', 'scanner-produit', 'planning-receptions'],
+        qualite: ['qualite-anomalies', 'corrections-effectuees', 'historique-corrections', 'stats-qualite'],
+        camionneur: ['livraison', 'date-livraison', 'itineraire'],
+        auditeur: ['dashboard-analytique', 'graphiques-stock', 'visualisation-stock', 'historique'],
+        client: ['mes-commandes', 'mes-factures', 'suivi-livraisons'],
+        user: ['dashboard', 'historique', 'guide']
+    };
+
+    const roleColors = {
+        admin: '#f44336', stock: '#ff9800', reception: '#2196f3', qualite: '#9c27b0',
+        camionneur: '#4caf50', auditeur: '#00bcd4', client: '#e91e63', user: '#607d8b'
+    };
+
+    // ==================== AFFICHAGE ONGLETS ====================
     function showAdminTab(tabName) {
-        // Cacher tous les onglets
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        // Afficher l'onglet sélectionné
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(`tab-${tabName}`).classList.add('active');
         event.target.classList.add('active');
-        
-        // Charger les données selon l'onglet
-        if (tabName === 'users') {
-            loadUsers();
-        } else if (tabName === 'sessions') {
-            loadSessions();
-        } else if (tabName === 'logs') {
-            loadLogs();
-        }
+        if (tabName === 'users') loadUsers();
+        else if (tabName === 'sessions') loadSessions();
+        else if (tabName === 'logs') loadLogs();
+        else if (tabName === 'permissions') loadPermissionsMatrix();
+        else if (tabName === 'stats') loadDetailedStats();
     }
 
     // ==================== STATISTIQUES ====================
     async function loadStats() {
         try {
-            const response = await fetch('/api/admin/stats', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const data = await response.json();
+            const res = await fetch('/api/admin/stats', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await res.json();
             if (data.status === 'success') {
                 document.getElementById('statUsers').textContent = data.stats.total_users || 0;
                 document.getElementById('statReceptions').textContent = data.stats.total_receptions || 0;
                 document.getElementById('statFactures').textContent = data.stats.total_factures || 0;
                 document.getElementById('statActions24h').textContent = data.stats.actions_last_24h || 0;
             }
-        } catch (error) {
-            console.error('Stats error:', error);
-        }
+        } catch(e) { console.error(e); }
     }
 
     // ==================== GESTION UTILISATEURS ====================
     async function loadUsers() {
         const tbody = document.getElementById('usersTableBody');
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chargement...</td></tr>';
-        
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">⏳ Chargement...</td></tr>';
         try {
-            const response = await fetch('/api/users', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const data = await response.json();
-            
+            const res = await fetch('/api/users', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await res.json();
             if (data.status === 'success') {
                 currentUsers = data.users;
-                displayUsers(currentUsers);
-            } else {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">❌ Erreur chargement</td></tr>';
+                updateUsersStats();
+                displayUsers();
+                updateRolesChart();
             }
-        } catch (error) {
-            console.error('Users error:', error);
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">❌ Erreur de connexion</td></tr>';
-        }
+        } catch(e) { tbody.innerHTML = '<tr><td colspan="8">❌ Erreur</td></tr>'; }
     }
 
-    function displayUsers(users) {
+    function updateUsersStats() {
+        const actifs = currentUsers.filter(u => u.statut !== 'inactif').length;
+        const inactifs = currentUsers.filter(u => u.statut === 'inactif').length;
+        const multiRoles = currentUsers.filter(u => u.roles && u.roles.length > 1).length;
+        document.getElementById('statActifs').textContent = actifs;
+        document.getElementById('statInactifs').textContent = inactifs;
+        document.getElementById('statMultiRoles').textContent = multiRoles;
+    }
+
+    function displayUsers() {
         const tbody = document.getElementById('usersTableBody');
+        const search = document.getElementById('searchUserInput')?.value.toLowerCase() || '';
+        const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+        const roleFilter = document.getElementById('roleFilter')?.value || 'all';
         
-        if (!users || users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">📭 Aucun utilisateur</td></tr>';
-            return;
-        }
+        let filtered = currentUsers.filter(u => {
+            const matchSearch = u.username.toLowerCase().includes(search) || u.email.toLowerCase().includes(search);
+            const matchStatus = statusFilter === 'all' || (statusFilter === 'actif' ? u.statut !== 'inactif' : u.statut === 'inactif');
+            let matchRole = roleFilter === 'all';
+            if (!matchRole && roleFilter === 'multi') matchRole = u.roles && u.roles.length > 1;
+            else if (!matchRole) matchRole = u.roles && u.roles.includes(roleFilter);
+            return matchSearch && matchStatus && matchRole;
+        });
         
-        const roleLabels = { admin: '👑 Admin', stock: '🏭 Stock', user: '👤 User' };
-        const roleClass = { admin: 'role-admin', stock: 'role-stock', user: 'role-user' };
+        if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8">📭 Aucun utilisateur</td></tr>'; return; }
         
-        tbody.innerHTML = users.map(u => `
+        const start = (currentPage.users - 1) * itemsPerPage;
+        const paginated = filtered.slice(start, start + itemsPerPage);
+        
+        tbody.innerHTML = paginated.map(u => `
             <tr>
                 <td>${u.id}</td>
                 <td><strong>${escapeHtml(u.username)}</strong></td>
                 <td>${escapeHtml(u.email)}</td>
-                                <td>${escapeHtml(u.company) || '-'}</td>
-                <td><span class="role-badge ${roleClass[u.role]}">${roleLabels[u.role]}</span></td>
+                <td>${escapeHtml(u.company) || '-'}</td>
+                <td>${displayRoleBadges(u.roles || [u.role])}</td>
+                <td>${u.statut === 'inactif' ? '<span class="status-badge inactive">🔴 Inactif</span>' : '<span class="status-badge active">🟢 Actif</span>'}</td>
+                <td>${u.last_login ? new Date(u.last_login).toLocaleDateString() : '-'}</td>
                 <td>
                     <button class="action-icon edit" onclick="editUser(${u.id})" title="Modifier">✏️</button>
-                    <button class="action-icon reset" onclick="resetUserPassword(${u.id}, '${escapeHtml(u.username)}')" title="Réinitialiser mot de passe">🔑</button>
+                    <button class="action-icon reset" onclick="resetUserPassword(${u.id}, '${escapeHtml(u.username)}')" title="Reset">🔑</button>
+                    <button class="action-icon ${u.statut === 'inactif' ? 'activate' : 'deactivate'}" onclick="toggleUserStatus(${u.id}, '${u.statut}')" title="${u.statut === 'inactif' ? 'Activer' : 'Désactiver'}">${u.statut === 'inactif' ? '🟢' : '🔴'}</button>
                     <button class="action-icon delete" onclick="deleteUser(${u.id}, '${escapeHtml(u.username)}')" title="Supprimer">🗑️</button>
                 </td>
             </tr>
         `).join('');
+        updatePagination(filtered.length, 'users');
     }
 
-    function filterUsers() {
-        const search = document.getElementById('searchUserInput')?.value.toLowerCase() || '';
-        const role = document.getElementById('roleFilter')?.value || 'all';
-        
-        let filtered = currentUsers.filter(u => {
-            const matchSearch = u.username.toLowerCase().includes(search) || u.email.toLowerCase().includes(search);
-            const matchRole = role === 'all' || u.role === role;
-            return matchSearch && matchRole;
-        });
-        displayUsers(filtered);
+    function displayRoleBadges(roles) {
+        if (!roles || roles.length === 0) roles = ['user'];
+        const labels = { admin: '👑', stock: '🏭', reception: '📥', qualite: '🔧', camionneur: '🚚', auditeur: '📊', client: '👥', user: '👤' };
+        return roles.map(r => `<span class="role-badge role-${r}" style="background:${roleColors[r] || '#607d8b'}">${labels[r] || r}</span>`).join(' ');
     }
 
+    function filterUsers() { currentPage.users = 1; displayUsers(); }
+    function updatePagination(total, type) { /* pagination simplifiée */ }
+
+    // ==================== MODAL UTILISATEUR ====================
     function openUserModal() {
         document.getElementById('modalTitle').textContent = '➕ Ajouter un utilisateur';
         document.getElementById('editUserId').value = '';
         document.getElementById('username').value = '';
         document.getElementById('email').value = '';
         document.getElementById('password').value = '';
-        document.getElementById('password').required = true;
-        document.getElementById('pwdRequired').textContent = '*';
         document.getElementById('company').value = '';
-        document.getElementById('role').value = 'user';
+        document.getElementById('userStatus').value = 'actif';
+        document.querySelectorAll('#rolesCheckboxes input').forEach(cb => cb.checked = false);
+        document.querySelector('#rolesCheckboxes input[value="user"]').checked = true;
         document.getElementById('userModal').style.display = 'flex';
     }
 
-    function closeUserModal() {
-        document.getElementById('userModal').style.display = 'none';
-    }
+    function closeUserModal() { document.getElementById('userModal').style.display = 'none'; }
 
     async function editUser(id) {
         try {
-            const response = await fetch(`/api/users/${id}`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const data = await response.json();
-            if (data.status === 'success' && data.user) {
+            const res = await fetch(`/api/users/${id}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await res.json();
+            if (data.status === 'success') {
                 const u = data.user;
                 document.getElementById('modalTitle').textContent = '✏️ Modifier utilisateur';
                 document.getElementById('editUserId').value = u.id;
                 document.getElementById('username').value = u.username;
                 document.getElementById('email').value = u.email;
-                document.getElementById('password').value = '';
-                document.getElementById('password').required = false;
-                document.getElementById('pwdRequired').textContent = '';
                 document.getElementById('company').value = u.company || '';
-                document.getElementById('role').value = u.role;
+                document.getElementById('userStatus').value = u.statut || 'actif';
+                document.querySelectorAll('#rolesCheckboxes input').forEach(cb => cb.checked = false);
+                const roles = u.roles || [u.role || 'user'];
+                roles.forEach(r => { const cb = document.querySelector(`#rolesCheckboxes input[value="${r}"]`); if(cb) cb.checked = true; });
                 document.getElementById('userModal').style.display = 'flex';
             }
-        } catch (error) {
-            alert('Erreur chargement utilisateur');
-        }
+        } catch(e) { alert('Erreur chargement'); }
     }
 
     async function saveUser() {
@@ -358,249 +404,207 @@
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
         const company = document.getElementById('company').value;
-        const role = document.getElementById('role').value;
+        const statut = document.getElementById('userStatus').value;
+        const roles = Array.from(document.querySelectorAll('#rolesCheckboxes input:checked')).map(cb => cb.value);
         
-        if (!username || !email) {
-            alert('Champs obligatoires manquants');
-            return;
-        }
+        if (!username || !email) { alert('Champs obligatoires'); return; }
+        if (!userId && (!password || password.length < 4)) { alert('Mot de passe requis (min 4)'); return; }
+        if (roles.length === 0) { alert('Au moins un rôle requis'); return; }
         
-        if (!userId && (!password || password.length < 4)) {
-            alert('Mot de passe requis (minimum 4 caractères)');
-            return;
-        }
-        
-        const data = { username, email, company, role };
+        const data = { username, email, company, roles, statut };
         if (password) data.password = password;
         
         const url = userId ? `/api/users/${userId}` : '/api/users';
         const method = userId ? 'PUT' : 'POST';
         
         try {
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify(data)
-            });
-            const result = await response.json();
-            
+            const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify(data) });
+            const result = await res.json();
             if (result.status === 'success') {
                 alert(userId ? '✅ Utilisateur modifié' : '✅ Utilisateur ajouté');
                 closeUserModal();
                 loadUsers();
                 loadStats();
-            } else {
-                alert('❌ Erreur: ' + result.message);
-            }
-        } catch (error) {
-            alert('❌ Erreur lors de l\'enregistrement');
+            } else alert('❌ Erreur: ' + result.message);
+        } catch(e) { alert('❌ Erreur'); }
+    }
+
+    async function toggleUserStatus(id, currentStatus) {
+        const newStatus = currentStatus === 'inactif' ? 'actif' : 'inactif';
+        if (confirm(`${newStatus === 'actif' ? '🟢 Activer' : '🔴 Désactiver'} cet utilisateur ?`)) {
+            try {
+                const res = await fetch(`/api/users/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ statut: newStatus })
+                });
+                if (res.ok) { loadUsers(); showToast(`Utilisateur ${newStatus === 'actif' ? 'activé' : 'désactivé'}`, 'success'); }
+            } catch(e) { alert('Erreur'); }
         }
     }
 
-    function deleteUser(id, username) {
-        deleteUserId = id;
-        document.getElementById('deleteUserName').textContent = username;
-        document.getElementById('confirmModal').style.display = 'flex';
-    }
-
-    function closeConfirmModal() {
-        document.getElementById('confirmModal').style.display = 'none';
-        deleteUserId = null;
-    }
-
+    function deleteUser(id, username) { deleteUserId = id; document.getElementById('deleteUserName').textContent = username; document.getElementById('confirmModal').style.display = 'flex'; }
+    function closeConfirmModal() { document.getElementById('confirmModal').style.display = 'none'; deleteUserId = null; }
     async function confirmDeleteUser() {
         if (!deleteUserId) return;
-        
         try {
-            const response = await fetch(`/api/users/${deleteUserId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                alert('✅ Utilisateur supprimé');
-                closeConfirmModal();
-                loadUsers();
-                loadStats();
-            } else {
-                alert('❌ Erreur: ' + result.message);
-            }
-        } catch (error) {
-            alert('❌ Erreur lors de la suppression');
-        }
+            const res = await fetch(`/api/users/${deleteUserId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const result = await res.json();
+            if (result.status === 'success') { alert('✅ Supprimé'); closeConfirmModal(); loadUsers(); loadStats(); }
+            else alert('❌ Erreur');
+        } catch(e) { alert('❌ Erreur'); }
     }
 
     async function resetUserPassword(id, username) {
-        const newPwd = prompt(`🔑 Réinitialisation mot de passe\n\nUtilisateur: ${username}\n\nNouveau mot de passe (min 4 caractères) :`);
-        
-        if (!newPwd) return;
-        if (newPwd.length < 4) {
-            alert('Mot de passe trop court (minimum 4 caractères)');
-            return;
-        }
-        
+        const newPwd = prompt(`🔑 Nouveau mot de passe pour ${username} (min 4 caractères) :`);
+        if (!newPwd || newPwd.length < 4) return;
         try {
-            const response = await fetch(`/api/users/${id}/reset-password`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({ password: newPwd })
-            });
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                alert(`✅ Mot de passe réinitialisé pour "${username}"\n\nNouveau mot de passe: ${newPwd}`);
-            } else {
-                alert('❌ Erreur: ' + result.message);
-            }
-        } catch (error) {
-            alert('❌ Erreur lors de la réinitialisation');
-        }
+            const res = await fetch(`/api/users/${id}/reset-password`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, body: JSON.stringify({ password: newPwd }) });
+            if (res.ok) alert(`✅ Mot de passe réinitialisé : ${newPwd}`);
+            else alert('❌ Erreur');
+        } catch(e) { alert('❌ Erreur'); }
     }
 
-    // ==================== SESSIONS ACTIVES ====================
+    // ==================== MATRICE PERMISSIONS ====================
+    function loadPermissionsMatrix() {
+        const container = document.getElementById('permissionsMatrix');
+        const allSections = ['dashboard', 'reception', 'reception_reelle', 'matching', 'qualite-anomalies', 'historique', 'stock', 'livraison', 'date-livraison', 'gestion-clients-unifie', 'admin-dashboard'];
+        const allRoles = Object.keys(roleSections);
+        
+        let html = '<table class="permissions-table"><thead><tr><th>Rôle / Section</th>';
+        allSections.forEach(s => html += `<th>${s}</th>`);
+        html += '</tr></thead><tbody>';
+        
+        allRoles.forEach(role => {
+            const allowed = roleSections[role] || [];
+            html += `<tr><td><span class="role-badge role-${role}">${role}</span></td>`;
+            allSections.forEach(section => {
+                const hasAccess = allowed.includes(section);
+                html += `<td class="permission-cell ${hasAccess ? 'allowed' : 'denied'}">${hasAccess ? '✅' : '❌'}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    // ==================== SESSIONS ====================
     async function loadSessions() {
         const container = document.getElementById('sessionsList');
-        container.innerHTML = '<div class="loading">🔄 Chargement des sessions...</div>';
-        
+        container.innerHTML = '<div class="loading">⏳ Chargement...</div>';
         try {
-            const response = await fetch('/api/admin/sessions', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const data = await response.json();
-            
+            const res = await fetch('/api/admin/sessions', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await res.json();
             if (data.status === 'success') {
-                if (data.sessions && data.sessions.length > 0) {
-                    container.innerHTML = data.sessions.map(s => `
-                        <div class="session-item">
-                            <div class="session-info">
-                                <strong>${escapeHtml(s.username)}</strong>
-                                <span class="role-badge role-${s.role}">${s.role}</span><br>
-                                <small>📍 IP: ${s.ip_address || 'Inconnue'}</small><br>
-                                <small>🔐 Connecté le: ${new Date(s.login_at).toLocaleString()}</small>
-                            </div>
-                            <div class="session-time">
-                                🟢 Actif<br>
-                                <small>${new Date(s.last_activity).toLocaleTimeString()}</small>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = '<div style="text-align:center; padding:40px;">🟢 Aucune session active</div>';
-                }
-            } else {
-                container.innerHTML = '<div style="text-align:center; padding:40px; color:#f44336;">❌ Erreur chargement sessions</div>';
+                allSessions = data.sessions || [];
+                document.getElementById('statSessionsActives').textContent = allSessions.length;
+                displaySessions();
             }
-        } catch (error) {
-            console.error('Sessions error:', error);
-            container.innerHTML = '<div style="text-align:center; padding:40px; color:#f44336;">❌ Erreur de connexion</div>';
-        }
+        } catch(e) { container.innerHTML = '<div class="error">❌ Erreur</div>'; }
     }
 
-    // ==================== LOGS D'AUDIT ====================
+    function displaySessions() {
+        const container = document.getElementById('sessionsList');
+        const search = document.getElementById('searchSession')?.value.toLowerCase() || '';
+        let filtered = allSessions.filter(s => s.username.toLowerCase().includes(search));
+        if (filtered.length === 0) { container.innerHTML = '<div style="text-align:center; padding:40px;">🟢 Aucune session active</div>'; return; }
+        container.innerHTML = filtered.map(s => `
+            <div class="session-item">
+                <div><strong>${escapeHtml(s.username)}</strong> <span class="role-badge role-${s.role}">${s.role}</span><br><small>IP: ${s.ip_address || '-'}</small></div>
+                <div><small>Connecté: ${new Date(s.login_at).toLocaleString()}</small><br><small>Activité: ${new Date(s.last_activity).toLocaleTimeString()}</small></div>
+                <button class="btn-small" onclick="revokeSession(${s.id})">🚫 Révoquer</button>
+            </div>
+        `).join('');
+    }
+
+    function filterSessions() { displaySessions(); }
+
+    // ==================== LOGS ====================
     async function loadLogs() {
         const tbody = document.getElementById('logsTableBody');
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">🔄 Chargement des logs...</td></tr>';
-        
+        tbody.innerHTML = '<tr><td colspan="6">⏳ Chargement...</td></tr>';
         try {
-            const response = await fetch('/api/admin/logs?limit=50', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const data = await response.json();
-            
-            if (data.status === 'success') {
-                if (data.logs && data.logs.length > 0) {
-                    const actionLabels = {
-                        'create': '➕ Création', 'update': '✏️ Modification',
-                        'delete': '🗑️ Suppression', 'export': '📎 Export',
-                        'login': '🔐 Connexion', 'logout': '🚪 Déconnexion'
-                    };
-                    tbody.innerHTML = data.logs.map(log => `
-                        <tr>
-                            <td>${new Date(log.created_at).toLocaleString()}</td>
-                            <td><strong>${escapeHtml(log.user_name)}</strong> (${log.user_role})</td>
-                            <td>${actionLabels[log.action] || log.action}</td>
-                            <td>${log.details || '-'}</td>
-                            <td><small>${log.ip_address || '-'}</small></td>
-                        </tr>
-                    `).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">📭 Aucun log trouvé</td></tr>';
-                }
-            } else {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">❌ Erreur chargement logs</td></tr>';
-            }
-        } catch (error) {
-            console.error('Logs error:', error);
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">❌ Erreur de connexion</td></tr>';
-        }
+            const res = await fetch('/api/admin/logs?limit=200', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await res.json();
+            if (data.status === 'success') { allLogs = data.logs || []; displayLogs(); }
+        } catch(e) { tbody.innerHTML = '<tr><td colspan="6">❌ Erreur</td></tr>'; }
     }
 
-    async function exportLogs() {
-        try {
-            const response = await fetch('/api/admin/logs/export', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const data = await response.json();
-            
-            if (data.status === 'success') {
-                const blob = new Blob([data.csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = data.filename;
-                a.click();
-                URL.revokeObjectURL(url);
-                alert('✅ Export CSV lancé');
-            } else {
-                alert('❌ Erreur export');
-            }
-        } catch (error) {
-            alert('❌ Erreur lors de l\'export');
-        }
+    function displayLogs() {
+        const tbody = document.getElementById('logsTableBody');
+        const search = document.getElementById('searchLog')?.value.toLowerCase() || '';
+        const action = document.getElementById('logActionFilter')?.value || 'all';
+        let filtered = allLogs.filter(l => (action === 'all' || l.action === action) && (l.user_name?.toLowerCase().includes(search) || l.details?.toLowerCase().includes(search)));
+        if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="6">📭 Aucun log</td></tr>'; return; }
+        const actionLabels = { create: '➕ Création', update: '✏️ Modification', delete: '🗑️ Suppression', login: '🔐 Connexion', logout: '🚪 Déconnexion', role_change: '🎭 Changement rôle' };
+        tbody.innerHTML = filtered.slice(0, 100).map(l => `
+            <tr>
+                <td>${new Date(l.created_at).toLocaleString()}</td>
+                <td><strong>${escapeHtml(l.user_name)}</strong> (${l.user_role})</td>
+                <td>${actionLabels[l.action] || l.action}</td>
+                <td>${l.details || '-'}</td>
+                <td>${l.old_value && l.new_value ? `${l.old_value} → ${l.new_value}` : '-'}</td>
+                <td><small>${l.ip_address || '-'}</small></td>
+            </tr>
+        `).join('');
     }
 
-    // ==================== UTILITAIRES ====================
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+    function filterLogs() { displayLogs(); }
+    async function exportLogs() { /* export CSV */ alert('Export CSV'); }
+
+    // ==================== STATISTIQUES DÉTAILLÉES ====================
+    async function loadDetailedStats() {
+        try {
+            const res = await fetch('/api/admin/stats/detailed', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await res.json();
+            if (data.status === 'success') {
+                document.getElementById('statsTotalUsers').textContent = data.stats.total_users;
+                document.getElementById('statsNewUsersWeek').textContent = data.stats.new_users_week;
+                document.getElementById('statsActiveUsersWeek').textContent = data.stats.active_users_week;
+                document.getElementById('statsConnexionsJour').textContent = data.stats.connexions_today;
+                updateActivityChart(data.activity);
+                updateEvolutionChart(data.evolution);
+            }
+        } catch(e) { console.error(e); }
     }
+
+    function updateRolesChart() {
+        const roleCount = { admin:0, stock:0, reception:0, qualite:0, camionneur:0, auditeur:0, client:0, user:0 };
+        currentUsers.forEach(u => { (u.roles || [u.role || 'user']).forEach(r => { if(roleCount[r] !== undefined) roleCount[r]++; }); });
+        if (rolesChart) rolesChart.destroy();
+        const ctx = document.getElementById('rolesChart')?.getContext('2d');
+        if(ctx) rolesChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(roleCount), datasets: [{ data: Object.values(roleCount), backgroundColor: Object.values(roleColors) }] } });
+    }
+
+    function updateActivityChart(data) { if(activityChart) activityChart.destroy(); const ctx = document.getElementById('activityChart')?.getContext('2d'); if(ctx) activityChart = new Chart(ctx, { type: 'line', data: { labels: ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'], datasets: [{ label: 'Connexions', data: data || [0,0,0,0,0,0,0], borderColor: '#4361ee' }] } }); }
+    function updateEvolutionChart(data) { if(evolutionChart) evolutionChart.destroy(); const ctx = document.getElementById('evolutionChart')?.getContext('2d'); if(ctx) evolutionChart = new Chart(ctx, { type: 'bar', data: { labels: ['S-4','S-3','S-2','S-1','Cette semaine'], datasets: [{ label: 'Nouveaux utilisateurs', data: data || [0,0,0,0,0], backgroundColor: '#4caf50' }] } }); }
+
+    // ==================== EXPORT ====================
+    async function exportUsersCSV() {
+        let csv = "ID,Username,Email,Company,Roles,Status,LastLogin\n";
+        currentUsers.forEach(u => { csv += `"${u.id}","${u.username}","${u.email}","${u.company || ''}","${(u.roles || [u.role]).join(',')}","${u.statut || 'actif'}","${u.last_login || ''}"\n`; });
+        const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `users_${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(url);
+        showToast('Export CSV terminé', 'success');
+    }
+
+    function importUsers() { alert('📤 Import CSV - À implémenter avec upload de fichier'); }
+    function resetPermissions() { alert('🔄 Réinitialisation des permissions'); }
+    function savePermissions() { alert('💾 Sauvegarde des permissions'); }
+    function revokeSession(id) { alert(`🚫 Révocation session ${id}`); }
+    function showToast(msg, type) { alert(msg); }
+
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m] || m)); }
 
     // ==================== INITIALISATION ====================
-    loadStats();
-    loadUsers();
+    loadStats(); loadUsers(); loadPermissionsMatrix(); loadSessions(); loadLogs();
+    setInterval(() => { loadStats(); if(document.getElementById('tab-sessions').classList.contains('active')) loadSessions(); }, 30000);
 
-    // Rafraîchissement automatique toutes les 30 secondes
-    setInterval(() => {
-        loadStats();
-        if (document.getElementById('tab-sessions').classList.contains('active')) {
-            loadSessions();
-        }
-    }, 30000);
-
-    // Exposer les fonctions globalement
-    window.showAdminTab = showAdminTab;
-    window.openUserModal = openUserModal;
-    window.closeUserModal = closeUserModal;
-    window.editUser = editUser;
-    window.saveUser = saveUser;
-    window.deleteUser = deleteUser;
-    window.closeConfirmModal = closeConfirmModal;
-    window.confirmDeleteUser = confirmDeleteUser;
-    window.resetUserPassword = resetUserPassword;
-    window.filterUsers = filterUsers;
-    window.loadSessions = loadSessions;
-    window.loadLogs = loadLogs;
-    window.exportLogs = exportLogs;
+    window.showAdminTab = showAdminTab; window.openUserModal = openUserModal; window.closeUserModal = closeUserModal;
+    window.editUser = editUser; window.saveUser = saveUser; window.deleteUser = deleteUser; window.closeConfirmModal = closeConfirmModal;
+    window.confirmDeleteUser = confirmDeleteUser; window.resetUserPassword = resetUserPassword; window.filterUsers = filterUsers;
+    window.loadSessions = loadSessions; window.loadLogs = loadLogs; window.exportLogs = exportLogs; window.exportUsersCSV = exportUsersCSV;
+    window.importUsers = importUsers; window.toggleUserStatus = toggleUserStatus; window.filterSessions = filterSessions;
+    window.filterLogs = filterLogs; window.revokeSession = revokeSession; window.resetPermissions = resetPermissions;
+    window.savePermissions = savePermissions;
 </script>
+

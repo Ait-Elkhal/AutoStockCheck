@@ -3,41 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoStockCheck - {% block title %}Vérification automatique des commandes{% endblock %}</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <title>AutoStockCheck - {% block title %}{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/base.css">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Barre de menu dynamique -->
-    <nav class="navbar" id="navbar">
+    <!-- Navbar horizontale -->
+    <nav class="navbar">
         <div class="navbar-container">
             <a href="/" class="logo">
-                <span>📦</span>
+                <span class="logo-icon">📦</span>
                 AutoStockCheck
             </a>
             <ul class="nav-menu">
-                <li><a href="/" class="nav-link {% if active_page == 'accueil' %}active{% endif %}">🏠 Accueil</a></li>
-                <li><a href="/models" class="nav-link {% if active_page == 'models' %}active{% endif %}">🤖 Modèles</a></li>
-                <li><a href="/contact" class="nav-link {% if active_page == 'contact' %}active{% endif %}">📞 Contact</a></li>
-                <li><a href="/register" class="nav-link btn-inscrire">📝 S'inscrire</a></li>
+                <li><a href="/" class="nav-link">🏠 Accueil</a></li>
+                <li><a href="/models" class="nav-link">🤖 Modèles</a></li>
+                <li><a href="/contact" class="nav-link">📞 Contact</a></li>
             </ul>
+            <div class="navbar-right">
+                <a href="/login" class="btn btn-primary">🔐 Connexion</a>
+            </div>
         </div>
     </nav>
-
-    <!-- Bouton scroll to top -->
-    <button class="scroll-top-btn" id="scrollTopBtn" title="Retour en haut">↑</button>
 
     <!-- Contenu principal -->
     <div class="container">
         {% block content %}{% endblock %}
     </div>
 
-    <!-- Footer -->
-    <div class="footer">
-        <p>© 2026 AutoStockCheck - ECU Worldwide | Solution de vérification automatique des commandes</p>
-    </div>
+    <footer class="footer">
+        <p>© 2026 AutoStockCheck - ECU Worldwide</p>
+    </footer>
 
-    <script src="/static/js/main.js"></script>
+    <div class="toast-container" id="toast-container"></div>
+    
+    <script src="/static/js/theme.js"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

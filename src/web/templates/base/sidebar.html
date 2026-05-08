@@ -1,0 +1,367 @@
+<!-- Sidebar - Menu latéral -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+      <div class="logo-icon">📦</div>
+      <span class="logo-text">AutoStockCheck</span>
+      <button class="sidebar-collapse" id="sidebarCollapse" title="Réduire">◀</button>
+  </div>
+
+  <nav class="sidebar-nav">
+      <div class="nav-section">
+          <div class="nav-section-title">Principal</div>
+          <a href="/dashboard" class="nav-item" data-page="dashboard">
+              <span class="nav-icon">📊</span>
+              <span class="nav-label">Dashboard</span>
+          </a>
+      </div>
+
+      <div class="nav-section">
+          <div class="nav-section-title">Gestion</div>
+          <a href="/stock" class="nav-item" data-page="stock">
+              <span class="nav-icon">🏭</span>
+              <span class="nav-label">Stock</span>
+          </a>
+          <a href="/reception" class="nav-item" data-page="reception">
+              <span class="nav-icon">📥</span>
+              <span class="nav-label">Réception</span>
+          </a>
+          <a href="/qualite" class="nav-item" data-page="qualite">
+              <span class="nav-icon">🔧</span>
+              <span class="nav-label">Qualité</span>
+          </a>
+      </div>
+
+      <div class="nav-section">
+          <div class="nav-section-title">Administration</div>
+          <a href="/admin" class="nav-item" data-page="admin">
+              <span class="nav-icon">👑</span>
+              <span class="nav-label">Administration</span>
+          </a>
+          <a href="/settings" class="nav-item" data-page="settings">
+              <span class="nav-icon">⚙️</span>
+              <span class="nav-label">Paramètres</span>
+          </a>
+      </div>
+  </nav>
+
+  <div class="sidebar-footer">
+      <div class="user-info">
+          <div class="user-avatar" id="sidebarAvatar">👤</div>
+          <div class="user-details">
+              <div class="user-name" id="sidebarUsername">Chargement...</div>
+              <div class="user-role" id="sidebarUserRole">-</div>
+          </div>
+      </div>
+      <button class="logout-btn" id="sidebarLogoutBtn">
+          <span class="icon">🚪</span>
+          <span class="label">Déconnexion</span>
+      </button>
+  </div>
+</aside>
+
+<style>
+/* ==================== SIDEBAR BLEUE PROFESSIONNELLE ==================== */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 280px;
+  background: linear-gradient(180deg, #1a56db 0%, #0e3a8a 100%);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease, transform 0.3s ease;
+  z-index: 100;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+/* Version réduite */
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .user-details,
+.sidebar.collapsed .nav-section-title {
+  display: none;
+}
+
+.sidebar.collapsed .nav-icon {
+  font-size: 1.3rem;
+  margin-right: 0;
+}
+
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+}
+
+/* En-tête sidebar */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.logo-icon {
+  font-size: 1.8rem;
+}
+
+.logo-text {
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex: 1;
+  margin-left: 0.75rem;
+  color: white;
+}
+
+/* Bouton collapse */
+.sidebar-collapse {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.sidebar-collapse:hover {
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.05);
+}
+
+/* ==================== SCROLLBAR ==================== */
+.sidebar-nav {
+  flex: 1;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.4) rgba(255,255,255,0.1);
+}
+
+/* WebKit (Chrome, Edge, Safari) */
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  margin: 5px 0;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.4);
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.7);
+}
+
+.sidebar-nav:active::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.9);
+}
+
+/* Sections */
+.nav-section {
+  margin-bottom: 1.5rem;
+}
+
+.nav-section-title {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.5);
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+/* Éléments de navigation */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  margin: 0.2rem 0;
+  border-radius: 10px;
+  color: rgba(255,255,255,0.8);
+  transition: all 0.2s;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.nav-item.active {
+  background: rgba(255,255,255,0.15);
+  color: white;
+}
+
+.nav-icon {
+  font-size: 1.2rem;
+  width: 1.5rem;
+  text-align: center;
+}
+
+.nav-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Pied de sidebar */
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  margin-bottom: 0.75rem;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: white;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: white;
+}
+
+.user-role {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.6);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.8);
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #ff6b6b;
+}
+
+.logout-btn .icon {
+  font-size: 1.1rem;
+}
+
+.logout-btn .label {
+  font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar {
+      transform: translateX(-100%);
+  }
+  .sidebar.open {
+      transform: translateX(0);
+  }
+}
+</style>
+
+<script>
+// Gestion du collapse
+const sidebar = document.getElementById('sidebar');
+const collapseBtn = document.getElementById('sidebarCollapse');
+const mainContent = document.querySelector('.main-content');
+
+// Charger l'état sauvegardé
+const savedState = localStorage.getItem('sidebarCollapsed');
+if (savedState === 'true') {
+  sidebar.classList.add('collapsed');
+  if (mainContent) mainContent.style.marginLeft = '80px';
+  if (collapseBtn) collapseBtn.innerHTML = '▶';
+}
+
+// Écouteur collapse
+if (collapseBtn) {
+  collapseBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      const isCollapsed = sidebar.classList.contains('collapsed');
+      localStorage.setItem('sidebarCollapsed', isCollapsed);
+      
+      if (mainContent) {
+          mainContent.style.marginLeft = isCollapsed ? '80px' : '280px';
+      }
+      collapseBtn.innerHTML = isCollapsed ? '▶' : '◀';
+  });
+}
+
+// Mettre en surbrillance l'élément actif
+const currentPath = window.location.pathname;
+document.querySelectorAll('.nav-item').forEach(item => {
+  const href = item.getAttribute('href');
+  if (href && currentPath === href) {
+      item.classList.add('active');
+  }
+});
+
+// Déconnexion
+document.getElementById('sidebarLogoutBtn')?.addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  window.location.href = '/login';
+});
+
+// Charger les infos utilisateur
+async function loadUserInfo() {
+  try {
+      const response = await fetch('/api/me');
+      const data = await response.json();
+      if (data.status === 'success') {
+          document.getElementById('sidebarUsername').textContent = data.user.username;
+          const roleLabels = { admin: 'Administrateur', stock: 'Responsable Stock', user: 'Utilisateur' };
+          document.getElementById('sidebarUserRole').textContent = roleLabels[data.user.role] || data.user.role;
+          const initial = data.user.username.charAt(0).toUpperCase();
+          document.getElementById('sidebarAvatar').textContent = initial;
+      }
+  } catch(e) {
+      console.error('Erreur chargement user:', e);
+  }
+}
+loadUserInfo();
+</script>

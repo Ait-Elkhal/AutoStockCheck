@@ -1,0 +1,438 @@
+{% extends "base/stock_base.html" %}
+
+{% block page_title %}🏭 Dashboard Responsable Stock{% endblock %}
+
+{% block stock_content %}
+<div class="stock-dashboard">
+    <!-- En-tête -->
+    <div class="dashboard-header">
+        <h2>🏭 Dashboard Responsable Stock</h2>
+        <div class="header-date" id="currentDate"></div>
+    </div>
+
+    <!-- Cartes KPI -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-icon">📦</div>
+            <div class="kpi-info">
+                <div class="kpi-value" id="totalStock">0</div>
+                <div class="kpi-label">Total produits</div>
+            </div>
+        </div>
+        <div class="kpi-card warning">
+            <div class="kpi-icon">⚠️</div>
+            <div class="kpi-info">
+                <div class="kpi-value" id="stockBas">0</div>
+                <div class="kpi-label">Stock bas</div>
+            </div>
+        </div>
+        <div class="kpi-card danger">
+            <div class="kpi-icon">🚨</div>
+            <div class="kpi-info">
+                <div class="kpi-value" id="rupture">0</div>
+                <div class="kpi-label">En rupture</div>
+            </div>
+        </div>
+        <div class="kpi-card success">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-info">
+                <div class="kpi-value" id="valeurStock">0 €</div>
+                <div class="kpi-label">Valeur du stock</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides -->
+    <div class="quick-actions">
+        <h3>⚡ Actions rapides</h3>
+        <div class="actions-grid">
+            <a href="/stock/gestion" class="action-card">
+                <div class="action-icon">📊</div>
+                <div>Gérer le stock</div>
+            </a>
+            <a href="/stock/mouvements" class="action-card">
+                <div class="action-icon">🔄</div>
+                <div>Mouvements</div>
+            </a>
+            <a href="/stock/alertes" class="action-card">
+                <div class="action-icon">🔔</div>
+                <div>Alertes</div>
+            </a>
+            <a href="/stock/historique" class="action-card">
+                <div class="action-icon">📋</div>
+                <div>Historique</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Section Réception -->
+    <div class="quick-actions">
+        <h3>📥 Réception</h3>
+        <div class="actions-grid">
+            <a href="/stock/factures" class="action-card">
+                <div class="action-icon">📄</div>
+                <div>Factures reçues</div>
+            </a>
+            <a href="/stock/reception-reelle" class="action-card">
+                <div class="action-icon">📦</div>
+                <div>Réception réelle</div>
+            </a>
+            <a href="/stock/matching" class="action-card">
+                <div class="action-icon">🔍</div>
+                <div>Matching IA</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Alertes critiques -->
+    <div class="alertes-section">
+        <h3>🚨 Alertes critiques</h3>
+        <div id="alertesList" class="alertes-list">
+            <div class="loading">Chargement...</div>
+        </div>
+    </div>
+
+    <!-- Derniers mouvements -->
+    <div class="mouvements-section">
+        <h3>🕐 Derniers mouvements</h3>
+        <div id="mouvementsList" class="mouvements-list">
+            <div class="loading">Chargement...</div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stock-dashboard {
+    padding: 0.5rem;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.dashboard-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.header-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+}
+
+/* Grille KPI */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid var(--border);
+    transition: transform 0.2s;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+}
+
+.kpi-icon {
+    font-size: 1.5rem;
+}
+
+.kpi-info {
+    flex: 1;
+}
+
+.kpi-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.kpi-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.kpi-card.warning .kpi-value { color: #ff9800; }
+.kpi-card.danger .kpi-value { color: #f44336; }
+.kpi-card.success .kpi-value { color: #4caf50; }
+
+/* Actions rapides */
+.quick-actions {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+}
+
+.quick-actions h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.9rem;
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+}
+
+.action-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.75rem;
+    background: var(--bg);
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s;
+    border: 1px solid var(--border-light);
+    font-size: 0.75rem;
+}
+
+.action-card:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.action-icon {
+    font-size: 1.2rem;
+}
+
+/* Alertes et mouvements */
+.alertes-section, .mouvements-section {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+}
+
+.alertes-section h3, .mouvements-section h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.9rem;
+}
+
+.alertes-list, .mouvements-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.alert-item, .mouvement-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem;
+    border-bottom: 1px solid var(--border-light);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.alert-item:last-child, .mouvement-item:last-child {
+    border-bottom: none;
+}
+
+.alert-item.warning {
+    border-left: 3px solid #ff9800;
+    background: rgba(255, 152, 0, 0.05);
+}
+
+.alert-item.danger {
+    border-left: 3px solid #f44336;
+    background: rgba(244, 67, 54, 0.05);
+}
+
+.alert-detail, .mouvement-detail {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.mouvement-quantite {
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.mouvement-date {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.btn-small {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.65rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-small:hover {
+    opacity: 0.9;
+}
+
+.loading {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .actions-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+// Afficher la date actuelle
+function displayCurrentDate() {
+    const dateElement = document.getElementById('currentDate');
+    if (dateElement) {
+        const today = new Date();
+        const formattedDate = today.toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+        dateElement.textContent = formattedDate;
+    }
+}
+
+async function chargerDashboardStock() {
+    try {
+        const response = await fetch('/api/stock/dashboard-stats', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            document.getElementById('totalStock').textContent = data.totalProduits || 0;
+            document.getElementById('stockBas').textContent = data.stockBas || 0;
+            document.getElementById('rupture').textContent = data.rupture || 0;
+            document.getElementById('valeurStock').textContent = (data.valeurStock || 0).toLocaleString() + ' €';
+        }
+    } catch (e) {
+        console.error('Erreur chargement stats:', e);
+    }
+    
+    await chargerAlertes();
+    await chargerMouvements();
+}
+
+async function chargerAlertes() {
+    try {
+        const response = await fetch('/api/stock/alertes', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await response.json();
+        const container = document.getElementById('alertesList');
+        
+        if (data.alertes && data.alertes.length > 0) {
+            container.innerHTML = data.alertes.map(a => `
+                <div class="alert-item ${a.type === 'rupture' ? 'danger' : 'warning'}">
+                    <div>
+                        <strong>${escapeHtml(a.reference)}</strong> - ${escapeHtml(a.nom)}
+                        <div class="alert-detail">Stock: ${a.quantite} / Seuil: ${a.stockMin}</div>
+                    </div>
+                    <a href="/stock/gestion" class="btn-small">Gérer</a>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<div class="loading">✅ Aucune alerte critique</div>';
+        }
+    } catch (e) {
+        console.error('Erreur chargement alertes:', e);
+        document.getElementById('alertesList').innerHTML = '<div class="loading">⚠️ Erreur de chargement</div>';
+    }
+}
+
+async function chargerMouvements() {
+    try {
+        const response = await fetch('/api/stock/mouvements/recent', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await response.json();
+        const container = document.getElementById('mouvementsList');
+        
+        if (data.mouvements && data.mouvements.length > 0) {
+            container.innerHTML = data.mouvements.map(m => `
+                <div class="mouvement-item">
+                    <div>
+                        <strong>${escapeHtml(m.reference)}</strong> - ${escapeHtml(m.nom)}
+                        <div class="mouvement-detail">${m.type === 'entree' ? '➕ Entrée' : '➖ Sortie'}</div>
+                    </div>
+                    <div class="mouvement-quantite" style="color: ${m.type === 'entree' ? '#4caf50' : '#f44336'}">
+                        ${m.type === 'entree' ? '+' : '-'}${m.quantite}
+                    </div>
+                    <div class="mouvement-date">${m.date ? new Date(m.date).toLocaleString() : '-'}</div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<div class="loading">📭 Aucun mouvement récent</div>';
+        }
+    } catch (e) {
+        console.error('Erreur chargement mouvements:', e);
+        document.getElementById('mouvementsList').innerHTML = '<div class="loading">⚠️ Erreur de chargement</div>';
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    displayCurrentDate();
+    chargerDashboardStock();
+});
+
+// Rafraîchissement automatique toutes les 30 secondes
+setInterval(function() {
+    chargerDashboardStock();
+}, 30000);
+</script>
+{% endblock %}

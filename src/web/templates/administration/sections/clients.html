@@ -1,0 +1,49 @@
+<div class="section-header">
+    <h3>👥 Gestion des clients externes</h3>
+    <div class="search-box">
+        <input type="text" id="searchClient" class="search-input" placeholder="🔍 Rechercher..." onkeyup="filterClients()">
+        <button class="btn btn-secondary" onclick="loadClients()">🔄 Rafraîchir</button>
+    </div>
+</div>
+
+<div class="clients-grid" id="clientsGrid"><div class="loading">⏳ Chargement...</div></div>
+
+<script>
+    let clientsList = [];
+    
+    async function loadClients() {
+        try {
+            const res = await fetch('/api/clients', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await res.json();
+            if (data.status === 'success') {
+                clientsList = data.clients;
+                displayClients();
+            }
+        } catch(e) { console.error(e); }
+    }
+    
+    function displayClients() {
+        const container = document.getElementById('clientsGrid');
+        const search = document.getElementById('searchClient')?.value.toLowerCase() || '';
+        const filtered = clientsList.filter(c => c.nom.toLowerCase().includes(search) || c.email.toLowerCase().includes(search));
+        
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="empty-state">📭 Aucun client</div>';
+            return;
+        }
+        
+        container.innerHTML = filtered.map(c => `
+            <div class="client-card">
+                <div class="client-avatar">${c.sexe === 'M' ? '👨' : c.sexe === 'F' ? '👩' : '👤'}</div>
+                <div class="client-name">${escapeHtml(c.nom)} ${escapeHtml(c.prenom || '')}</div>
+                <div class="client-email">${escapeHtml(c.email)}</div>
+                <div class="client-info">📅 ${new Date(c.date_inscription).toLocaleDateString()}</div>
+            </div>
+        `).join('');
+    }
+    
+    function filterClients() { displayClients(); }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m] || m)); }
+    
+    loadClients();
+</script>

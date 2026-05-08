@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Administration - AutoStockCheck{% endblock %}
+
+{% block extra_css %}
+<!-- Tabler CSS -->
+<link rel="stylesheet" href="/static/tabler/css/tabler.min.css">
+<link rel="stylesheet" href="/static/tabler/css/tabler-flags.min.css">
+<link rel="stylesheet" href="/static/tabler/css/tabler-payments.min.css">
+<link rel="stylesheet" href="/static/tabler/css/tabler-vendors.min.css">
+<!-- Notre CSS personnalisé -->
+<link rel="stylesheet" href="/static/css/administration.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/tabler/js/tabler.min.js"></script>
+<script>
+    // Charger une section via AJAX
+    async function loadSection(section, targetId) {
+        const container = document.getElementById(targetId);
+        if (!container) return;
+        container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Chargement...</p></div>';
+        try {
+            const response = await fetch(`/api/administration/section/${section}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            const html = await response.text();
+            container.innerHTML = html;
+            
+            // Exécuter les scripts dans le contenu chargé
+            const scripts = container.querySelectorAll('script');
+            scripts.forEach(oldScript => {
+                const newScript = document.createElement('script');
+                if (oldScript.src) newScript.src = oldScript.src;
+                else newScript.textContent = oldScript.textContent;
+                document.body.appendChild(newScript);
+            });
+        } catch(e) {
+            container.innerHTML = '<div class="alert alert-danger">Erreur de chargement</div>';
+            console.error(e);
+        }
+    }
+    
+    // Charger les statistiques globales
+    async function loadGlobalStats() {
+        try {
+            const res = await fetch('/api/clients', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await res.json();
+            if (data.status === 'success') document.getElementById('globalClients').textContent = data.clients.length;
+        } catch(e) {}
+        
+        try {
+            const res = await fetch('/api/users', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            const data = await res.json();
+            if (data.status === 'success') document.getElementById('globalEmployes').textContent = data.users.length;
+        } catch(e) {}
+        
+        if (window.AppData) {
+            document.getElementById('globalReceptions').textContent = window.AppData.commandesRecues?.length || 0;
+            document.getElementById('globalFactures').textContent = window.AppData.factures?.length || 0;
+        }
+        
+        const stockData = JSON.parse(localStorage.getItem('stockData') || '[]');
+        const valeur = stockData.reduce((s, p) => s + (p.quantite * (p.prix || 0)), 0);
+        document.getElementById('globalStock').textContent = stockData.length;
+        document.getElementById('globalValeurStock').textContent = valeur.toLocaleString() + '€';
+    }
+    
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+        loadGlobalStats();
+        loadSection('clients', 'clientsContent');
+        loadSection('membres', 'membresContent'); 
+        loadSection('receptions', 'receptionsContent');
+        loadSection('stock', 'stockContent');
+        loadSection('emails', 'emailsContent');
+        loadSection('statistiques', 'statsContent');
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-wrapper">
+        <!-- En-tête -->
+        <div class="page-header d-print-none">
+            <div class="container-xl">
+                <div class="row g-2 align-items-center">
+                    <div class="col">
+                        <div class="page-pretitle">Supervision</div>
+                        <h2 class="page-title">Centre d'administration</h2>
+                    </div>
+                    <div class="col-auto ms-auto d-print-none">
+                        <a href="/dashboard" class="btn btn-outline-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M0 0h24v24H0z" stroke="none"/>
+                                <path d="M12 3v12m0 0-3-3m3 3 3-3M5 3v4m14-4v4M3 12h18M5 21h14"/>
+                            </svg>
+                            Dashboard employé
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-body">
+            <div class="container-xl">
+                <!-- Cartes statistiques -->
+                <div class="row row-cards mb-4">
+                    <div class="col-sm-6 col-lg-2">
+                        <div class="card card-sm">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <span class="bg-primary text-white avatar">👥</span>
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-muted">Clients</div>
+                                        <div class="h3 m-0" id="globalClients">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-2">
+                        <div class="card card-sm">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <span class="bg-success text-white avatar">👔</span>
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-muted">Employés</div>
+                                        <div class="h3 m-0" id="globalEmployes">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-2">
+                        <div class="card card-sm">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <span class="bg-info text-white avatar">📦</span>
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-muted">Réceptions</div>
+                                        <div class="h3 m-0" id="globalReceptions">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-2">
+                        <div class="card card-sm">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <span class="bg-warning text-white avatar">📄</span>
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-muted">Factures</div>
+                                        <div class="h3 m-0" id="globalFactures">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-2">
+                        <div class="card card-sm">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <span class="bg-danger text-white avatar">🏭</span>
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-muted">Produits</div>
+                                        <div class="h3 m-0" id="globalStock">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-2">
+                        <div class="card card-sm">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <span class="bg-purple text-white avatar">💰</span>
+                                    </div>
+                                    <div class="col">
+                                        <div class="text-muted">Valeur stock</div>
+                                        <div class="h3 m-0" id="globalValeurStock">0€</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Onglets -->
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <a href="#tab-clients" class="nav-link active" data-bs-toggle="tab">👥 Clients</a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tab-membres" class="nav-link" data-bs-toggle="tab">👥 Membres</a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tab-receptions" class="nav-link" data-bs-toggle="tab">📦 Réceptions</a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tab-stock" class="nav-link" data-bs-toggle="tab">🏭 Stock</a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tab-emails" class="nav-link" data-bs-toggle="tab">📧 Emails</a>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <a href="#tab-stats" class="nav-link" data-bs-toggle="tab">📊 Statistiques</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content">
+                            <div class="tab-pane active show" id="tab-clients">
+                                <div id="clientsContent">Chargement...</div>
+                            </div>
+                            <div class="tab-pane" id="tab-membres">
+                                <div id="membresContent">Chargement...</div>
+                            </div>
+                            <div class="tab-pane" id="tab-receptions">
+                                <div id="receptionsContent">Chargement...</div>
+                            </div>
+                            <div class="tab-pane" id="tab-stock">
+                                <div id="stockContent">Chargement...</div>
+                            </div>
+                            <div class="tab-pane" id="tab-emails">
+                                <div id="emailsContent">Chargement...</div>
+                            </div>
+                            <div class="tab-pane" id="tab-stats">
+                                <div id="statsContent">Chargement...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

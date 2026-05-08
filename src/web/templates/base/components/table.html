@@ -1,0 +1,27 @@
+<!-- Composant Table réutilisable -->
+{% macro table(headers, rows, striped=true, hover=true, class="") %}
+<div class="table-wrapper">
+    <table class="table {{ 'table-striped' if striped else '' }} {{ 'table-hover' if hover else '' }} {{ class }}">
+        <thead>
+            <tr>
+                {% for header in headers %}
+                <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                {% for cell in row %}
+                <td>{{ cell | safe }}</td>
+                {% endfor %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="{{ headers | length }}" class="table-empty">Aucune donnée</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}

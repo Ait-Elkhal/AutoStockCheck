@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AutoStockCheck - Réception{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles principaux -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            min-height: 100vh;
+            color: #1a1a2e;
+        }
+        
+        /* Variables CSS */
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --primary-light: #818cf8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --bg-card: #ffffff;
+            --bg-sidebar: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+        }
+        
+        /* Layout principal */
+        .reception-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar */
+        .reception-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            background: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease, transform 0.3s ease;
+            z-index: 100;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .reception-sidebar.collapsed {
+            width: 80px;
+        }
+        
+        .reception-sidebar.collapsed .logo-text,
+        .reception-sidebar.collapsed .nav-label,
+        .reception-sidebar.collapsed .user-details,
+        .reception-sidebar.collapsed .nav-section-title {
+            display: none;
+        }
+        
+        .reception-sidebar.collapsed .sidebar-header {
+            justify-content: center;
+        }
+        
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .logo-icon {
+            font-size: 1.5rem;
+        }
+        
+        .logo-text {
+            font-weight: 700;
+            font-size: 1rem;
+            flex: 1;
+            margin-left: 0.75rem;
+            color: white;
+        }
+        
+        .sidebar-collapse {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .sidebar-collapse:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        /* Navigation */
+        .sidebar-nav {
+            flex: 1;
+            padding: 1rem 0.75rem;
+            overflow-y: auto;
+        }
+        
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .nav-section-title {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.4);
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.7rem 1rem;
+            margin: 0.2rem 0;
+            border-radius: 10px;
+            color: rgba(255,255,255,0.7);
+            transition: all 0.2s;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .nav-item.active {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .nav-icon {
+            font-size: 1.1rem;
+            width: 1.5rem;
+            text-align: center;
+        }
+        
+        .nav-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        /* Sidebar Footer */
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 0.75rem;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: white;
+        }
+        
+        .user-role {
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: none;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: rgba(255,255,255,0.7);
+            transition: all 0.2s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #ff6b6b;
+        }
+        
+        /* Main Content */
+        .reception-main {
+            flex: 1;
+            margin-left: 280px;
+            transition: margin-left 0.3s ease;
+            min-height: 100vh;
+        }
+        
+        .reception-sidebar.collapsed ~ .reception-main {
+            margin-left: 80px;
+        }
+        
+        /* Top Bar */
+        .reception-topbar {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .page-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .notification-btn {
+            position: relative;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        
+        .notification-btn:hover {
+            background: var(--border-light);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--danger);
+            color: white;
+            font-size: 0.6rem;
+            padding: 2px 5px;
+            border-radius: 10px;
+            min-width: 16px;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        
+        .user-menu:hover {
+            background: var(--border-light);
+        }
+        
+        .user-avatar-small {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .user-name-small {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        /* Content Container */
+        .reception-content {
+            padding: 1.5rem;
+            min-height: calc(100vh - 60px);
+        }
+        
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .toast {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideInRight 0.3s ease;
+            min-width: 300px;
+            max-width: 400px;
+        }
+        
+        .toast-success { border-left: 4px solid var(--success); }
+        .toast-error { border-left: 4px solid var(--danger); }
+        .toast-warning { border-left: 4px solid var(--warning); }
+        .toast-info { border-left: 4px solid var(--info); }
+        
+        .toast-icon { font-size: 1.2rem; }
+        .toast-content { flex: 1; }
+        .toast-title { font-weight: 600; font-size: 0.85rem; margin-bottom: 2px; }
+        .toast-message { font-size: 0.75rem; color: var(--text-secondary); }
+        .toast-close {
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            padding: 4px;
+        }
+        .toast-close:hover { color: var(--danger); }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Loading Spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Boutons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-card);
+            border-color: var(--border);
+            color: var(--text-primary);
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        /* Formulaires */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th {
+            text-align: left;
+            padding: 0.75rem;
+            background: var(--border-light);
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.8rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .reception-sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            
+            .reception-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .reception-main {
+                margin-left: 0 !important;
+            }
+            
+            .sidebar-toggle-mobile {
+                display: block;
+            }
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--border-light);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="reception-layout">
+        <!-- Sidebar -->
+        <aside class="reception-sidebar" id="receptionSidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">📥</div>
+                <span class="logo-text">Module Réception</span>
+                <button class="sidebar-collapse" id="sidebarCollapse" title="Réduire">◀</button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Réception</div>
+                    <a href="/reception" class="nav-item {% if request.endpoint == 'reception_page' %}active{% endif %}">
+                        <span class="nav-icon">📄</span>
+                        <span class="nav-label">Factures reçues</span>
+                    </a>
+                    <a href="/reception/reelle" class="nav-item {% if request.endpoint == 'reception_reelle_page' %}active{% endif %}">
+                        <span class="nav-icon">📦</span>
+                        <span class="nav-label">Réception réelle</span>
+                    </a>
+                    <a href="/reception/matching" class="nav-item {% if request.endpoint == 'reception_matching_page' %}active{% endif %}">
+                        <span class="nav-icon">🔍</span>
+                        <span class="nav-label">Matching</span>
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Navigation</div>
+                    <a href="/dashboard" class="nav-item">
+                        <span class="nav-icon">🏠</span>
+                        <span class="nav-label">Dashboard</span>
+                    </a>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="sidebarAvatar">👤</div>
+                    <div class="user-details">
+                        <div class="user-name" id="sidebarUsername">Chargement...</div>
+                        <div class="user-role">Responsable Réception</div>
+                    </div>
+                </div>
+                <button class="logout-btn" id="sidebarLogoutBtn">
+                    <span class="icon">🚪</span>
+                    <span class="label">Déconnexion</span>
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="reception-main">
+            <!-- Top Bar -->
+            <div class="reception-topbar">
+                <div class="page-title">
+                    <i class="fas fa-arrow-left menu-toggle mobile-only" id="mobileMenuToggle" style="display: none; margin-right: 10px; cursor: pointer;"></i>
+                    {% block page_title %}Réception{% endblock %}
+                </div>
+                <div class="topbar-actions">
+                    <button class="notification-btn" onclick="toggleNotifications()">
+                        🔔
+                        <span id="notificationBadge" class="notification-badge" style="display: none;">0</span>
+                    </button>
+                    <div class="user-menu" onclick="toggleUserMenu()">
+                        <div class="user-avatar-small" id="topbarAvatar">👤</div>
+                        <span class="user-name-small" id="topbarUsername"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div class="reception-content">
+                {% block content %}
+                <div class="loading-spinner"></div>
+                <p>Chargement...</p>
+                {% endblock %}
+            </div>
+        </main>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <!-- Scripts -->
+    <script>
+        // Configuration
+        let currentUser = null;
+        
+        // Charger les informations utilisateur
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/me', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    currentUser = data.user;
+                    const initial = currentUser.username.charAt(0).toUpperCase();
+                    document.getElementById('sidebarUsername').textContent = currentUser.username;
+                    document.getElementById('sidebarAvatar').textContent = initial;
+                    document.getElementById('topbarUsername').textContent = currentUser.username;
+                    document.getElementById('topbarAvatar').textContent = initial;
+                }
+            } catch(e) {
+                console.error('Erreur chargement user:', e);
+            }
+        }
+        
+        // Sidebar collapse
+        const sidebar = document.getElementById('receptionSidebar');
+        const collapseBtn = document.getElementById('sidebarCollapse');
+        
+        const savedState = localStorage.getItem('receptionSidebarCollapsed');
+        if (savedState === 'true' && sidebar) {
+            sidebar.classList.add('collapsed');
+            if (collapseBtn) collapseBtn.innerHTML = '▶';
+        }
+        
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('receptionSidebarCollapsed', isCollapsed);
+                collapseBtn.innerHTML = isCollapsed ? '▶' : '◀';
+            });
+        }
+        
+        // Mobile menu toggle
+        const mobileToggle = document.getElementById('mobileMenuToggle');
+        if (mobileToggle) {
+            mobileToggle.style.display = window.innerWidth <= 768 ? 'inline-block' : 'none';
+            mobileToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('mobile-open');
+            });
+            
+            window.addEventListener('resize', () => {
+                mobileToggle.style.display = window.innerWidth <= 768 ? 'inline-block' : 'none';
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('mobile-open');
+                }
+            });
+        }
+        
+        // Déconnexion
+        document.getElementById('sidebarLogoutBtn')?.addEventListener('click', async () => {
+            await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+            window.location.href = '/login';
+        });
+        
+        // Notifications
+        function toggleNotifications() {
+            alert('📬 Fonctionnalité à venir');
+        }
+        
+        function toggleUserMenu() {
+            // Menu utilisateur (optionnel)
+        }
+        
+        // Toast helper
+        function showToast(title, message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || 'ℹ️'}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${escapeHtml(title)}</div>
+                    <div class="toast-message">${escapeHtml(message)}</div>
+                </div>
+                <div class="toast-close" onclick="this.parentElement.remove()">✕</div>
+            `;
+            
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+        
+        // Escape HTML
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>]/g, m => {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // Vérifier l'authentification
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/check-auth', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                if (!data.authenticated) {
+                    window.location.href = '/login';
+                }
+            } catch(e) {
+                window.location.href = '/login';
+            }
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadUserInfo();
+        });
+        
+        // Exposer les fonctions globalement
+        window.showToast = showToast;
+        window.escapeHtml = escapeHtml;
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

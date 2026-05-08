@@ -1,0 +1,259 @@
+{% extends "base/stock_base.html" %}
+
+{% block page_title %}📜 Historique qualité{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/qualite.css">
+{% endblock %}
+
+{% block stock_content %}
+<div class="qualite-container">
+    <div class="qualite-header">
+        <h2>📜 Historique qualité</h2>
+        <button class="btn btn-secondary" onclick="chargerHistorique()">🔄 Rafraîchir</button>
+        <button class="btn btn-primary" onclick="exporterHistorique()">📎 Exporter CSV</button>
+    </div>
+
+    <div class="filters-bar">
+        <input type="text" id="searchHistorique" class="search-input" placeholder="🔍 Rechercher..." onkeyup="filtrerHistorique()">
+        <select id="typeFilter" class="filter-select" onchange="filtrerHistorique()">
+            <option value="all">📊 Tous</option>
+            <option value="anomalie">⚠️ Anomalies</option>
+            <option value="correction">✅ Corrections</option>
+        </select>
+        <select id="periodFilter" class="filter-select" onchange="filtrerHistorique()">
+            <option value="all">📅 Toutes dates</option>
+            <option value="today">Aujourd'hui</option>
+            <option value="week">Cette semaine</option>
+            <option value="month">Ce mois</option>
+        </select>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statAnomalies">0</div>
+            <div class="stat-label">Anomalies</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statCorrections">0</div>
+            <div class="stat-label">Corrections</div>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Facture</th>
+                    <th>Réception</th>
+                    <th>Client</th>
+                    <th>Produits</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="historiqueList">
+                <tr><td colspan="8" class="loading">⏳ Chargement...<\/td><\/tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Détail -->
+<div id="modalDetail" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📋 Détail</h3>
+            <button class="modal-close" onclick="fermerModalDetail()">✕</button>
+        </div>
+        <div class="modal-body" id="modalDetailContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="fermerModalDetail()">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let historiqueList = [];
+
+async function chargerHistorique() {
+    const tbody = document.getElementById('historiqueList');
+    tbody.innerHTML = '<tr><td colspan="8" class="loading">⏳ Chargement...<\/td><\/tr>';
+    
+    try {
+        const response = await fetch('/api/qualite/historique', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            historiqueList = data.historique;
+            afficherHistorique();
+            mettreAJourStats();
+        } else {
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">📭 Aucun historique trouvé<\/td><\/tr>';
+        }
+    } catch(e) {
+        console.error('Erreur:', e);
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">❌ Erreur de chargement<\/td><\/tr>';
+    }
+}
+
+function afficherHistorique() {
+    const tbody = document.getElementById('historiqueList');
+    const search = document.getElementById('searchHistorique').value.toLowerCase();
+    const typeFilter = document.getElementById('typeFilter').value;
+    const periodFilter = document.getElementById('periodFilter').value;
+    
+    let filtered = historiqueList.filter(item => {
+        const matchSearch = (item.facture_reference || '').toLowerCase().includes(search) ||
+                           (item.reception_reference || '').toLowerCase().includes(search) ||
+                           (item.client || '').toLowerCase().includes(search);
+        
+        const matchType = typeFilter === 'all' || item.type === typeFilter;
+        
+        let matchPeriod = true;
+        const itemDate = new Date(item.date);
+        const today = new Date();
+        if (periodFilter === 'today') {
+            matchPeriod = itemDate.toDateString() === today.toDateString();
+        } else if (periodFilter === 'week') {
+            const weekAgo = new Date(today.setDate(today.getDate() - 7));
+            matchPeriod = itemDate >= weekAgo;
+        } else if (periodFilter === 'month') {
+            const monthAgo = new Date(today.setMonth(today.getMonth() - 1));
+            matchPeriod = itemDate >= monthAgo;
+        }
+        
+        return matchSearch && matchType && matchPeriod;
+    });
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">📭 Aucun résultat<\/td><\/tr>';
+        return;
+    }
+    
+    tbody.innerHTML = filtered.map(item => `
+        <tr>
+            <td>${new Date(item.date).toLocaleString()}</td>
+            <td>${item.type === 'anomalie' ? '<span class="status-badge status-pending">⚠️ Anomalie</span>' : '<span class="status-badge status-corrige">✅ Correction</span>'}</td>
+            <td><strong>${escapeHtml(item.facture_reference || '-')}</strong></td>
+            <td>${escapeHtml(item.reception_reference || '-')}</td>
+            <td>${escapeHtml(item.client || '-')}</td>
+            <td>${item.nb_produits || 0} produit(s)</td>
+            <td>${item.statut === 'corrige' ? '<span class="status-badge status-corrige">✅ Corrigé</span>' : '<span class="status-badge status-pending">🟡 En attente</span>'}</td>
+            <td>
+                <button class="btn btn-sm" onclick="voirDetail('${item.id}', '${item.type}')">👁️ Détail</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function mettreAJourStats() {
+    const total = historiqueList.length;
+    const anomalies = historiqueList.filter(i => i.type === 'anomalie').length;
+    const corrections = historiqueList.filter(i => i.type === 'correction').length;
+    
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statAnomalies').textContent = anomalies;
+    document.getElementById('statCorrections').textContent = corrections;
+}
+
+function filtrerHistorique() {
+    afficherHistorique();
+}
+
+function voirDetail(id, type) {
+    const item = historiqueList.find(i => i.id === id);
+    if (!item) return;
+    
+    const modalContent = document.getElementById('modalDetailContent');
+    
+    if (type === 'anomalie') {
+        modalContent.innerHTML = `
+            <div class="correction-info">
+                <div class="correction-info-row"><strong>📅 Date:</strong> ${new Date(item.date).toLocaleString()}</div>
+                <div class="correction-info-row"><strong>📄 Facture:</strong> ${escapeHtml(item.facture_reference || '-')}</div>
+                <div class="correction-info-row"><strong>📦 Réception:</strong> ${escapeHtml(item.reception_reference || '-')}</div>
+                <div class="correction-info-row"><strong>👤 Client:</strong> ${escapeHtml(item.client || '-')}</div>
+            </div>
+            <h4>📋 Produits manquants</h4>
+            <table class="table">
+                <thead><tr><th>Référence</th><th>Produit</th><th>Qté facture</th><th>Qté reçue</th><th>Différence</th></tr></thead>
+                <tbody>
+                    ${(item.produits_manquants || []).map(p => `
+                        <tr><td><strong>${escapeHtml(p.reference)}</strong></td><td>${escapeHtml(p.produit)}</td><td>${p.quantite_facture}</td><td>${p.quantite_reception}</td><td style="color:var(--danger);">-${Math.abs(p.difference)}</td><\/tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } else {
+        modalContent.innerHTML = `
+            <div class="correction-info">
+                <div class="correction-info-row"><strong>📅 Date:</strong> ${new Date(item.date).toLocaleString()}</div>
+                <div class="correction-info-row"><strong>📄 Facture:</strong> ${escapeHtml(item.facture_reference || '-')}</div>
+                <div class="correction-info-row"><strong>📦 Réception:</strong> ${escapeHtml(item.reception_reference || '-')}</div>
+                <div class="correction-info-row"><strong>👤 Client:</strong> ${escapeHtml(item.client || '-')}</div>
+                ${item.date_correction ? `<div class="correction-info-row"><strong>📅 Date correction:</strong> ${new Date(item.date_correction).toLocaleString()}</div>` : ''}
+            </div>
+            <h4>✅ Corrections appliquées</h4>
+            <table class="table">
+                <thead><tr><th>Référence</th><th>Ancienne qté</th><th>Nouvelle qté</th><th>Ancien état</th><th>Nouvel état</th></tr></thead>
+                <tbody>
+                    ${(item.corrections || []).map(c => `
+                        <tr><td><strong>${escapeHtml(c.reference)}</strong></td><td>${c.ancienne_quantite}</td><td style="color:var(--success);">${c.nouvelle_quantite}</td><td>${c.ancien_etat || '-'}</td><td>${c.nouvel_etat || '-'}</td><\/tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            ${item.commentaire ? `<div class="correction-info"><strong>📝 Commentaire:</strong><br>${escapeHtml(item.commentaire)}</div>` : ''}
+        `;
+    }
+    
+    document.getElementById('modalDetail').style.display = 'flex';
+}
+
+function fermerModalDetail() {
+    document.getElementById('modalDetail').style.display = 'none';
+}
+
+function exporterHistorique() {
+    let csv = "Date,Type,Facture,Réception,Client,Produits,Statut\n";
+    historiqueList.forEach(item => {
+        csv += `"${new Date(item.date).toLocaleString()}","${item.type === 'anomalie' ? 'Anomalie' : 'Correction'}","${item.facture_reference || '-'}","${item.reception_reference || '-'}","${item.client || '-'}","${item.nb_produits || 0}","${item.statut === 'corrige' ? 'Corrigé' : 'En attente'}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `historique_qualite_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Export CSV', 'Fichier exporté avec succès', 'success');
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, m => {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+function showToast(title, message, type) {
+    if (typeof window.showToast === 'function') {
+        window.showToast(title, message, type);
+    }
+}
+
+chargerHistorique();
+</script>
+{% endblock %}

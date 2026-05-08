@@ -1,0 +1,1104 @@
+{% extends "base/reception-base.html" %}
+
+{% block title %}Réception - AutoStockCheck{% endblock %}
+
+{% block page_title %}📥 Réception des commandes{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Styles spécifiques à la page de réception */
+.filters-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    flex: 1;
+    min-width: 200px;
+}
+
+.search-box .input {
+    width: 100%;
+}
+
+.select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    cursor: pointer;
+}
+
+.table-empty {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.badge-success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge-warning {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+.badge-danger {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.btn-icon:hover {
+    background: var(--border-light);
+}
+
+/* Modal styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: var(--bg-card);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-lg {
+    max-width: 900px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h3 {
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 1rem;
+}
+
+.dropzone:hover {
+    border-color: var(--primary);
+    background: rgba(79, 70, 229, 0.05);
+}
+
+.dropzone-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.dropzone-text {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.file-info {
+    background: var(--border-light);
+    padding: 0.5rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.7rem;
+}
+
+.preview-table th,
+.preview-table td {
+    padding: 6px;
+    border: 1px solid var(--border);
+    text-align: left;
+}
+
+.produits-list {
+    margin: 1rem 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.produit-row {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 0.8fr 1fr auto;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    align-items: center;
+}
+
+.empty-produits {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+.matching-section {
+    padding: 1rem;
+}
+
+.selection-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.selection-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.selection-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.preview {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: var(--border-light);
+    border-radius: 8px;
+}
+
+.preview-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background: var(--primary-light);
+    border-radius: 4px;
+    font-size: 0.7rem;
+}
+
+.compare-section {
+    text-align: center;
+    margin: 1.5rem 0;
+}
+
+.btn-compare {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+}
+
+.matching-results {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.stats-summary {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    padding: 0.5rem 1rem;
+    background: var(--border-light);
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.stat-item.success { background: #e8f5e9; color: #2e7d32; }
+.stat-item.danger { background: #ffebee; color: #c62828; }
+.stat-item.warning { background: #fff3e0; color: #ef6c00; }
+
+.matching-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .selection-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .produit-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters-bar {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Tabs -->
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('factures')">📄 Factures reçues</button>
+    <button class="tab-btn" onclick="switchTab('receptions')">📦 Réceptions réelles</button>
+    <button class="tab-btn" onclick="switchTab('matching')">🔍 Matching IA</button>
+</div>
+
+<!-- Onglet Factures -->
+<div id="tab-factures" class="tab-content active">
+    <div class="filters-bar">
+        <div class="search-box">
+            <input type="text" id="searchFacture" class="input" placeholder="🔍 Rechercher par référence..." onkeyup="filterFactures()">
+        </div>
+        <select id="statusFactureFilter" class="select" onchange="filterFactures()">
+            <option value="all">📊 Tous statuts</option>
+            <option value="en-attente">🟡 En attente</option>
+            <option value="traite">🟢 Traité</option>
+        </select>
+        <button class="btn btn-primary" onclick="openAddFactureModal()">
+            ➕ Ajouter facture
+        </button>
+    </div>
+    
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Référence</th>
+                    <th>Fichier</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="facturesTableBody">
+                <tr><td colspan="5" class="table-empty">Chargement...<\/td><\/tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Onglet Réceptions réelles -->
+<div id="tab-receptions" class="tab-content">
+    <div class="filters-bar">
+        <div class="search-box">
+            <input type="text" id="searchReception" class="input" placeholder="🔍 Référence, client..." onkeyup="filterReceptions()">
+        </div>
+        <select id="statusReceptionFilter" class="select" onchange="filterReceptions()">
+            <option value="all">📊 Tous statuts</option>
+            <option value="en_attente">🟡 En attente</option>
+            <option value="valide">🟢 Validée</option>
+        </select>
+        <button class="btn btn-primary" onclick="openSaisieReceptionModal()">
+            📦 Nouvelle réception
+        </button>
+        <button class="btn btn-secondary" onclick="loadReceptions()">
+            🔄 Rafraîchir
+        </button>
+    </div>
+    
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Référence</th>
+                    <th>Client</th>
+                    <th>Produits</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="receptionsTableBody">
+                <tr><td colspan="6" class="table-empty">Chargement...<\/td><\/tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Onglet Matching IA -->
+<div id="tab-matching" class="tab-content">
+    <div class="matching-section">
+        <div class="selection-row">
+            <div class="selection-card">
+                <h3>📄 Facture</h3>
+                <select id="selectFacture" class="input" onchange="loadFacturePreview()">
+                    <option value="">-- Sélectionner une facture --</option>
+                </select>
+                <div id="facturePreview" class="preview"></div>
+            </div>
+            <div class="selection-card">
+                <h3>📦 Réception</h3>
+                <select id="selectReception" class="input" onchange="loadReceptionPreview()">
+                    <option value="">-- Sélectionner une réception --</option>
+                </select>
+                <div id="receptionPreview" class="preview"></div>
+            </div>
+        </div>
+        
+        <div class="compare-section">
+            <button class="btn btn-primary btn-compare" id="btnComparer" onclick="compareMatching()">
+                🔍 Comparer avec l'IA
+            </button>
+        </div>
+        
+        <div id="matchingResults" class="matching-results" style="display: none;">
+            <h3>📊 Résultats de la comparaison</h3>
+            <div class="stats-summary" id="matchingStats"></div>
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Référence</th>
+                            <th>Produit</th>
+                            <th>Qté Facture</th>
+                            <th>Qté Reçue</th>
+                            <th>Différence</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matchingResultsBody"></tbody>
+                </table>
+            </div>
+            <div class="matching-actions">
+                <button class="btn btn-warning" id="btnGenererAnomalies" onclick="genererAnomalies()" style="display: none;">
+                    📝 Générer anomalies
+                </button>
+                <button class="btn btn-success" id="btnValider" onclick="validerMatching()" style="display: none;">
+                    ✅ Valider définitivement
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajout Facture -->
+<div id="factureModal" class="modal-overlay" style="display: none;">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3>📤 Ajouter une facture</h3>
+            <button class="modal-close" onclick="closeModal('factureModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="dropzone" id="dropzone" onclick="document.getElementById('factureFile').click()">
+                <div class="dropzone-icon">📁📄</div>
+                <div class="dropzone-text">Déposez votre fichier Excel ici</div>
+                <input type="file" id="factureFile" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(this.files[0])">
+            </div>
+            <div id="fileInfo" class="file-info" style="display: none;">
+                <strong>📄 Fichier:</strong> <span id="selectedFileName"></span>
+            </div>
+            <div class="form-group">
+                <label>🏷️ Référence *</label>
+                <input type="text" id="factureReference" class="input" placeholder="REF-001" required>
+            </div>
+            <div class="form-group">
+                <label>📝 Informations</label>
+                <input type="text" id="factureInfo" class="input" placeholder="Client, fournisseur...">
+            </div>
+            <div id="previewExtraction" style="display: none;">
+                <h4>📊 Aperçu</h4>
+                <div id="previewContent"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('factureModal')">Annuler</button>
+            <button class="btn btn-primary" id="btnValiderFacture" onclick="saveFacture()" disabled>✅ Valider</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Saisie Réception -->
+<div id="receptionModal" class="modal-overlay" style="display: none;">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3>📦 Nouvelle réception</h3>
+            <button class="modal-close" onclick="closeModal('receptionModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Référence *</label>
+                    <input type="text" id="receptionReference" class="input" placeholder="REC-001" required>
+                </div>
+                <div class="form-group">
+                    <label>Client</label>
+                    <input type="text" id="receptionClient" class="input" placeholder="Nom du client">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Fournisseur</label>
+                <input type="text" id="receptionFournisseur" class="input" placeholder="Nom du fournisseur">
+            </div>
+            
+            <h4>📋 Produits reçus</h4>
+            <div id="produitsList" class="produits-list"></div>
+            
+            <button class="btn btn-secondary" onclick="ajouterLigneProduit()">
+                ➕ Ajouter un produit
+            </button>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('receptionModal')">Annuler</button>
+            <button class="btn btn-primary" onclick="saveReception()">💾 Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+let currentTab = 'factures';
+let facturesList = [];
+let receptionsList = [];
+let fichierTemp = null;
+let donneesExcelTemp = null;
+let matchingResults = null;
+let factureSelectionnee = null;
+let receptionSelectionnee = null;
+let produitsTemp = [];
+
+// ==================== CHARGEMENT ====================
+async function loadFactures() {
+    try {
+        const response = await fetch('/api/factures-recues', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            facturesList = data.factures;
+            displayFactures();
+        }
+    } catch(e) {
+        console.error('Erreur chargement factures:', e);
+        showToast('Erreur chargement factures', 'error');
+    }
+}
+
+async function loadReceptions() {
+    try {
+        const response = await fetch('/api/commandes-recues', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            receptionsList = data.commandes || [];
+            displayReceptions();
+            updateMatchingSelects();
+        }
+    } catch(e) {
+        console.error('Erreur chargement réceptions:', e);
+        showToast('Erreur chargement réceptions', 'error');
+    }
+}
+
+function displayFactures() {
+    const tbody = document.getElementById('facturesTableBody');
+    const search = document.getElementById('searchFacture')?.value.toLowerCase() || '';
+    const status = document.getElementById('statusFactureFilter')?.value || 'all';
+    
+    let filtered = facturesList.filter(f => {
+        const matchSearch = f.reference_reception?.toLowerCase().includes(search);
+        const matchStatus = status === 'all' || f.statut === status;
+        return matchSearch && matchStatus;
+    });
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="table-empty">📭 Aucune facture<\/td><\/tr>';
+        return;
+    }
+    
+    tbody.innerHTML = filtered.map(f => `
+        <tr>
+            <td>${f.created_at ? new Date(f.created_at).toLocaleDateString() : '-'}</td>
+            <td><strong>${escapeHtml(f.reference_reception || '-')}</strong></td>
+            <td>${escapeHtml(f.nom || '-')}</td>
+            <td><span class="badge badge-${f.statut === 'traite' ? 'success' : 'warning'}">${f.statut === 'traite' ? '✅ Traité' : '🟡 En attente'}</span></td>
+            <td>
+                <button class="btn-icon" onclick="viewFacture(${f.id})" title="Voir">👁️</button>
+                <button class="btn-icon" onclick="deleteFacture(${f.id})" title="Supprimer">🗑️</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function displayReceptions() {
+    const tbody = document.getElementById('receptionsTableBody');
+    const search = document.getElementById('searchReception')?.value.toLowerCase() || '';
+    const status = document.getElementById('statusReceptionFilter')?.value || 'all';
+    
+    let filtered = receptionsList.filter(r => {
+        const matchSearch = r.reference?.toLowerCase().includes(search) || r.client?.toLowerCase().includes(search);
+        const matchStatus = status === 'all' || r.statut === status;
+        return matchSearch && matchStatus;
+    });
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="table-empty">📭 Aucune réception<\/td><\/tr>';
+        return;
+    }
+    
+    tbody.innerHTML = filtered.map(r => `
+        <tr>
+            <td>${r.created_at ? new Date(r.created_at).toLocaleDateString() : '-'}</td>
+            <td><strong>${escapeHtml(r.reference || '-')}</strong></td>
+            <td>${escapeHtml(r.client || '-')}</td>
+            <td>${r.produits?.length || 0} produits</td>
+            <td><span class="badge badge-${r.statut === 'valide' ? 'success' : 'warning'}">${r.statut === 'valide' ? '✅ Validée' : '🟡 En attente'}</span></td>
+            <td>
+                <button class="btn-icon" onclick="viewReception(${r.id})" title="Voir">👁️</button>
+                <button class="btn-icon" onclick="deleteReception(${r.id})" title="Supprimer">🗑️</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// ==================== GESTION FICHIERS EXCEL ====================
+function handleFileSelect(file) {
+    if (!file) return;
+    fichierTemp = file;
+    document.getElementById('selectedFileName').textContent = file.name;
+    document.getElementById('fileInfo').style.display = 'block';
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const workbook = XLSX.read(e.target.result, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", blankrows: false });
+            
+            if (!json || !json.length) throw new Error("Fichier vide");
+            
+            let headers = json[0];
+            let rows = json.slice(1).filter(r => r.some(c => c !== ""));
+            
+            let preview = '<table class="preview-table"><thead><tr>';
+            headers.forEach(h => preview += `<th>${escapeHtml(h)}</th>`);
+            preview += '</thead><tbody>';
+            for (let i = 0; i < Math.min(5, rows.length); i++) {
+                preview += '<tr>';
+                rows[i].forEach(cell => preview += `<td>${escapeHtml(String(cell)) || '-'}</table>`);
+                preview += '</tr>';
+            }
+            if (rows.length > 5) preview += `<tr><td colspan="${headers.length}" class="text-center">... et ${rows.length - 5} lignes<\/td><\/tr>`;
+            preview += '</tbody></table>';
+            
+            document.getElementById('previewContent').innerHTML = preview;
+            document.getElementById('previewExtraction').style.display = 'block';
+            document.getElementById('btnValiderFacture').disabled = false;
+            donneesExcelTemp = { headers, rows };
+        } catch(err) {
+            showToast('Erreur lecture fichier', err.message, 'error');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+async function saveFacture() {
+    const reference = document.getElementById('factureReference').value.trim();
+    if (!reference) {
+        showToast('Référence requise', 'warning');
+        return;
+    }
+    if (!fichierTemp || !donneesExcelTemp) {
+        showToast('Fichier non analysé', 'warning');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('fichier', fichierTemp);
+    formData.append('reference', reference);
+    formData.append('informations', document.getElementById('factureInfo').value);
+    formData.append('contenu', JSON.stringify({
+        en_tete: donneesExcelTemp.headers,
+        lignes: donneesExcelTemp.rows
+    }));
+    
+    try {
+        const response = await fetch('/api/factures-recues', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+            body: formData
+        });
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            showToast('Facture ajoutée avec succès', 'success');
+            closeModal('factureModal');
+            loadFactures();
+            resetFactureForm();
+        } else {
+            showToast('Erreur: ' + result.message, 'error');
+        }
+    } catch(e) {
+        showToast('Erreur lors de l\'ajout', 'error');
+    }
+}
+
+// ==================== SAISIE RÉCEPTION ====================
+function openSaisieReceptionModal() {
+    produitsTemp = [];
+    document.getElementById('receptionReference').value = '';
+    document.getElementById('receptionClient').value = '';
+    document.getElementById('receptionFournisseur').value = '';
+    renderProduitsList();
+    openModal('receptionModal');
+}
+
+function ajouterLigneProduit() {
+    produitsTemp.push({
+        reference: '',
+        nom: '',
+        quantite: 1,
+        etat: 'Bon'
+    });
+    renderProduitsList();
+}
+
+function renderProduitsList() {
+    const container = document.getElementById('produitsList');
+    if (produitsTemp.length === 0) {
+        container.innerHTML = '<div class="empty-produits">Aucun produit. Cliquez sur "Ajouter un produit"</div>';
+        return;
+    }
+    
+    container.innerHTML = produitsTemp.map((p, i) => `
+        <div class="produit-row">
+            <input type="text" class="input" placeholder="Référence *" value="${escapeHtml(p.reference)}" onchange="updateProduit(${i}, 'reference', this.value)">
+            <input type="text" class="input" placeholder="Nom produit" value="${escapeHtml(p.nom)}" onchange="updateProduit(${i}, 'nom', this.value)">
+            <input type="number" class="input" placeholder="Quantité" value="${p.quantite}" onchange="updateProduit(${i}, 'quantite', parseInt(this.value) || 0)">
+            <select class="input" onchange="updateProduit(${i}, 'etat', this.value)">
+                <option ${p.etat === 'Bon' ? 'selected' : ''}>Bon</option>
+                <option ${p.etat === 'Très bon' ? 'selected' : ''}>Très bon</option>
+                <option ${p.etat === 'Correct' ? 'selected' : ''}>Correct</option>
+                <option ${p.etat === 'Défectueux' ? 'selected' : ''}>Défectueux</option>
+            </select>
+            <button class="btn-icon" onclick="supprimerProduit(${i})" title="Supprimer">🗑️</button>
+        </div>
+    `).join('');
+}
+
+function updateProduit(index, field, value) {
+    produitsTemp[index][field] = value;
+}
+
+function supprimerProduit(index) {
+    produitsTemp.splice(index, 1);
+    renderProduitsList();
+}
+
+async function saveReception() {
+    const reference = document.getElementById('receptionReference').value.trim();
+    if (!reference) {
+        showToast('Référence requise', 'warning');
+        return;
+    }
+    
+    const validProduits = produitsTemp.filter(p => p.reference);
+    if (validProduits.length === 0) {
+        showToast('Au moins un produit requis', 'warning');
+        return;
+    }
+    
+    const data = {
+        reference: reference,
+        client: document.getElementById('receptionClient').value,
+        fournisseur: document.getElementById('receptionFournisseur').value,
+        produits: validProduits,
+        statut: 'en_attente'
+    };
+    
+    try {
+        const response = await fetch('/api/commandes-recues', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            showToast('Réception enregistrée', 'success');
+            closeModal('receptionModal');
+            loadReceptions();
+        } else {
+            showToast('Erreur lors de l\'enregistrement', 'error');
+        }
+    } catch(e) {
+        showToast('Erreur', 'error');
+    }
+}
+
+// ==================== MATCHING IA ====================
+function updateMatchingSelects() {
+    const factureSelect = document.getElementById('selectFacture');
+    const receptionSelect = document.getElementById('selectReception');
+    
+    factureSelect.innerHTML = '<option value="">-- Sélectionner une facture --</option>';
+    receptionSelect.innerHTML = '<option value="">-- Sélectionner une réception --</option>';
+    
+    facturesList.forEach(f => {
+        if (f.statut !== 'traite') {
+            factureSelect.innerHTML += `<option value="${f.id}">${escapeHtml(f.reference_reception)} - ${escapeHtml(f.nom)}</option>`;
+        }
+    });
+    
+    receptionsList.forEach(r => {
+        if (r.statut !== 'valide') {
+            receptionSelect.innerHTML += `<option value="${r.id}">${escapeHtml(r.reference)} - ${escapeHtml(r.client || 'Sans client')}</option>`;
+        }
+    });
+}
+
+async function loadFacturePreview() {
+    const id = document.getElementById('selectFacture').value;
+    if (!id) {
+        document.getElementById('facturePreview').innerHTML = '';
+        factureSelectionnee = null;
+        return;
+    }
+    factureSelectionnee = facturesList.find(f => f.id == id);
+    if (factureSelectionnee && factureSelectionnee.contenu) {
+        let contenu = factureSelectionnee.contenu;
+        if (typeof contenu === 'string') contenu = JSON.parse(contenu);
+        const lignes = contenu?.lignes || [];
+        document.getElementById('facturePreview').innerHTML = `
+            <div class="preview-badge">${lignes.length} lignes</div>
+            <div class="preview-ref">${escapeHtml(factureSelectionnee.reference_reception)}</div>
+        `;
+    }
+}
+
+async function loadReceptionPreview() {
+    const id = document.getElementById('selectReception').value;
+    if (!id) {
+        document.getElementById('receptionPreview').innerHTML = '';
+        receptionSelectionnee = null;
+        return;
+    }
+    receptionSelectionnee = receptionsList.find(r => r.id == id);
+    if (receptionSelectionnee) {
+        const produits = receptionSelectionnee.produits || [];
+        document.getElementById('receptionPreview').innerHTML = `
+            <div class="preview-badge">${produits.length} produits</div>
+            <div class="preview-ref">${escapeHtml(receptionSelectionnee.reference)}</div>
+        `;
+    }
+}
+
+async function compareMatching() {
+    if (!factureSelectionnee || !receptionSelectionnee) {
+        showToast('Sélectionnez une facture et une réception', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/matching/compare', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                facture_id: factureSelectionnee.id,
+                reception_id: receptionSelectionnee.id
+            })
+        });
+        
+        const data = await response.json();
+        if (data.status === 'success') {
+            matchingResults = data.resultats;
+            displayMatchingResults(data.resultats);
+        } else {
+            showToast('Erreur comparaison', data.message, 'error');
+        }
+    } catch(e) {
+        showToast('Erreur', 'Impossible de comparer', 'error');
+    }
+}
+
+function displayMatchingResults(results) {
+    const container = document.getElementById('matchingResults');
+    const tbody = document.getElementById('matchingResultsBody');
+    const statsDiv = document.getElementById('matchingStats');
+    
+    const conformes = results.filter(r => r.statut === 'conforme').length;
+    const manques = results.filter(r => r.statut === 'manque').length;
+    const nonCommandes = results.filter(r => r.quantite_facture === 0 && r.quantite_reception > 0).length;
+    
+    statsDiv.innerHTML = `
+        <div class="stat-item success">✅ Conformes: ${conformes}</div>
+        <div class="stat-item danger">⚠️ Manques: ${manques}</div>
+        <div class="stat-item warning">📦 Non commandés: ${nonCommandes}</div>
+        <div class="stat-item">📊 Total: ${results.length}</div>
+    `;
+    
+    tbody.innerHTML = results.map(r => {
+        let statusClass = r.statut === 'conforme' ? 'success' : 'danger';
+        let statusText = r.statut === 'conforme' ? '✅ Conforme' : '⚠️ Manque';
+        let diffColor = r.difference < 0 ? 'var(--danger)' : r.difference > 0 ? 'var(--warning)' : 'var(--success)';
+        
+        return `
+            <tr>
+                <td><strong>${escapeHtml(r.reference)}</strong></td>
+                <td>${escapeHtml(r.produit)}</td>
+                <td class="text-center">${r.quantite_facture}</td>
+                <td class="text-center">${r.quantite_reception}</td>
+                <td class="text-center" style="color:${diffColor}">${r.difference > 0 ? '+' : ''}${r.difference}</td>
+                <td class="text-center"><span class="badge badge-${statusClass}">${statusText}</span></td>
+            </tr>
+        `;
+    }).join('');
+    
+    container.style.display = 'block';
+    
+    const hasAnomalies = manques > 0 || nonCommandes > 0;
+    const btnGenerer = document.getElementById('btnGenererAnomalies');
+    const btnValider = document.getElementById('btnValider');
+    
+    if (btnGenerer) btnGenerer.style.display = hasAnomalies ? 'inline-flex' : 'none';
+    if (btnValider) btnValider.style.display = !hasAnomalies ? 'inline-flex' : 'none';
+}
+
+async function genererAnomalies() {
+    if (!factureSelectionnee || !receptionSelectionnee) return;
+    
+    try {
+        const response = await fetch('/api/matching/anomalies', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                facture_id: factureSelectionnee.id,
+                reception_id: receptionSelectionnee.id,
+                resultats: matchingResults
+            })
+        });
+        
+        const data = await response.json();
+        if (data.status === 'success') {
+            showToast('Anomalies générées', `Fichier: ${data.filename}`, 'success');
+        } else {
+            showToast('Erreur', data.message, 'error');
+        }
+    } catch(e) {
+        showToast('Erreur', 'Impossible de générer les anomalies', 'error');
+    }
+}
+
+async function validerMatching() {
+    if (!factureSelectionnee || !receptionSelectionnee) return;
+    
+    if (confirm('⚠️ Valider définitivement cette comparaison ? Cette action est irréversible.')) {
+        try {
+            const response = await fetch('/api/matching/valider', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    facture_id: factureSelectionnee.id,
+                    reception_id: receptionSelectionnee.id,
+                    resultats: matchingResults
+                })
+            });
+            
+            const data = await response.json();
+            if (data.status === 'success') {
+                showToast('Validation réussie', 'Les stocks ont été mis à jour', 'success');
+                loadFactures();
+                loadReceptions();
+                document.getElementById('matchingResults').style.display = 'none';
+            } else {
+                showToast('Erreur', data.message, 'error');
+            }
+        } catch(e) {
+            showToast('Erreur', 'Impossible de valider', 'error');
+        }
+    }
+}
+
+// ==================== UTILITAIRES ====================
+function openAddFactureModal() {
+    openModal('factureModal');
+}
+
+function openModal(modalId) {
+    document.getElementById(modalId).style.display = 'flex';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+    if (modalId === 'factureModal') resetFactureForm();
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    
+    if (tab === 'factures') loadFactures();
+    else if (tab === 'receptions') loadReceptions();
+    else if (tab === 'matching') updateMatchingSelects();
+}
+
+function filterFactures() { displayFactures(); }
+function filterReceptions() { displayReceptions(); }
+
+function resetFactureForm() {
+    document.getElementById('factureReference').value = '';
+    document.getElementById('factureInfo').value = '';
+    document.getElementById('fileInfo').style.display = 'none';
+    document.getElementById('previewExtraction').style.display = 'none';
+    document.getElementById('btnValiderFacture').disabled = true;
+    fichierTemp = null;
+    donneesExcelTemp = null;
+}
+
+async function viewFacture(id) {
+    const facture = facturesList.find(f => f.id === id);
+    if (facture) {
+        alert(`📄 Facture ${facture.reference_reception}\n📅 ${facture.created_at}\n📊 Statut: ${facture.statut}`);
+    }
+}
+
+async function deleteFacture(id) {
+    if (confirm('Supprimer cette facture ?')) {
+        try {
+            await fetch(`/api/factures-recues/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            showToast('Facture supprimée', 'success');
+            loadFactures();
+        } catch(e) {
+            showToast('Erreur', 'error');
+        }
+    }
+}
+
+async function viewReception(id) {
+    const reception = receptionsList.find(r => r.id === id);
+    if (reception) {
+        let msg = `📦 Réception ${reception.reference}\n👤 Client: ${reception.client}\n📅 ${reception.created_at}\n\n📋 Produits:\n`;
+        reception.produits?.forEach(p => {
+            msg += `- ${p.reference}: ${p.quantite} x ${p.nom} (${p.etat})\n`;
+        });
+        alert(msg);
+    }
+}
+
+async function deleteReception(id) {
+    if (confirm('Supprimer cette réception ?')) {
+        try {
+            await fetch(`/api/commandes-recues/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            showToast('Réception supprimée', 'success');
+            loadReceptions();
+        } catch(e) {
+            showToast('Erreur', 'error');
+        }
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, m => {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+// Initialisation
+loadFactures();
+loadReceptions();
+</script>
+{% endblock %}
